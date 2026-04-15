@@ -1,0 +1,44 @@
+# ---------------------------------------------------------------------
+# 決済リンク・ゲートウェイ
+# 機密ファイルへの直接アクセスを禁止する。
+# Apache 2.2 / 2.4 いずれでも動作するよう IfModule で両対応。
+# ---------------------------------------------------------------------
+
+# config.php をWebから読ませない
+<Files "config.php">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</Files>
+
+# SQLite ファイルへの直接アクセスを禁止
+<FilesMatch "\.(sqlite|sqlite3|db)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# .git などのドットファイル類
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# PHP 実行環境の軽い固定（Xrea 等で必要な場合がある）
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_flag expose_php     Off
+</IfModule>
