@@ -1,0 +1,14 @@
+# SQLite データベース本体（WAL/SHM を含む）
+data/*.sqlite
+data/*.sqlite-journal
+data/*.sqlite-wal
+data/*.sqlite-shm
+data/*.db
+
+# OS / エディタ
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
