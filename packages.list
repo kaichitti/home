@@ -1,0 +1,50 @@
+# WebBrowse Linux - apk packages
+# One package per line. Lines starting with # are ignored.
+
+# --- Base system ---
+alpine-base
+alpine-baselayout
+busybox
+openrc
+linux-lts
+linux-firmware-none
+mkinitfs
+
+# --- Bootloader / ISO tooling ---
+syslinux
+
+# --- X server (minimal) ---
+xorg-server
+xinit
+xf86-input-libinput
+xf86-video-vesa
+xf86-video-fbdev
+
+# --- Window manager ---
+openbox
+
+# --- Launcher runtime ---
+python3
+py3-tkinter
+
+# --- Browsers ---
+firefox-esr
+chromium
+
+# --- Fonts (Japanese-capable) ---
+font-noto
+font-noto-cjk
+
+# --- Networking (NetworkManager excluded by design) ---
+wpa_supplicant
+dhcpcd
+iw
+
+# --- User / auth tools ---
+shadow
+util-linux
+sudo
+
+# --- Misc runtime ---
+tzdata
+ca-certificates

@@ -1,0 +1,3 @@
+# Passwordless power management for `user`.
+# Only reboot / poweroff are allowed.
+user ALL=(root) NOPASSWD: /sbin/reboot, /sbin/poweroff

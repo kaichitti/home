@@ -1,0 +1,62 @@
+name: Build ISO
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build WebBrowse Linux ISO
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build ISO (via Docker Alpine)
+        run: |
+          chmod +x ./build.sh
+          ./build.sh
+
+      - name: Record ISO metadata
+        id: iso
+        run: |
+          ISO_PATH="output/webbrowse-linux.iso"
+          if [ ! -f "$ISO_PATH" ]; then
+            echo "ISO not found at $ISO_PATH" >&2
+            ls -la output || true
+            exit 1
+          fi
+          SIZE=$(stat -c '%s' "$ISO_PATH")
+          SHA=$(sha256sum "$ISO_PATH" | awk '{print $1}')
+          echo "path=$ISO_PATH"   >> "$GITHUB_OUTPUT"
+          echo "size=$SIZE"       >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA"      >> "$GITHUB_OUTPUT"
+          echo "### ISO Built" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Size: $(numfmt --to=iec "$SIZE")" >> "$GITHUB_STEP_SUMMARY"
+          echo "- SHA256: \`$SHA\`" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: webbrowse-linux-iso
+          path: output/webbrowse-linux.iso
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            output/webbrowse-linux.iso
+          generate_release_notes: true
+          body: |
+            WebBrowse Linux ${{ github.ref_name }}
+
+            SHA256: `${{ steps.iso.outputs.sha256 }}`

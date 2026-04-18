@@ -1,0 +1,12 @@
+# Build artifacts
+/output/
+*.iso
+*.iso.sha256
+
+# Editor
+*.swp
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc

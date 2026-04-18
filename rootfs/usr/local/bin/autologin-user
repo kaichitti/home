@@ -1,0 +1,3 @@
+#!/bin/sh
+# Log in as `user` without a password prompt.
+exec /bin/login -f user

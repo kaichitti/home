@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+# WebBrowse Linux - Launcher UI
+# Fullscreen Tkinter launcher. Japanese UI.
+# Lifecycle: browser exits -> launcher is restored.
+
+import os
+import shutil
+import subprocess
+import sys
+import tkinter as tk
+from tkinter import messagebox
+
+
+PRODUCT_NAME = os.environ.get("WEBBROWSE_PRODUCT_NAME", "WebBrowse Linux")
+
+BG = "#121212"
+FG = "#f2f2f2"
+ACCENT = "#2d6cdf"
+DANGER = "#c0392b"
+MUTED = "#3a3a3a"
+
+
+def which(cmd):
+    return shutil.which(cmd)
+
+
+def run_browser(cmd_candidates):
+    """Launch the first available browser in cmd_candidates and block until it exits."""
+    for candidate in cmd_candidates:
+        binary = which(candidate[0])
+        if binary:
+            try:
+                subprocess.run([binary, *candidate[1:]], check=False)
+            except Exception as exc:  # keep launcher alive on unexpected failure
+                messagebox.showerror(
+                    "エラー",
+                    f"ブラウザの起動に失敗しました:\n{exc}",
+                )
+            return
+    messagebox.showerror(
+        "エラー",
+        "ブラウザが見つかりませんでした。",
+    )
+
+
+def launch_firefox(root):
+    root.withdraw()
+    run_browser([
+        ["firefox-esr"],
+        ["firefox"],
+    ])
+    root.deiconify()
+
+
+def launch_chromium(root):
+    root.withdraw()
+    run_browser([
+        ["chromium"],
+        ["chromium-browser"],
+    ])
+    root.deiconify()
+
+
+def switch_user(root):
+    if not messagebox.askyesno(
+        "確認",
+        "ユーザーを切り替えますか？\n現在のセッションは終了します。",
+    ):
+        return
+    # End the current X session; inittab will re-run getty -> startx.
+    subprocess.run(["pkill", "-TERM", "openbox"], check=False)
+    subprocess.run(["pkill", "-TERM", "X"], check=False)
+
+
+def do_reboot():
+    if not messagebox.askyesno("確認", "再起動しますか？"):
+        return
+    if which("sudo"):
+        subprocess.run(["sudo", "-n", "/sbin/reboot"], check=False)
+    else:
+        subprocess.run(["/sbin/reboot"], check=False)
+
+
+def do_shutdown():
+    if not messagebox.askyesno("確認", "シャットダウンしますか？"):
+        return
+    if which("sudo"):
+        subprocess.run(["sudo", "-n", "/sbin/poweroff"], check=False)
+    else:
+        subprocess.run(["/sbin/poweroff"], check=False)
+
+
+def build_ui(root):
+    root.title(PRODUCT_NAME)
+    root.configure(bg=BG)
+    root.attributes("-fullscreen", True)
+    root.protocol("WM_DELETE_WINDOW", lambda: None)  # disable close
+    # ESC does NOT exit - this is a kiosk.
+
+    frame = tk.Frame(root, bg=BG)
+    frame.place(relx=0.5, rely=0.5, anchor="center")
+
+    title = tk.Label(
+        frame,
+        text=PRODUCT_NAME,
+        font=("Noto Sans CJK JP", 32, "bold"),
+        fg=FG,
+        bg=BG,
+    )
+    title.pack(pady=(0, 8))
+
+    subtitle = tk.Label(
+        frame,
+        text="Web 閲覧専用ランチャー",
+        font=("Noto Sans CJK JP", 14),
+        fg="#aaaaaa",
+        bg=BG,
+    )
+    subtitle.pack(pady=(0, 32))
+
+    def make_button(parent, text, command, bg):
+        return tk.Button(
+            parent,
+            text=text,
+            command=command,
+            font=("Noto Sans CJK JP", 18, "bold"),
+            fg=FG,
+            bg=bg,
+            activeforeground=FG,
+            activebackground=bg,
+            relief="flat",
+            bd=0,
+            padx=24,
+            pady=16,
+            width=24,
+            cursor="hand2",
+        )
+
+    make_button(frame, "Firefox で起動", lambda: launch_firefox(root), ACCENT).pack(pady=6)
+    make_button(frame, "Chromium で起動", lambda: launch_chromium(root), ACCENT).pack(pady=6)
+    make_button(frame, "ユーザーを切り替える", lambda: switch_user(root), MUTED).pack(pady=(24, 6))
+    make_button(frame, "再起動する", do_reboot, MUTED).pack(pady=6)
+    make_button(frame, "シャットダウンする", do_shutdown, DANGER).pack(pady=6)
+
+
+def main():
+    root = tk.Tk()
+    build_ui(root)
+    root.mainloop()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
