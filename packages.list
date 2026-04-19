@@ -7,6 +7,10 @@ alpine-baselayout
 busybox
 openrc
 linux-lts
+# linux-firmware-none is an empty package that satisfies linux-lts's
+# cmd:linux-firmware-any dependency without pulling ~1 GB of firmware
+# blobs. Required to keep the ISO under the 600 MB target.
+linux-firmware-none
 mkinitfs
 
 # --- Bootloader / ISO tooling ---
