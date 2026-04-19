@@ -1,0 +1,4 @@
+# WebBrowse Linux runtime settings.
+# Overriding WEBBROWSE_PRODUCT_NAME lets the distro be rebranded
+# without touching the launcher source.
+WEBBROWSE_PRODUCT_NAME="WebBrowse Linux"

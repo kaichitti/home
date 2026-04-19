@@ -1,0 +1,15 @@
+# /etc/inittab - WebBrowse Linux
+# Auto-login user `user` on tty1, which runs .profile -> startx.
+
+::sysinit:/sbin/openrc sysinit
+::sysinit:/sbin/openrc boot
+::wait:/sbin/openrc default
+
+# Auto-login on tty1. The getty -n flag skips the login prompt;
+# -l /bin/login_user runs a helper that logs in as `user`.
+tty1::respawn:/sbin/getty -n -l /usr/local/bin/autologin-user 38400 tty1
+tty2::respawn:/sbin/getty 38400 tty2
+tty3::respawn:/sbin/getty 38400 tty3
+
+# Shutdown hooks
+::shutdown:/sbin/openrc shutdown

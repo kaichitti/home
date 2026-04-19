@@ -1,0 +1,14 @@
+auto lo
+iface lo inet loopback
+
+# Wired: try DHCP first. dhcpcd service handles this too;
+# this file documents intent and supports `ifup eth0` manually.
+auto eth0
+iface eth0 inet dhcp
+
+# Wi-Fi: configure via wpa_supplicant.
+# Example usage:
+#   echo 'ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=wheel' > /etc/wpa_supplicant/wpa_supplicant.conf
+#   wpa_passphrase SSID PASSPHRASE >> /etc/wpa_supplicant/wpa_supplicant.conf
+#   rc-service wpa_supplicant start
+#   dhcpcd wlan0

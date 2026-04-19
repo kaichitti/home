@@ -1,0 +1,11 @@
+#!/bin/sh
+# Openbox autostart - WebBrowse Linux
+
+# Disable screen blanking / DPMS for a kiosk-style launcher.
+xset s off -dpms s noblank 2>/dev/null || true
+
+# Hide mouse cursor when idle (if unclutter is installed).
+command -v unclutter >/dev/null 2>&1 && unclutter -idle 3 -root &
+
+# Launch the main UI.
+/usr/local/bin/webbrowse-launcher &
