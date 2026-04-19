@@ -24,29 +24,59 @@ jobs:
         with:
           branch: v3.20
           arch: x86_64
-          # Give the Alpine chroot root-equivalent permissions.
-          # apk add + chroot + mkinitfs need sudo inside the action.
-          extra-repositories: |
-            https://dl-cdn.alpinelinux.org/alpine/v3.20/community
+
+      - name: Alpine sanity check
+        shell: alpine.sh --root {0}
+        run: |
+          set -eux
+          cat /etc/alpine-release
+          apk --version
+          apk update
 
       - name: Build ISO
+        id: build
+        continue-on-error: true
         shell: alpine.sh --root {0}
         env:
           ALPINE_VERSION: "3.20"
           ARCH: x86_64
           PRODUCT_NAME: WebBrowse Linux
           ISO_NAME: webbrowse-linux.iso
-          PROJECT_DIR: ${{ github.workspace }}
         run: |
           chmod +x scripts/build-iso.sh
-          scripts/build-iso.sh
+          # Tee into the workspace so the outer runner can read the log
+          # even when the chroot shell dies.
+          scripts/build-iso.sh 2>&1 | tee build.log
+          echo "rc=${PIPESTATUS:-$?}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish build log
+        if: always()
+        run: |
+          if [ -f build.log ]; then
+            {
+              echo '### Build log (last 400 lines)'
+              echo ''
+              echo '```'
+              tail -n 400 build.log
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo '_No build.log produced — step failed before the build script ran._' \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Fail if build script failed
+        if: steps.build.outcome != 'success'
+        run: |
+          echo "::error::Build script failed. See Summary for the build log."
+          exit 1
 
       - name: Record ISO metadata
         id: iso
         run: |
           ISO_PATH="output/webbrowse-linux.iso"
           if [ ! -f "$ISO_PATH" ]; then
-            echo "ISO not found at $ISO_PATH" >&2
+            echo "::error::ISO not found at $ISO_PATH"
             ls -la output || true
             exit 1
           fi
