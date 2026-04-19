@@ -7,7 +7,6 @@ alpine-baselayout
 busybox
 openrc
 linux-lts
-linux-firmware-none
 mkinitfs
 
 # --- Bootloader / ISO tooling ---

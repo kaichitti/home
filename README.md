@@ -60,6 +60,7 @@ cd <repo>
 ```
 .
 ├── .github/workflows/build.yml   # GitHub Actions（ISO 自動ビルド）
+├── scripts/build-iso.sh           # ISO ビルド本体（Alpine ホスト上で実行）
 ├── rootfs/                        # ISO に焼き込むファイルのオーバーレイ
 │   ├── etc/
 │   │   ├── inittab
@@ -75,7 +76,7 @@ cd <repo>
 │       ├── webbrowse-launcher     # Python3 + Tkinter 製のランチャー
 │       └── autologin-user
 ├── packages.list                  # apk でインストールするパッケージ
-├── build.sh                       # ローカル用ビルドスクリプト（Docker 経由）
+├── build.sh                       # ローカル用ラッパー（Docker 経由で build-iso.sh を実行）
 ├── LICENSE                        # GPL v2
 └── README.md
 ```

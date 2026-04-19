@@ -19,10 +19,27 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build ISO (via Docker Alpine)
+      - name: Set up Alpine build host
+        uses: jirutka/setup-alpine@v1
+        with:
+          branch: v3.20
+          arch: x86_64
+          # Give the Alpine chroot root-equivalent permissions.
+          # apk add + chroot + mkinitfs need sudo inside the action.
+          extra-repositories: |
+            https://dl-cdn.alpinelinux.org/alpine/v3.20/community
+
+      - name: Build ISO
+        shell: alpine.sh --root {0}
+        env:
+          ALPINE_VERSION: "3.20"
+          ARCH: x86_64
+          PRODUCT_NAME: WebBrowse Linux
+          ISO_NAME: webbrowse-linux.iso
+          PROJECT_DIR: ${{ github.workspace }}
         run: |
-          chmod +x ./build.sh
-          ./build.sh
+          chmod +x scripts/build-iso.sh
+          scripts/build-iso.sh
 
       - name: Record ISO metadata
         id: iso
@@ -38,9 +55,11 @@ jobs:
           echo "path=$ISO_PATH"   >> "$GITHUB_OUTPUT"
           echo "size=$SIZE"       >> "$GITHUB_OUTPUT"
           echo "sha256=$SHA"      >> "$GITHUB_OUTPUT"
-          echo "### ISO Built" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Size: $(numfmt --to=iec "$SIZE")" >> "$GITHUB_STEP_SUMMARY"
-          echo "- SHA256: \`$SHA\`" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### ISO Built"
+            echo "- Size: $(numfmt --to=iec "$SIZE")"
+            echo "- SHA256: \`$SHA\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
