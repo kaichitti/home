@@ -1,6 +1,6 @@
 'use strict';
 
-// ヒマチャット風 - 旧式携帯・CGIチャットスタイルのルーム型チャット
+// ぷらチャット - 旧式携帯・CGIチャットスタイルのルーム型チャット
 // クライアントJSはポップアップ用の window.open のみ(無くても動作)。
 // フォーム送信とページ更新だけで動くため、iOS4 / Android 1.6 / 3DS
 // などの古いブラウザでも動作する。
@@ -16,6 +16,7 @@ app.set('trust proxy', true);
 app.use(express.urlencoded({ extended: false }));
 
 const PORT = process.env.PORT || 3000;
+const SITE_NAME = 'ぷらチャット';
 
 // ---- 定数 ---------------------------------------------------------------
 
@@ -25,6 +26,7 @@ const MAX_ROOM_NAME_LENGTH = 30;
 const MAX_ROOM_DESC_LENGTH = 200;
 const MAX_PASS_LENGTH = 30;
 const MAX_LOG_PER_ROOM = 100;
+const MAX_LOG_PER_PM = 100;
 const MAX_ROOMS = 200;
 const MAX_JOINED_ROOMS = 5;               // 同時に入室できる部屋数
 const MIN_CAPACITY = 2;
@@ -84,6 +86,9 @@ const rooms = new Map();
 
 // sid(セッショントークン) -> session
 const sessions = new Map();
+
+// 個人チャット: "pid小|pid大" -> { pids: [a, b], log: [], unread: {pid: bool} }
+const pmThreads = new Map();
 
 function createRoom(opts) {
   const room = {
@@ -159,8 +164,11 @@ function rollDice(text) {
 
 function onlineCount() {
   let n = 0;
-  rooms.forEach(function (room) { n += room.members.size; });
-  return n;
+  const counted = new Set();
+  rooms.forEach(function (room) {
+    room.members.forEach(function (sid) { counted.add(sid); });
+  });
+  return counted.size || n;
 }
 
 // メンバー0の非公式部屋は一定時間後に削除する
@@ -214,6 +222,67 @@ setInterval(function () {
   });
 }, 60 * 1000);
 
+// ---- 個人チャット -------------------------------------------------------
+
+function findSessionByPublicId(publicId) {
+  let found = null;
+  sessions.forEach(function (session) {
+    if (session.publicId === publicId) found = session;
+  });
+  return found;
+}
+
+function pmKey(pidA, pidB) {
+  return pidA < pidB ? pidA + '|' + pidB : pidB + '|' + pidA;
+}
+
+function getPmThread(pidA, pidB, create) {
+  const key = pmKey(pidA, pidB);
+  let thread = pmThreads.get(key);
+  if (!thread && create) {
+    thread = { pids: [pidA, pidB], log: [], unread: {} };
+    pmThreads.set(key, thread);
+  }
+  return thread || null;
+}
+
+function myPmThreads(pid) {
+  const list = [];
+  pmThreads.forEach(function (thread) {
+    if (thread.pids[0] === pid || thread.pids[1] === pid) list.push(thread);
+  });
+  list.sort(function (a, b) {
+    const at = a.log.length ? a.log[a.log.length - 1].time : 0;
+    const bt = b.log.length ? b.log[b.log.length - 1].time : 0;
+    return bt - at;
+  });
+  return list;
+}
+
+function unreadPmCount(pid) {
+  let n = 0;
+  pmThreads.forEach(function (thread) {
+    if ((thread.pids[0] === pid || thread.pids[1] === pid) && thread.unread[pid]) n++;
+  });
+  return n;
+}
+
+function pmPartnerPid(thread, myPid) {
+  return thread.pids[0] === myPid ? thread.pids[1] : thread.pids[0];
+}
+
+// 相手の表示情報(セッションが消えていたらログから推測)
+function pmPartnerInfo(thread, partnerPid) {
+  const session = findSessionByPublicId(partnerPid);
+  if (session) return { name: session.name, color: session.color, online: true };
+  for (let i = thread.log.length - 1; i >= 0; i--) {
+    if (thread.log[i].fromPid === partnerPid) {
+      return { name: thread.log[i].name, color: thread.log[i].color, online: false };
+    }
+  }
+  return { name: '(不明)', color: 'gray', online: false };
+}
+
 // ---- Cookie・セッション -------------------------------------------------
 
 function parseCookies(req) {
@@ -256,12 +325,14 @@ function ensureSession(req, res) {
   let session = getSession(req);
   if (!session) {
     const sid = crypto.randomBytes(16).toString('hex');
+    const cookies = parseCookies(req);
     session = {
       sid,
       publicId: crypto.randomBytes(4).toString('hex'),
-      name: '名無しさん',
-      color: 'black',
-      rooms: new Map(),   // roomId -> 入室時刻
+      name: sanitizeText(cookies.name, MAX_NAME_LENGTH) || '名無しさん',
+      color: validColor(cookies.color || 'black'),
+      rooms: new Map(),      // roomId -> 入室時刻
+      blocks: new Set(),     // 無視している相手のpublicId
       userAgent: '',
       ip: '',
       host: '',
@@ -273,12 +344,8 @@ function ensureSession(req, res) {
   return session;
 }
 
-// プロフィール(名前・色)とアクセス情報を更新。リモートホストは逆引きで取得
-function applyProfile(req, res, session) {
-  const name = sanitizeText(req.body.name, MAX_NAME_LENGTH) || '名無しさん';
-  const color = validColor(req.body.color);
-  session.name = name;
-  session.color = color;
+// アクセス情報(UA/IP/リモートホスト)を更新
+function updateAccessInfo(req, session) {
   session.userAgent = String(req.headers['user-agent'] || '(不明)').slice(0, 400);
   const ip = clientIp(req);
   if (ip && ip !== session.ip) {
@@ -289,8 +356,6 @@ function applyProfile(req, res, session) {
       session.host = (!err && hostnames && hostnames[0]) ? hostnames[0] : '(逆引きできませんでした)';
     });
   }
-  setCookie(res, 'name', name, 60 * 60 * 24 * 30);
-  setCookie(res, 'color', color, 60 * 60 * 24 * 30);
 }
 
 // ---- HTMLレンダリング ---------------------------------------------------
@@ -317,6 +382,7 @@ const STYLE =
   '.tabbar{margin:4px 0;}' +
   '.tab{border:1px solid #88aacc;background-color:#c4dcf0;padding:2px 8px;margin-right:2px;text-decoration:none;font-size:13px;}' +
   '.tabon{border:1px solid #88aacc;background-color:#ffffff;padding:2px 8px;margin-right:2px;font-weight:bold;font-size:13px;}' +
+  '.tabnew{border:1px solid #cc6666;background-color:#ffe8e8;padding:2px 8px;margin-right:2px;text-decoration:none;font-size:13px;color:#cc0000;font-weight:bold;}' +
   '.chatimg{max-width:240px;max-height:240px;}';
 
 function page(title, body) {
@@ -324,7 +390,7 @@ function page(title, body) {
     '<html><head>' +
     '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">' +
     '<meta name="viewport" content="width=device-width">' +
-    '<title>' + escapeHtml(title) + '</title>' +
+    '<title>' + escapeHtml(SITE_NAME + ' - ' + title) + '</title>' +
     '<style type="text/css">' + STYLE + '</style>' +
     '</head><body bgcolor="#e2eef8">' + body + '</body></html>';
 }
@@ -342,10 +408,10 @@ function colorSelectHtml(selected) {
   return html + '</select>';
 }
 
-// TOPと入室中の部屋(最大5)を行き来するタブ
-function tabsHtml(session, currentRoomId) {
+// TOPと入室中の部屋(最大5)・個人チャットを行き来するタブ
+function tabsHtml(session, current) {
   let html = '<div class="tabbar">';
-  html += currentRoomId === null ?
+  html += current === 'top' ?
     '<span class="tabon">TOP</span>' :
     '<a class="tab" href="/">TOP</a>';
   if (session) {
@@ -355,10 +421,17 @@ function tabsHtml(session, currentRoomId) {
       let label = room.name;
       if (label.length > 8) label = label.slice(0, 8) + '…';
       label = escapeHtml(label) + '(' + room.members.size + ')';
-      html += roomId === currentRoomId ?
+      html += current === 'room' + roomId ?
         '<span class="tabon">' + label + '</span>' :
         '<a class="tab" href="/?room=' + roomId + '">' + label + '</a>';
     });
+    const unread = unreadPmCount(session.publicId);
+    const pmLabel = '個人チャット' + (unread > 0 ? '(新着' + unread + ')' : '');
+    if (current === 'pm') {
+      html += '<span class="tabon">' + pmLabel + '</span>';
+    } else {
+      html += '<a class="' + (unread > 0 ? 'tabnew' : 'tab') + '" href="/pm-list">' + pmLabel + '</a>';
+    }
   }
   return html + '</div>';
 }
@@ -420,24 +493,21 @@ function readInfoLines() {
 
 const TOP_ERRORS = {
   noroom: 'その部屋は見つかりませんでした（削除された可能性があります）',
-  roomname: '部屋の名前を入力してください',
-  roomsmax: 'これ以上部屋を作成できません',
-  noadmin: '管理パスワードを入力してください',
-  samepass: '入室パスワードは管理パスワードと同じにできません',
   deleted: '部屋を削除しました',
   contact: 'メッセージを送信しました。ありがとうございました',
+  profile: '名前を保存しました',
 };
 
 function topPage(req, res) {
   const session = getSession(req);
   const cookies = parseCookies(req);
-  const myName = sanitizeText(cookies.name, MAX_NAME_LENGTH) || (session ? session.name : '');
-  const myColor = validColor(cookies.color || (session ? session.color : 'black'));
+  const myName = (session && session.name) || sanitizeText(cookies.name, MAX_NAME_LENGTH) || '名無しさん';
+  const myColor = validColor((session && session.color) || cookies.color || 'black');
 
   let noticeHtml = '';
   const e = req.query.e;
   if (e && TOP_ERRORS[e]) {
-    const cls = (e === 'deleted' || e === 'contact') ? 'ok' : 'err';
+    const cls = (e === 'noroom') ? 'err' : 'ok';
     noticeHtml = '<div class="' + cls + '">' + TOP_ERRORS[e] + '</div>';
   }
 
@@ -469,6 +539,68 @@ function topPage(req, res) {
       '</tr>';
   }
 
+  const body =
+    tabsHtml(session, 'top') +
+    '<h1>' + SITE_NAME + '</h1>' +
+    '<div class="small">ヒマな人のためのチャット。登録不要・完全無料。</div>' +
+    '<div>現在 <b>' + onlineCount() + '</b> 人がチャット中 ／ 部屋数 ' + rooms.size + ' ／ <a href="/">再読込</a></div>' +
+    noticeHtml +
+    infoHtml +
+    '<h2>■あなたの名前(全部屋共通)</h2>' +
+    '<form method="POST" action="/profile">' +
+    '<div class="box">' +
+    '現在: ' + nameHtml(myName, myColor) + '<br>' +
+    '名前: <input type="text" name="name" size="12" maxlength="' + MAX_NAME_LENGTH + '" value="' + escapeHtml(myName) + '"> ' +
+    '名前の色: ' + colorSelectHtml(myColor) + ' ' +
+    '<input type="submit" value="保存">' +
+    '<div class="small">※名前はここでだけ変更できます。入室中の全部屋・個人チャットに反映されます。</div>' +
+    '</div>' +
+    '</form>' +
+    '<h2>■チャットルーム一覧</h2>' +
+    '<div class="small">部屋名を押すと説明を確認してから入室できます。◆鍵 はパスワードが必要な個室です。</div>' +
+    '<table width="100%">' +
+    '<tr><th>No.</th><th>部屋名</th><th>説明</th><th>人数</th></tr>' +
+    roomRows +
+    '</table>' +
+    '<form method="GET" action="/create">' +
+    '<div style="margin:6px 0;"><input type="submit" value="部屋を作る"></div>' +
+    '</form>' +
+    '<hr>' +
+    '[<a href="/pm-list">個人チャット</a>] [<a href="/info">インフォメーション</a>] [<a href="/contact">管理者に連絡</a>]' +
+    '<hr>' +
+    '<div class="small">※個人情報（本名・住所・連絡先など）は絶対に書き込まないでください。<br>' +
+    '※同時に入室できるのは' + MAX_JOINED_ROOMS + '部屋までです。一定時間操作がないと自動退室になります。</div>';
+
+  res.send(page('部屋一覧', body));
+}
+
+// 名前・色の保存(全部屋共通)
+app.post('/profile', function (req, res) {
+  const session = ensureSession(req, res);
+  const name = sanitizeText(req.body.name, MAX_NAME_LENGTH) || '名無しさん';
+  const color = validColor(req.body.color);
+  session.name = name;
+  session.color = color;
+  updateAccessInfo(req, session);
+  setCookie(res, 'name', name, 60 * 60 * 24 * 30);
+  setCookie(res, 'color', color, 60 * 60 * 24 * 30);
+  res.redirect('/?e=profile');
+});
+
+// ---- 部屋の作成ページ ---------------------------------------------------
+
+const CREATE_ERRORS = {
+  roomname: '部屋の名前を入力してください',
+  roomsmax: 'これ以上部屋を作成できません',
+  noadmin: '管理パスワードを入力してください',
+  samepass: '入室パスワードは管理パスワードと同じにできません',
+};
+
+app.get('/create', function (req, res) {
+  const session = getSession(req);
+  const e = req.query.e;
+  const errorHtml = (e && CREATE_ERRORS[e]) ? '<div class="err">' + CREATE_ERRORS[e] + '</div>' : '';
+
   let capacityOptions = '';
   for (let n = MIN_CAPACITY; n <= MAX_CAPACITY; n++) {
     capacityOptions += '<option value="' + n + '"' + (n === 20 ? ' selected' : '') + '>' + n + '人</option>';
@@ -476,18 +608,8 @@ function topPage(req, res) {
 
   const body =
     tabsHtml(session, null) +
-    '<h1>ヒマチャット風</h1>' +
-    '<div class="small">ヒマな人のためのチャット。登録不要・完全無料。</div>' +
-    '<div>現在 <b>' + onlineCount() + '</b> 人がチャット中 ／ 部屋数 ' + rooms.size + ' ／ <a href="/">再読込</a></div>' +
-    noticeHtml +
-    infoHtml +
-    '<h2>■チャットルーム一覧</h2>' +
-    '<div class="small">部屋名を押すと説明を確認してから入室できます。◆鍵 はパスワードが必要な個室です。</div>' +
-    '<table width="100%">' +
-    '<tr><th>No.</th><th>部屋名</th><th>説明</th><th>人数</th></tr>' +
-    roomRows +
-    '</table>' +
-    '<h2>■部屋を作る</h2>' +
+    '<h1>部屋を作る</h1>' +
+    errorHtml +
     '<form method="POST" action="/create">' +
     '<div class="box">' +
     '部屋名: <input type="text" name="roomName" size="16" maxlength="' + MAX_ROOM_NAME_LENGTH + '"> ' +
@@ -496,20 +618,44 @@ function topPage(req, res) {
     '管理パスワード(必須): <input type="password" name="adminPass" size="10" maxlength="' + MAX_PASS_LENGTH + '"><br>' +
     '入室パスワード(任意・鍵付き個室にする場合): <input type="password" name="joinPass" size="10" maxlength="' + MAX_PASS_LENGTH + '"><br>' +
     '<input type="checkbox" name="images" value="1">画像投稿(画像URLのインライン表示)を許可する<br>' +
-    'あなたの名前: <input type="text" name="name" size="12" maxlength="' + MAX_NAME_LENGTH + '" value="' + escapeHtml(myName) + '"> ' +
-    '名前の色: ' + colorSelectHtml(myColor) + ' ' +
-    '<input type="submit" value="作成して入室">' +
-    '<div class="small">※管理パスワードで部屋の削除・アクセス禁止・画像投稿の切替ができます。</div>' +
+    '<input type="submit" value="作成して入室"> <a href="/">[やめる(TOPへ戻る)]</a>' +
+    '<div class="small">※管理パスワードで部屋の削除・アクセス禁止・画像投稿の切替ができます。<br>' +
+    '※名前はTOPページで設定したものが使われます。</div>' +
     '</div>' +
-    '</form>' +
-    '<hr>' +
-    '[<a href="/info">インフォメーション</a>] [<a href="/contact">管理者に連絡</a>]' +
-    '<hr>' +
-    '<div class="small">※個人情報（本名・住所・連絡先など）は絶対に書き込まないでください。<br>' +
-    '※同時に入室できるのは' + MAX_JOINED_ROOMS + '部屋までです。一定時間操作がないと自動退室になります。</div>';
+    '</form>';
 
-  res.send(page('ヒマチャット風 - 部屋一覧', body));
-}
+  res.send(page('部屋を作る', body));
+});
+
+app.post('/create', function (req, res) {
+  const roomName = sanitizeText(req.body.roomName, MAX_ROOM_NAME_LENGTH);
+  if (!roomName) return res.redirect('/create?e=roomname');
+  if (rooms.size >= MAX_ROOMS) return res.redirect('/create?e=roomsmax');
+
+  const adminPass = sanitizeText(req.body.adminPass, MAX_PASS_LENGTH);
+  if (!adminPass) return res.redirect('/create?e=noadmin');
+  const joinPass = sanitizeText(req.body.joinPass, MAX_PASS_LENGTH);
+  if (joinPass && joinPass === adminPass) return res.redirect('/create?e=samepass');
+
+  let capacity = parseInt(req.body.capacity, 10);
+  if (isNaN(capacity)) capacity = 20;
+  capacity = Math.max(MIN_CAPACITY, Math.min(MAX_CAPACITY, capacity));
+
+  const session = ensureSession(req, res);
+  updateAccessInfo(req, session);
+  if (session.rooms.size >= MAX_JOINED_ROOMS) return res.redirect('/?room=1&e=limit');
+
+  const room = createRoom({
+    name: roomName,
+    description: sanitizeText(req.body.roomDesc, MAX_ROOM_DESC_LENGTH),
+    adminPass,
+    joinPass,
+    capacity,
+    imagesAllowed: req.body.images === '1',
+  });
+  joinRoom(session, room);
+  res.redirect('/?room=' + room.id);
+});
 
 // ---- 入室前の確認ページ -------------------------------------------------
 
@@ -523,8 +669,8 @@ const ENTRY_ERRORS = {
 function entryPage(req, res, room) {
   const session = getSession(req);
   const cookies = parseCookies(req);
-  const myName = sanitizeText(cookies.name, MAX_NAME_LENGTH) || (session ? session.name : '');
-  const myColor = validColor(cookies.color || (session ? session.color : 'black'));
+  const myName = (session && session.name) || sanitizeText(cookies.name, MAX_NAME_LENGTH) || '名無しさん';
+  const myColor = validColor((session && session.color) || cookies.color || 'black');
 
   const e = req.query.e;
   const errorHtml = (e && ENTRY_ERRORS[e]) ? '<div class="err">' + ENTRY_ERRORS[e] + '</div>' : '';
@@ -547,14 +693,13 @@ function entryPage(req, res, room) {
     '<form method="POST" action="/join">' +
     '<div class="box">' +
     '<input type="hidden" name="room" value="' + room.id + '">' +
-    '名前: <input type="text" name="name" size="12" maxlength="' + MAX_NAME_LENGTH + '" value="' + escapeHtml(myName) + '"> ' +
-    '名前の色: ' + colorSelectHtml(myColor) + '<br>' +
+    'あなたの名前: ' + nameHtml(myName, myColor) + ' <span class="small">(名前は<a href="/">TOPページ</a>で変更できます)</span><br>' +
     passField +
     '<input type="submit" value="入室する"> <a href="/">[やめる(TOPへ戻る)]</a>' +
     '</div>' +
     '</form>';
 
-  res.send(page('ヒマチャット風 - 入室確認', body));
+  res.send(page('入室確認', body));
 }
 
 // ---- チャット画面 -------------------------------------------------------
@@ -580,10 +725,10 @@ function chatPage(req, res, room, session) {
 
   const body =
     refreshMeta +
-    tabsHtml(session, room.id) +
+    tabsHtml(session, 'room' + room.id) +
     '<b>' + (room.official ? '★' : '') + escapeHtml(room.name) + '</b>' +
     ' (' + room.members.size + '/' + room.capacity + '人) ' + lockMark(room) +
-    ' [' + popupLink('/members?room=' + room.id, '参加者一覧', 460, 420) + ']' +
+    ' [' + popupLink('/members?room=' + room.id, '参加者一覧', 480, 420) + ']' +
     adminLink +
     ' [<a href="/leave?room=' + room.id + '">退室</a>]' +
     '<div class="small">' + escapeHtml(room.description) + '</div>' +
@@ -604,12 +749,11 @@ function chatPage(req, res, room, session) {
     '<hr>' +
     '[<a href="' + base + '&auto=' + auto + '">更新</a>] [<a href="/leave?room=' + room.id + '">退室</a>] [<a href="/">TOPへ</a>]';
 
-  res.send(page('ヒマチャット風 - ' + room.name, body));
+  res.send(page(room.name, body));
 }
 
-// ---- ルーティング -------------------------------------------------------
+// ---- ルーティング: TOP/入室/発言 ---------------------------------------
 
-// TOP / 入室確認 / チャット画面(?room=N)
 app.get('/', function (req, res) {
   const roomId = parseInt(req.query.room, 10);
   if (!req.query.room) return topPage(req, res);
@@ -622,14 +766,13 @@ app.get('/', function (req, res) {
   return entryPage(req, res, room);
 });
 
-// 入室
 app.post('/join', function (req, res) {
   const roomId = parseInt(req.body.room, 10);
   const room = rooms.get(roomId);
   if (!room) return res.redirect('/?e=noroom');
 
   const session = ensureSession(req, res);
-  applyProfile(req, res, session);
+  updateAccessInfo(req, session);
   const base = '/?room=' + room.id;
 
   if (session.rooms.has(room.id)) return res.redirect(base);
@@ -646,38 +789,6 @@ app.post('/join', function (req, res) {
   res.redirect(base);
 });
 
-// 部屋の作成
-app.post('/create', function (req, res) {
-  const roomName = sanitizeText(req.body.roomName, MAX_ROOM_NAME_LENGTH);
-  if (!roomName) return res.redirect('/?e=roomname');
-  if (rooms.size >= MAX_ROOMS) return res.redirect('/?e=roomsmax');
-
-  const adminPass = sanitizeText(req.body.adminPass, MAX_PASS_LENGTH);
-  if (!adminPass) return res.redirect('/?e=noadmin');
-  const joinPass = sanitizeText(req.body.joinPass, MAX_PASS_LENGTH);
-  if (joinPass && joinPass === adminPass) return res.redirect('/?e=samepass');
-
-  let capacity = parseInt(req.body.capacity, 10);
-  if (isNaN(capacity)) capacity = 20;
-  capacity = Math.max(MIN_CAPACITY, Math.min(MAX_CAPACITY, capacity));
-
-  const session = ensureSession(req, res);
-  applyProfile(req, res, session);
-  if (session.rooms.size >= MAX_JOINED_ROOMS) return res.redirect('/?room=1&e=limit');
-
-  const room = createRoom({
-    name: roomName,
-    description: sanitizeText(req.body.roomDesc, MAX_ROOM_DESC_LENGTH),
-    adminPass,
-    joinPass,
-    capacity,
-    imagesAllowed: req.body.images === '1',
-  });
-  joinRoom(session, room);
-  res.redirect('/?room=' + room.id);
-});
-
-// 発言
 app.post('/say', function (req, res) {
   const roomId = parseInt(req.body.room, 10);
   const room = rooms.get(roomId);
@@ -696,7 +807,6 @@ app.post('/say', function (req, res) {
   res.redirect('/?room=' + roomId + '&auto=' + auto);
 });
 
-// 退室
 app.get('/leave', function (req, res) {
   const roomId = parseInt(req.query.room, 10);
   const session = getSession(req);
@@ -704,23 +814,28 @@ app.get('/leave', function (req, res) {
   res.redirect('/');
 });
 
-// 参加者一覧(ポップアップ)
+// ---- 参加者一覧・ユーザー詳細(ポップアップ) -----------------------------
+
 app.get('/members', function (req, res) {
   const roomId = parseInt(req.query.room, 10);
   const room = rooms.get(roomId);
   const session = getSession(req);
   if (!room || !session || !session.rooms.has(roomId)) {
-    return res.send(page('ヒマチャット風', '<div class="err">この部屋には入室していません</div>'));
+    return res.send(page('参加者一覧', '<div class="err">この部屋には入室していません</div>'));
   }
 
   let memberRows = '';
   room.members.forEach(function (sid) {
     const member = sessions.get(sid);
     if (!member) return;
+    const isSelf = member.sid === session.sid;
+    const pmLink = isSelf ? '-' :
+      '<a href="/pm?with=' + member.publicId + '" target="_top">個人チャット</a>';
     memberRows += '<tr>' +
-      '<td>' + nameHtml(member.name, member.color) + (member.sid === session.sid ? ' <span class="small">(自分)</span>' : '') + '</td>' +
+      '<td>' + nameHtml(member.name, member.color) + (isSelf ? ' <span class="small">(自分)</span>' : '') + '</td>' +
       '<td>' + formatTime(member.rooms.get(roomId)) + '</td>' +
       '<td><a href="/user?room=' + roomId + '&id=' + member.publicId + '">詳細</a></td>' +
+      '<td>' + pmLink + '</td>' +
       '</tr>';
   });
 
@@ -728,7 +843,7 @@ app.get('/members', function (req, res) {
     '<b>' + escapeHtml(room.name) + '</b> の参加者 (' + room.members.size + '/' + room.capacity + '人)' +
     '<hr>' +
     '<table width="100%">' +
-    '<tr><th>名前</th><th>入室時刻</th><th>詳細</th></tr>' +
+    '<tr><th>名前</th><th>入室時刻</th><th>詳細</th><th>個人チャット</th></tr>' +
     memberRows +
     '</table>' +
     '<hr>' +
@@ -737,13 +852,12 @@ app.get('/members', function (req, res) {
   res.send(page('参加者一覧 - ' + room.name, body));
 });
 
-// ユーザー詳細(ポップアップ内・UA/IP/リモートホスト開示)
 app.get('/user', function (req, res) {
   const roomId = parseInt(req.query.room, 10);
   const room = rooms.get(roomId);
   const session = getSession(req);
   if (!room || !session || !session.rooms.has(roomId)) {
-    return res.send(page('ヒマチャット風', '<div class="err">この部屋には入室していません</div>'));
+    return res.send(page('ユーザー詳細', '<div class="err">この部屋には入室していません</div>'));
   }
 
   let target = null;
@@ -770,15 +884,156 @@ app.get('/user', function (req, res) {
     '<tr><th>ユーザーエージェント</th><td class="ua">' + escapeHtml(target.userAgent || '(不明)') + '</td></tr>' +
     '</table>' +
     '<hr>' +
-    '[<a href="/members?room=' + roomId + '">参加者一覧に戻る</a>]';
+    '[<a href="/members?room=' + roomId + '">参加者一覧に戻る</a>]' +
+    (target.sid === session.sid ? '' : ' [<a href="/pm?with=' + target.publicId + '" target="_top">個人チャット</a>]');
 
   res.send(page('ユーザー詳細', body));
+});
+
+// ---- 個人チャット -------------------------------------------------------
+
+const PM_ERRORS = {
+  blocked: '送信できませんでした（相手に無視されています）',
+  youblock: 'この相手を無視中です。解除すると送受信できます',
+  gone: '相手が見つかりませんでした（退室した可能性があります）',
+};
+
+app.get('/pm-list', function (req, res) {
+  const session = ensureSession(req, res);
+
+  let rows = '';
+  const threads = myPmThreads(session.publicId);
+  for (let i = 0; i < threads.length; i++) {
+    const thread = threads[i];
+    const partnerPid = pmPartnerPid(thread, session.publicId);
+    const partner = pmPartnerInfo(thread, partnerPid);
+    const last = thread.log.length ? thread.log[thread.log.length - 1] : null;
+    const unread = thread.unread[session.publicId] ? ' <span class="err">●新着</span>' : '';
+    const blocked = session.blocks.has(partnerPid) ? ' <span class="small">(無視中)</span>' : '';
+    rows += '<tr>' +
+      '<td>' + nameHtml(partner.name, partner.color) +
+      (partner.online ? '' : ' <span class="small">(不在)</span>') + unread + blocked + '</td>' +
+      '<td>' + (last ? formatTime(last.time) : '-') + '</td>' +
+      '<td><a href="/pm?with=' + partnerPid + '">開く</a></td>' +
+      '</tr>';
+  }
+  if (!rows) rows = '<tr><td colspan="3">(個人チャットはまだありません。部屋の参加者一覧から始められます)</td></tr>';
+
+  const body =
+    tabsHtml(session, 'pm') +
+    '<h1>個人チャット</h1>' +
+    '<table width="100%">' +
+    '<tr><th>相手</th><th>最終発言</th><th>開く</th></tr>' +
+    rows +
+    '</table>' +
+    '<hr>' +
+    '[<a href="/pm-list">更新</a>] [<a href="/">TOPへ</a>]';
+
+  res.send(page('個人チャット', body));
+});
+
+function pmPage(req, res, session, partnerPid) {
+  const thread = getPmThread(session.publicId, partnerPid, true);
+  thread.unread[session.publicId] = false;
+
+  const partner = pmPartnerInfo(thread, partnerPid);
+  const e = req.query.e;
+  const errorHtml = (e && PM_ERRORS[e]) ? '<div class="err">' + PM_ERRORS[e] + '</div>' : '';
+
+  const iBlock = session.blocks.has(partnerPid);
+  const blockForm =
+    '<form method="POST" action="/pm/block" style="display:inline;">' +
+    '<input type="hidden" name="with" value="' + escapeHtml(partnerPid) + '">' +
+    '<input type="hidden" name="mode" value="' + (iBlock ? 'off' : 'on') + '">' +
+    '<input type="submit" value="' + (iBlock ? '無視解除' : '無視する') + '">' +
+    '</form>';
+
+  const lines = [];
+  for (let i = thread.log.length - 1; i >= 0; i--) {
+    const msg = thread.log[i];
+    lines.push('<div>' + nameHtml(msg.name, msg.color) + '＞ ' + escapeHtml(msg.text) +
+      ' <span class="small">(' + formatTime(msg.time) + ')</span></div>');
+  }
+
+  const sendForm = iBlock ?
+    '<div class="sys">この相手を無視中のため送信できません。</div>' :
+    '<form method="POST" action="/pm/say">' +
+    '<input type="hidden" name="with" value="' + escapeHtml(partnerPid) + '">' +
+    nameHtml(session.name, session.color) + '＞ ' +
+    '<input type="text" name="m" size="24" maxlength="' + MAX_MESSAGE_LENGTH + '"> ' +
+    '<input type="submit" value="送信"> ' +
+    '[<a href="/pm?with=' + escapeHtml(partnerPid) + '">更新</a>]' +
+    '</form>';
+
+  const body =
+    tabsHtml(session, 'pm') +
+    '<b>個人チャット: ' + nameHtml(partner.name, partner.color) + '</b>' +
+    (partner.online ? '' : ' <span class="small">(不在)</span>') +
+    ' ' + blockForm +
+    errorHtml +
+    '<hr>' +
+    sendForm +
+    '<div class="small">※このやり取りは相手とあなたにしか見えません。</div>' +
+    '<hr>' +
+    (lines.join('\n') || '<div class="sys">(まだ発言はありません)</div>') +
+    '<hr>' +
+    '[<a href="/pm?with=' + escapeHtml(partnerPid) + '">更新</a>] [<a href="/pm-list">一覧へ</a>] [<a href="/">TOPへ</a>]';
+
+  res.send(page('個人チャット - ' + partner.name, body));
+}
+
+app.get('/pm', function (req, res) {
+  const session = ensureSession(req, res);
+  const partnerPid = sanitizeText(req.query.with, 16);
+  if (!partnerPid || partnerPid === session.publicId) return res.redirect('/pm-list');
+  pmPage(req, res, session, partnerPid);
+});
+
+app.post('/pm/say', function (req, res) {
+  const session = getSession(req);
+  const partnerPid = sanitizeText(req.body.with, 16);
+  if (!session || !partnerPid || partnerPid === session.publicId) return res.redirect('/pm-list');
+  const back = '/pm?with=' + encodeURIComponent(partnerPid);
+
+  if (session.blocks.has(partnerPid)) return res.redirect(back + '&e=youblock');
+  const partner = findSessionByPublicId(partnerPid);
+  if (!partner) return res.redirect(back + '&e=gone');
+  if (partner.blocks.has(session.publicId)) return res.redirect(back + '&e=blocked');
+
+  const text = sanitizeText(req.body.m, MAX_MESSAGE_LENGTH);
+  if (text) {
+    const thread = getPmThread(session.publicId, partnerPid, true);
+    thread.log.push({
+      fromPid: session.publicId,
+      name: session.name,
+      color: session.color,
+      text,
+      time: Date.now(),
+    });
+    if (thread.log.length > MAX_LOG_PER_PM) thread.log.shift();
+    thread.unread[partnerPid] = true;
+    thread.unread[session.publicId] = false;
+  }
+  res.redirect(back);
+});
+
+// 無視(ブロック)の設定・解除
+app.post('/pm/block', function (req, res) {
+  const session = getSession(req);
+  const partnerPid = sanitizeText(req.body.with, 16);
+  if (!session || !partnerPid) return res.redirect('/pm-list');
+  if (req.body.mode === 'on') {
+    session.blocks.add(partnerPid);
+  } else {
+    session.blocks.delete(partnerPid);
+  }
+  res.redirect('/pm?with=' + encodeURIComponent(partnerPid));
 });
 
 // ---- 部屋の管理(管理パスワード) -----------------------------------------
 
 function adminLoginPage(room, errorText) {
-  return page('部屋の管理 - ' + room.name,
+  return page('部屋の管理',
     '<h1>部屋の管理: ' + escapeHtml(room.name) + '</h1>' +
     (errorText ? '<div class="err">' + errorText + '</div>' : '') +
     '<form method="POST" action="/admin/panel">' +
@@ -791,6 +1046,12 @@ function adminLoginPage(room, errorText) {
     '[<a href="/?room=' + room.id + '">チャットに戻る</a>]');
 }
 
+function adminHiddenFields(room, pass, act) {
+  return '<input type="hidden" name="room" value="' + room.id + '">' +
+    '<input type="hidden" name="pass" value="' + escapeHtml(pass) + '">' +
+    '<input type="hidden" name="act" value="' + act + '">';
+}
+
 function adminPanelPage(room, pass, noticeText) {
   let memberRows = '';
   room.members.forEach(function (sid) {
@@ -800,9 +1061,7 @@ function adminPanelPage(room, pass, noticeText) {
       '<td>' + nameHtml(member.name, member.color) + '</td>' +
       '<td class="ua">' + escapeHtml(member.ip || '(不明)') + '</td>' +
       '<td><form method="POST" action="/admin/action">' +
-      '<input type="hidden" name="room" value="' + room.id + '">' +
-      '<input type="hidden" name="pass" value="' + escapeHtml(pass) + '">' +
-      '<input type="hidden" name="act" value="ban">' +
+      adminHiddenFields(room, pass, 'ban') +
       '<input type="hidden" name="target" value="' + member.publicId + '">' +
       '<input type="submit" value="アクセス禁止">' +
       '</form></td>' +
@@ -814,32 +1073,22 @@ function adminPanelPage(room, pass, noticeText) {
   room.banIps.forEach(function (ip) {
     banRows += '<tr><td class="ua">' + escapeHtml(ip) + '</td>' +
       '<td><form method="POST" action="/admin/action">' +
-      '<input type="hidden" name="room" value="' + room.id + '">' +
-      '<input type="hidden" name="pass" value="' + escapeHtml(pass) + '">' +
-      '<input type="hidden" name="act" value="unban">' +
+      adminHiddenFields(room, pass, 'unban') +
       '<input type="hidden" name="target" value="' + escapeHtml(ip) + '">' +
       '<input type="submit" value="解除">' +
       '</form></td></tr>';
   });
   if (!banRows) banRows = '<tr><td colspan="2">(アクセス禁止中のユーザーはいません)</td></tr>';
 
-  function actionForm(act, label, confirmText) {
-    return '<form method="POST" action="/admin/action">' +
-      '<input type="hidden" name="room" value="' + room.id + '">' +
-      '<input type="hidden" name="pass" value="' + escapeHtml(pass) + '">' +
-      '<input type="hidden" name="act" value="' + act + '">' +
-      '<input type="submit" value="' + label + '"' +
-      (confirmText ? ' onclick="return confirm(\'' + confirmText + '\');"' : '') + '>' +
-      '</form>';
-  }
-
   const body =
     '<h1>部屋の管理: ' + escapeHtml(room.name) + '</h1>' +
     (noticeText ? '<div class="ok">' + noticeText + '</div>' : '') +
     '<h2>■画像投稿</h2>' +
     '<div class="box">現在: <b>' + (room.imagesAllowed ? '許可' : '禁止') + '</b> ' +
-    actionForm(room.imagesAllowed ? 'images_off' : 'images_on',
-      room.imagesAllowed ? '禁止にする' : '許可にする') +
+    '<form method="POST" action="/admin/action">' +
+    adminHiddenFields(room, pass, room.imagesAllowed ? 'images_off' : 'images_on') +
+    '<input type="submit" value="' + (room.imagesAllowed ? '禁止にする' : '許可にする') + '">' +
+    '</form>' +
     '</div>' +
     '<h2>■入室者とアクセス禁止</h2>' +
     '<table width="100%"><tr><th>名前</th><th>IP</th><th>操作</th></tr>' + memberRows + '</table>' +
@@ -848,13 +1097,36 @@ function adminPanelPage(room, pass, noticeText) {
     '<table width="100%"><tr><th>IP</th><th>操作</th></tr>' + banRows + '</table>' +
     '<h2>■部屋の削除</h2>' +
     '<div class="box">' +
-    actionForm('delete', 'この部屋を削除する', '本当にこの部屋を削除しますか？') +
-    '<span class="small">※全員が退室になり、ログも消えます。</span>' +
+    '<form method="POST" action="/admin/action">' +
+    adminHiddenFields(room, pass, 'delete') +
+    '<input type="submit" value="この部屋を削除する">' +
+    '</form>' +
+    '<span class="small">※押すと確認画面が表示されます。</span>' +
     '</div>' +
     '<hr>' +
     '[<a href="/?room=' + room.id + '">チャットに戻る</a>] [<a href="/">TOPへ</a>]';
 
-  return page('部屋の管理 - ' + room.name, body);
+  return page('部屋の管理', body);
+}
+
+// 部屋削除の確認ダイアログ(確認ページ)
+function adminDeleteConfirmPage(room, pass) {
+  const body =
+    '<h1>部屋の削除確認</h1>' +
+    '<div class="box">' +
+    '<div class="err">本当に部屋「' + escapeHtml(room.name) + '」(No.' + room.id + ')を削除しますか？</div>' +
+    '<div class="small">※入室中の' + room.members.size + '人は全員退室になり、ログも消えます。この操作は取り消せません。</div>' +
+    '<form method="POST" action="/admin/action" style="display:inline;">' +
+    adminHiddenFields(room, pass, 'delete_confirm') +
+    '<input type="submit" value="削除する">' +
+    '</form> ' +
+    '<form method="POST" action="/admin/panel" style="display:inline;">' +
+    '<input type="hidden" name="room" value="' + room.id + '">' +
+    '<input type="hidden" name="pass" value="' + escapeHtml(pass) + '">' +
+    '<input type="submit" value="やめる(管理画面へ戻る)">' +
+    '</form>' +
+    '</div>';
+  return page('部屋の削除確認', body);
 }
 
 app.get('/admin', function (req, res) {
@@ -913,6 +1185,9 @@ app.post('/admin/action', function (req, res) {
     room.banIps.delete(String(req.body.target || ''));
     notice = 'アクセス禁止を解除しました';
   } else if (act === 'delete') {
+    // まず確認ダイアログ(確認ページ)を表示する
+    return res.send(adminDeleteConfirmPage(room, pass));
+  } else if (act === 'delete_confirm') {
     deleteRoom(room);
     return res.redirect('/?e=deleted');
   }
@@ -938,7 +1213,7 @@ app.get('/info', function (req, res) {
     '<h1>インフォメーション</h1>' +
     '<div class="info">' + listHtml + '</div>' +
     '[<a href="/">TOPへ戻る</a>] [<a href="/contact">管理者に連絡</a>]';
-  res.send(page('ヒマチャット風 - インフォメーション', body));
+  res.send(page('インフォメーション', body));
 });
 
 app.get('/contact', function (req, res) {
@@ -955,7 +1230,7 @@ app.get('/contact', function (req, res) {
     '<input type="submit" value="送信する"> <a href="/">[やめる]</a>' +
     '</div>' +
     '</form>';
-  res.send(page('ヒマチャット風 - 管理者に連絡', body));
+  res.send(page('管理者に連絡', body));
 });
 
 app.post('/contact', function (req, res) {
@@ -973,5 +1248,5 @@ app.post('/contact', function (req, res) {
 });
 
 app.listen(PORT, function () {
-  console.log('ヒマチャット風サイトが起動しました: http://localhost:' + PORT);
+  console.log(SITE_NAME + 'が起動しました: http://localhost:' + PORT);
 });
