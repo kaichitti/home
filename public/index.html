@@ -3,76 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="ニックネームを入力するだけで、すぐに誰かとおしゃべりできる匿名ひまつぶしチャット。登録不要・無料。">
-  <title>ヒマチャット風 - ひまつぶし匿名チャット</title>
+  <meta name="description" content="ヒマな人のための完全無料チャットサイト。好きな部屋に入るだけ、登録不要。部屋の作成も自由です。">
+  <title>ヒマチャット風 - ヒマ人のためのチャットサイト</title>
   <link rel="stylesheet" href="style.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
 </head>
 <body>
 
-  <!-- トップ画面 -->
-  <section id="top-screen" class="screen active">
-    <div class="top-card">
-      <div class="logo">💬</div>
-      <h1>ヒマチャット風</h1>
-      <p class="tagline">ひまな誰かと、いますぐおしゃべり。</p>
-      <ul class="features">
-        <li>✨ 登録不要・無料</li>
-        <li>🕶️ 完全匿名（ニックネームだけ）</li>
-        <li>⚡ 平均5秒でチャット開始</li>
-      </ul>
-      <form id="join-form">
+  <!-- トップ画面（部屋一覧） -->
+  <section id="lobby-screen" class="screen active">
+    <header class="lobby-header">
+      <h1>💬 ヒマチャット風</h1>
+      <p class="tagline">ヒマな人のためのチャットサイト。登録不要・完全無料。</p>
+      <p class="online-info">🟢 現在 <span id="online-count">0</span> 人がオンライン</p>
+    </header>
+
+    <div class="lobby-body">
+      <div class="name-box">
+        <label for="nickname-input">ニックネーム</label>
         <input
           id="nickname-input"
           type="text"
-          placeholder="ニックネームを入力"
+          placeholder="名前を入力して部屋を選ぼう"
           maxlength="20"
           autocomplete="off"
-          required
         >
-        <button type="submit" class="btn btn-primary">チャットをはじめる</button>
-      </form>
-      <p class="online-info">🟢 現在 <span id="top-online-count">0</span> 人がオンライン</p>
-      <p class="notice">※ 個人情報（本名・住所・連絡先など）は絶対に送らないでください。</p>
-    </div>
-  </section>
+      </div>
 
-  <!-- 待機画面 -->
-  <section id="waiting-screen" class="screen">
-    <div class="waiting-card">
-      <div class="spinner"></div>
-      <h2>相手を探しています…</h2>
-      <p>ひまな誰かが見つかるまで少しお待ちください</p>
-      <button id="cancel-waiting" class="btn btn-ghost">やめる</button>
+      <div class="room-list-head">
+        <h2>チャットルーム一覧</h2>
+        <button id="show-create-room" class="btn btn-primary btn-small-pad">＋ 部屋を作る</button>
+      </div>
+
+      <form id="create-room-form" class="create-room-form hidden">
+        <input id="room-name-input" type="text" placeholder="部屋の名前（例: 音楽好きの部屋）" maxlength="30" required>
+        <input id="room-desc-input" type="text" placeholder="部屋の説明（任意）" maxlength="60">
+        <div class="create-room-actions">
+          <button type="submit" class="btn btn-primary">作成して入室</button>
+          <button type="button" id="cancel-create-room" class="btn btn-ghost">やめる</button>
+        </div>
+      </form>
+
+      <ul id="room-list" class="room-list"></ul>
+
+      <p class="notice">※ 個人情報（本名・住所・連絡先など）は絶対に書き込まないでください。</p>
     </div>
   </section>
 
   <!-- チャット画面 -->
   <section id="chat-screen" class="screen">
     <header class="chat-header">
-      <div class="partner-info">
-        <span class="partner-avatar">🙂</span>
-        <div>
-          <div id="partner-name" class="partner-name">相手</div>
-          <div id="typing-indicator" class="typing-indicator"></div>
-        </div>
+      <button id="leave-room" class="btn btn-small">← 一覧へ</button>
+      <div class="room-info">
+        <div id="room-title" class="room-title">部屋</div>
+        <div id="room-desc" class="room-desc"></div>
       </div>
-      <div class="header-actions">
-        <span class="online-badge">🟢 <span id="chat-online-count">0</span>人</span>
-        <button id="next-partner" class="btn btn-small">次の相手へ</button>
-        <button id="leave-chat" class="btn btn-small btn-danger">退出</button>
-      </div>
+      <button id="toggle-members" class="btn btn-small">👥 <span id="member-count">0</span>人</button>
     </header>
 
-    <main id="messages" class="messages" aria-live="polite"></main>
+    <div class="chat-body">
+      <main id="messages" class="messages" aria-live="polite"></main>
+      <aside id="member-panel" class="member-panel hidden">
+        <h3>入室中のメンバー</h3>
+        <ul id="member-list"></ul>
+      </aside>
+    </div>
 
     <footer class="chat-footer">
-      <button id="random-question" class="btn btn-question" title="ランダム質問を出す">🎲 質問</button>
       <form id="message-form">
         <input
           id="message-input"
           type="text"
-          placeholder="メッセージを入力…"
+          placeholder="メッセージを入力…（「2d6」でサイコロ）"
           maxlength="500"
           autocomplete="off"
         >
@@ -80,6 +82,8 @@
       </form>
     </footer>
   </section>
+
+  <div id="toast" class="toast hidden"></div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="app.js"></script>
