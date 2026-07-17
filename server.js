@@ -383,7 +383,9 @@ const STYLE =
   '.tab{border:1px solid #88aacc;background-color:#c4dcf0;padding:2px 8px;margin-right:2px;text-decoration:none;font-size:13px;}' +
   '.tabon{border:1px solid #88aacc;background-color:#ffffff;padding:2px 8px;margin-right:2px;font-weight:bold;font-size:13px;}' +
   '.tabnew{border:1px solid #cc6666;background-color:#ffe8e8;padding:2px 8px;margin-right:2px;text-decoration:none;font-size:13px;color:#cc0000;font-weight:bold;}' +
-  '.chatimg{max-width:240px;max-height:240px;}';
+  '.chatimg{max-width:240px;max-height:240px;}' +
+  '.palette{background-color:transparent;margin:4px 0;}' +
+  '.palette td{border:1px solid #446688;padding:4px 6px;}';
 
 function page(title, body) {
   return '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">\n' +
@@ -399,13 +401,21 @@ function nameHtml(name, color) {
   return '<font color="' + colorHex(color) + '"><b>' + escapeHtml(name) + '</b></font>';
 }
 
-function colorSelectHtml(selected) {
-  let html = '<select name="color">';
+// 色そのものを見て選べるパレット(色付きセル+ラジオボタン)。
+// bgcolor属性なので古いブラウザでもJSなしで色が見える。
+function colorPaletteHtml(selected) {
+  let html = '<table cellpadding="0" cellspacing="2" class="palette"><tr>';
   for (let i = 0; i < COLORS.length; i++) {
-    const sel = COLORS[i][0] === selected ? ' selected' : '';
-    html += '<option value="' + COLORS[i][0] + '"' + sel + '>' + COLORS[i][1] + '</option>';
+    if (i === 8) html += '</tr><tr>';
+    const key = COLORS[i][0];
+    const label = COLORS[i][1];
+    const hex = COLORS[i][2];
+    const checked = key === selected ? ' checked' : '';
+    html += '<td bgcolor="' + hex + '" style="background-color:' + hex + ';" title="' + label + '">' +
+      '<input type="radio" name="color" value="' + key + '"' + checked + '>' +
+      '</td>';
   }
-  return html + '</select>';
+  return html + '</tr></table>';
 }
 
 // TOPと入室中の部屋(最大5)・個人チャットを行き来するタブ
@@ -550,8 +560,9 @@ function topPage(req, res) {
     '<form method="POST" action="/profile">' +
     '<div class="box">' +
     '現在: ' + nameHtml(myName, myColor) + '<br>' +
-    '名前: <input type="text" name="name" size="12" maxlength="' + MAX_NAME_LENGTH + '" value="' + escapeHtml(myName) + '"> ' +
-    '名前の色: ' + colorSelectHtml(myColor) + ' ' +
+    '名前: <input type="text" name="name" size="12" maxlength="' + MAX_NAME_LENGTH + '" value="' + escapeHtml(myName) + '"><br>' +
+    '名前の色(見たままの色を選んでください):<br>' +
+    colorPaletteHtml(myColor) +
     '<input type="submit" value="保存">' +
     '<div class="small">※名前はここでだけ変更できます。入室中の全部屋・個人チャットに反映されます。</div>' +
     '</div>' +
