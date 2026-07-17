@@ -1,0 +1,372 @@
+# Copyright (C) 2026 setsna
+# This file is distributed under the GNU General Public License v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: fellow 0.1.0\n"
+"Report-Msgid-Bugs-To: https://setsna.com/fellow/\n"
+"POT-Creation-Date: 2026-07-17 00:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: fellow\n"
+
+#: 404.php:20
+msgid "ページが見つかりませんでした"
+msgstr ""
+
+#: 404.php:22
+msgid "お探しのページは移動または削除された可能性があります。キーワード検索か、カテゴリーからお探しください。"
+msgstr ""
+
+#: 404.php:29
+msgid "人気カテゴリー"
+msgstr ""
+
+#: 404.php:33
+msgid "トップページへ戻る"
+msgstr ""
+
+#: archive.php:39
+#: home.php:44
+#: index.php:31
+#: search.php:48
+msgid "前へ"
+msgstr ""
+
+#: archive.php:40
+#: home.php:45
+#: index.php:32
+#: search.php:49
+msgid "次へ"
+msgstr ""
+
+#: archive.php:45
+msgid "このアーカイブには記事がありません。"
+msgstr ""
+
+#. translators: %s: コメント数。
+#: comments.php:23
+msgid "%s件のコメント"
+msgid_plural "%s件のコメント"
+msgstr[0] ""
+msgstr[1] ""
+
+#: comments.php:41
+msgid "コメントは締め切られています。"
+msgstr ""
+
+#: footer.php:19
+msgid "サイト"
+msgstr ""
+
+#: footer.php:35
+msgid "カテゴリー"
+msgstr ""
+
+#: footer.php:40
+msgid "アーカイブ"
+msgstr ""
+
+#: footer.php:49
+msgid "フォロー"
+msgstr ""
+
+#. translators: %s: テーマ名。
+#: footer.php:71
+msgid "Theme: %s"
+msgstr ""
+
+#: header.php:22
+msgid "本文へスキップ"
+msgstr ""
+
+#: header.php:38
+msgid "メインメニュー"
+msgstr ""
+
+#: header.php:56
+msgid "検索ボックスを開閉"
+msgstr ""
+
+#: header.php:66
+msgid "メニューを開閉"
+msgstr ""
+
+#: home.php:30
+msgid "最新記事"
+msgstr ""
+
+#: home.php:51
+msgid "まだ記事がありません。"
+msgstr ""
+
+#: index.php:37
+msgid "記事が見つかりませんでした。"
+msgstr ""
+
+#: page.php:47
+#: single.php:71
+msgid "ページ:"
+msgstr ""
+
+#. translators: %s: 検索キーワード。
+#: search.php:22
+#: inc/template-tags.php:128
+msgid "「%s」の検索結果"
+msgstr ""
+
+#. translators: %s: ヒット件数。
+#: search.php:29
+msgid "%s件見つかりました。"
+msgstr ""
+
+#: search.php:55
+msgid "一致する記事が見つかりませんでした。別のキーワードでお試しください。"
+msgstr ""
+
+#: searchform.php:16
+msgid "検索キーワード"
+msgstr ""
+
+#: searchform.php:20
+msgid "サイト内を検索"
+msgstr ""
+
+#: searchform.php:25
+msgid "検索"
+msgstr ""
+
+#: single.php:60
+#: single.php:62
+msgid "目次"
+msgstr ""
+
+#. translators: %s: 著者名。
+#: single.php:92
+msgid "この記事を書いた人:%s"
+msgstr ""
+
+#: single.php:103
+msgid "前の記事"
+msgstr ""
+
+#: single.php:104
+msgid "次の記事"
+msgstr ""
+
+#: single.php:115
+msgid "関連記事"
+msgstr ""
+
+#: template-parts/content-featured.php:36
+msgid "注目記事"
+msgstr ""
+
+#. translators: %s: スコア(0.0〜10.0)。
+#: template-parts/score-dial.php:24
+msgid "レビュースコア %s / 10"
+msgstr ""
+
+#: template-parts/score-dial.php:29
+msgid "総合評価"
+msgstr ""
+
+#: inc/customizer.php:61
+msgid "アクセントカラー"
+msgstr ""
+
+#: inc/customizer.php:71
+msgid "SNSリンク"
+msgstr ""
+
+#: inc/customizer.php:77
+msgid "X(旧Twitter)URL"
+msgstr ""
+
+#: inc/customizer.php:78
+msgid "RSS URL"
+msgstr ""
+
+#: inc/customizer.php:79
+msgid "Feedly URL"
+msgstr ""
+
+#: inc/customizer.php:96
+msgid "空欄にすると表示されません。"
+msgstr ""
+
+#: inc/customizer.php:105
+msgid "レイアウト"
+msgstr ""
+
+#: inc/customizer.php:120
+msgid "本文の1行あたり文字数"
+msgstr ""
+
+#: inc/customizer.php:124
+msgid "65文字(狭め)"
+msgstr ""
+
+#: inc/customizer.php:125
+msgid "70文字(標準)"
+msgstr ""
+
+#: inc/customizer.php:126
+msgid "75文字(広め)"
+msgstr ""
+
+#: inc/customizer.php:128
+msgid "記事本文の最大行長を切り替えます。"
+msgstr ""
+
+#: inc/customizer.php:136
+msgid "fellow 機能設定"
+msgstr ""
+
+#: inc/customizer.php:151
+msgid "ヘッダーに検索ボックスを表示する"
+msgstr ""
+
+#: inc/customizer.php:167
+msgid "ヘッダーを画面上部に固定する"
+msgstr ""
+
+#: inc/customizer.php:223
+msgid "X"
+msgstr ""
+
+#: inc/customizer.php:224
+msgid "RSS"
+msgstr ""
+
+#: inc/customizer.php:225
+msgid "Feedly"
+msgstr ""
+
+#: inc/review-meta.php:31
+msgid "レビュースコア"
+msgstr ""
+
+#: inc/review-meta.php:52
+msgid "スコア(0.0〜10.0)"
+msgstr ""
+
+#: inc/review-meta.php:68
+msgid "未入力にするとこの記事にはスコアダイヤルが表示されません。"
+msgstr ""
+
+#: inc/setup.php:46
+msgid "ヘッダーメニュー"
+msgstr ""
+
+#: inc/setup.php:47
+msgid "フッター「サイト」メニュー"
+msgstr ""
+
+#: inc/template-tags.php:45
+msgid "ホーム"
+msgstr ""
+
+#: inc/template-tags.php:52
+msgid "ブログ"
+msgstr ""
+
+#. translators: %s: 年(4桁)。
+#: inc/template-tags.php:122
+msgid "%s年"
+msgstr ""
+
+#: inc/template-tags.php:133
+msgid "ページが見つかりません"
+msgstr ""
+
+#: inc/template-tags.php:146
+msgid "現在位置"
+msgstr ""
+
+#. translators: %s: タグ名。
+#: inc/template-tags.php:203
+msgid "#%s"
+msgstr ""
+
+#. translators: %s: 年(4桁)。
+#: inc/template-tags.php:208
+msgid "%s年の記事"
+msgstr ""
+
+#. translators: %s: 年月。
+#: inc/template-tags.php:213
+msgid "%sの記事"
+msgstr ""
+
+#. translators: %s: 著者名。
+#: inc/template-tags.php:218
+msgid "%s の記事"
+msgstr ""
+
+#. translators: %s: 更新日。
+#: inc/template-tags.php:240
+msgid "%s 更新"
+msgstr ""
+
+#: inc/template-tags.php:334
+msgid "シェア"
+msgstr ""
+
+#: inc/template-tags.php:338
+msgid "Xでポスト"
+msgstr ""
+
+#: inc/template-tags.php:343
+msgid "はてなブックマーク"
+msgstr ""
+
+#: inc/template-tags.php:348
+msgid "URLをコピー"
+msgstr ""
+
+#: inc/theme-options-page.php:20
+#: inc/theme-options-page.php:21
+#: inc/theme-options-page.php:126
+msgid "fellow 設定"
+msgstr ""
+
+#: inc/theme-options-page.php:45
+msgid "機能のON/OFF"
+msgstr ""
+
+#: inc/theme-options-page.php:52
+msgid "レビュースコア機能"
+msgstr ""
+
+#: inc/theme-options-page.php:58
+msgid "レビュースコアのメタボックスとスコアダイヤルを有効にする"
+msgstr ""
+
+#: inc/theme-options-page.php:59
+msgid "レビュー機能を使わないブログではオフにできます。保存済みのスコアは削除されません。"
+msgstr ""
+
+#: inc/theme-options-page.php:65
+msgid "フッタークレジット"
+msgstr ""
+
+#: inc/theme-options-page.php:71
+msgid "フッターにテーマクレジットを表示する"
+msgstr ""
+
+#: inc/theme-options-page.php:72
+msgid "クレジット表記はいつでも非表示にできます(GPLのため義務ではありません)。"
+msgstr ""
+
+#: inc/theme-options-page.php:127
+msgid "色やロゴなど見た目の設定は「外観 > カスタマイズ」から行えます。"
+msgstr ""
+
+#. translators: %s: 親メニュー名。
+#: inc/walker-nav.php:80
+msgid "%s のサブメニューを開閉"
+msgstr ""

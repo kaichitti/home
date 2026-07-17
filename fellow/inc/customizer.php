@@ -1,0 +1,245 @@
+<?php
+/**
+ * カスタマイザー定義。
+ *
+ * テーマファイルを書き換えずに見た目を変えられるよう、
+ * 値はすべて CSS 変数(fellow_inline_css)経由で反映する。
+ *
+ * @package fellow
+ */
+
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
+/**
+ * デフォルトのアクセントカラー。
+ */
+const FELLOW_DEFAULT_ACCENT = '#C2EEF2';
+
+/**
+ * チェックボックス用サニタイズ。
+ *
+ * @param mixed $checked 入力値。
+ * @return bool
+ */
+function fellow_sanitize_checkbox( $checked ) {
+	return (bool) $checked;
+}
+
+/**
+ * 本文幅セレクト用サニタイズ(65〜75文字、5刻み)。
+ *
+ * @param mixed $value 入力値。
+ * @return int
+ */
+function fellow_sanitize_measure( $value ) {
+	$value = (int) $value;
+
+	return in_array( $value, array( 65, 70, 75 ), true ) ? $value : 70;
+}
+
+/**
+ * セクション・設定・コントロールの登録。
+ *
+ * @param WP_Customize_Manager $wp_customize カスタマイザーマネージャ。
+ */
+function fellow_customize_register( $wp_customize ) {
+	// --- カラー -------------------------------------------------------.
+	$wp_customize->add_setting(
+		'fellow_accent_color',
+		array(
+			'default'           => FELLOW_DEFAULT_ACCENT,
+			'sanitize_callback' => 'sanitize_hex_color',
+		)
+	);
+	$wp_customize->add_control(
+		new WP_Customize_Color_Control(
+			$wp_customize,
+			'fellow_accent_color',
+			array(
+				'label'   => __( 'アクセントカラー', 'fellow' ),
+				'section' => 'colors',
+			)
+		)
+	);
+
+	// --- SNSリンク(空欄なら非表示) ---------------------------------.
+	$wp_customize->add_section(
+		'fellow_sns',
+		array(
+			'title'    => __( 'SNSリンク', 'fellow' ),
+			'priority' => 90,
+		)
+	);
+
+	$sns_fields = array(
+		'fellow_sns_x'      => __( 'X(旧Twitter)URL', 'fellow' ),
+		'fellow_sns_rss'    => __( 'RSS URL', 'fellow' ),
+		'fellow_sns_feedly' => __( 'Feedly URL', 'fellow' ),
+	);
+
+	foreach ( $sns_fields as $setting_id => $label ) {
+		$wp_customize->add_setting(
+			$setting_id,
+			array(
+				'default'           => '',
+				'sanitize_callback' => 'esc_url_raw',
+			)
+		);
+		$wp_customize->add_control(
+			$setting_id,
+			array(
+				'label'       => $label,
+				'section'     => 'fellow_sns',
+				'type'        => 'url',
+				'description' => __( '空欄にすると表示されません。', 'fellow' ),
+			)
+		);
+	}
+
+	// --- レイアウト ---------------------------------------------------.
+	$wp_customize->add_section(
+		'fellow_layout',
+		array(
+			'title'    => __( 'レイアウト', 'fellow' ),
+			'priority' => 95,
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_measure',
+		array(
+			'default'           => 70,
+			'sanitize_callback' => 'fellow_sanitize_measure',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_measure',
+		array(
+			'label'       => __( '本文の1行あたり文字数', 'fellow' ),
+			'section'     => 'fellow_layout',
+			'type'        => 'select',
+			'choices'     => array(
+				65 => __( '65文字(狭め)', 'fellow' ),
+				70 => __( '70文字(標準)', 'fellow' ),
+				75 => __( '75文字(広め)', 'fellow' ),
+			),
+			'description' => __( '記事本文の最大行長を切り替えます。', 'fellow' ),
+		)
+	);
+
+	// --- 機能 -----------------------------------------------------------.
+	$wp_customize->add_section(
+		'fellow_features',
+		array(
+			'title'    => __( 'fellow 機能設定', 'fellow' ),
+			'priority' => 96,
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_show_search',
+		array(
+			'default'           => true,
+			'sanitize_callback' => 'fellow_sanitize_checkbox',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_show_search',
+		array(
+			'label'   => __( 'ヘッダーに検索ボックスを表示する', 'fellow' ),
+			'section' => 'fellow_features',
+			'type'    => 'checkbox',
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_sticky_header',
+		array(
+			'default'           => true,
+			'sanitize_callback' => 'fellow_sanitize_checkbox',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_sticky_header',
+		array(
+			'label'   => __( 'ヘッダーを画面上部に固定する', 'fellow' ),
+			'section' => 'fellow_features',
+			'type'    => 'checkbox',
+		)
+	);
+}
+add_action( 'customize_register', 'fellow_customize_register' );
+
+/**
+ * カスタマイザー値をCSS変数として出力する。
+ *
+ * main.css 側は変数参照のみを行う。
+ *
+ * @return string
+ */
+function fellow_inline_css() {
+	$accent  = get_theme_mod( 'fellow_accent_color', FELLOW_DEFAULT_ACCENT );
+	$accent  = sanitize_hex_color( $accent );
+	$measure = fellow_sanitize_measure( get_theme_mod( 'fellow_measure', 70 ) );
+
+	if ( ! $accent ) {
+		$accent = FELLOW_DEFAULT_ACCENT;
+	}
+
+	return sprintf(
+		':root{--accent:%1$s;--measure:%2$dch;}',
+		$accent,
+		$measure
+	);
+}
+
+/**
+ * ヘッダー検索ボックスを表示するか。
+ *
+ * @return bool
+ */
+function fellow_show_search() {
+	return (bool) get_theme_mod( 'fellow_show_search', true );
+}
+
+/**
+ * ヘッダーを固定表示するか。
+ *
+ * @return bool
+ */
+function fellow_is_sticky_header() {
+	return (bool) get_theme_mod( 'fellow_sticky_header', true );
+}
+
+/**
+ * 設定済みのSNSリンクを返す(空欄は除外)。
+ *
+ * @return array{label:string,url:string,slug:string}[]
+ */
+function fellow_sns_links() {
+	$defs = array(
+		'x'      => array( __( 'X', 'fellow' ), 'fellow_sns_x' ),
+		'rss'    => array( __( 'RSS', 'fellow' ), 'fellow_sns_rss' ),
+		'feedly' => array( __( 'Feedly', 'fellow' ), 'fellow_sns_feedly' ),
+	);
+
+	$links = array();
+
+	foreach ( $defs as $slug => $def ) {
+		$url = get_theme_mod( $def[1], '' );
+
+		if ( '' === $url ) {
+			continue;
+		}
+
+		$links[] = array(
+			'label' => $def[0],
+			'url'   => $url,
+			'slug'  => $slug,
+		);
+	}
+
+	return $links;
+}
