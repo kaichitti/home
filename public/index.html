@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ニックネームを入力するだけで、すぐに誰かとおしゃべりできる匿名ひまつぶしチャット。登録不要・無料。">
+  <title>ヒマチャット風 - ひまつぶし匿名チャット</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
+</head>
+<body>
+
+  <!-- トップ画面 -->
+  <section id="top-screen" class="screen active">
+    <div class="top-card">
+      <div class="logo">💬</div>
+      <h1>ヒマチャット風</h1>
+      <p class="tagline">ひまな誰かと、いますぐおしゃべり。</p>
+      <ul class="features">
+        <li>✨ 登録不要・無料</li>
+        <li>🕶️ 完全匿名（ニックネームだけ）</li>
+        <li>⚡ 平均5秒でチャット開始</li>
+      </ul>
+      <form id="join-form">
+        <input
+          id="nickname-input"
+          type="text"
+          placeholder="ニックネームを入力"
+          maxlength="20"
+          autocomplete="off"
+          required
+        >
+        <button type="submit" class="btn btn-primary">チャットをはじめる</button>
+      </form>
+      <p class="online-info">🟢 現在 <span id="top-online-count">0</span> 人がオンライン</p>
+      <p class="notice">※ 個人情報（本名・住所・連絡先など）は絶対に送らないでください。</p>
+    </div>
+  </section>
+
+  <!-- 待機画面 -->
+  <section id="waiting-screen" class="screen">
+    <div class="waiting-card">
+      <div class="spinner"></div>
+      <h2>相手を探しています…</h2>
+      <p>ひまな誰かが見つかるまで少しお待ちください</p>
+      <button id="cancel-waiting" class="btn btn-ghost">やめる</button>
+    </div>
+  </section>
+
+  <!-- チャット画面 -->
+  <section id="chat-screen" class="screen">
+    <header class="chat-header">
+      <div class="partner-info">
+        <span class="partner-avatar">🙂</span>
+        <div>
+          <div id="partner-name" class="partner-name">相手</div>
+          <div id="typing-indicator" class="typing-indicator"></div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span class="online-badge">🟢 <span id="chat-online-count">0</span>人</span>
+        <button id="next-partner" class="btn btn-small">次の相手へ</button>
+        <button id="leave-chat" class="btn btn-small btn-danger">退出</button>
+      </div>
+    </header>
+
+    <main id="messages" class="messages" aria-live="polite"></main>
+
+    <footer class="chat-footer">
+      <button id="random-question" class="btn btn-question" title="ランダム質問を出す">🎲 質問</button>
+      <form id="message-form">
+        <input
+          id="message-input"
+          type="text"
+          placeholder="メッセージを入力…"
+          maxlength="500"
+          autocomplete="off"
+        >
+        <button type="submit" class="btn btn-primary btn-send">送信</button>
+      </form>
+    </footer>
+  </section>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
