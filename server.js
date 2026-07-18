@@ -43,25 +43,30 @@ const DICE_PATTERN = /^(\d{1,2})[dD](\d{1,4})([+-]\d{1,4})?$/;
 // 画像URL(画像投稿ONの部屋でインライン表示)
 const IMAGE_URL_PATTERN = /^https?:\/\/[^\s"<>]+\.(jpe?g|gif|png)$/i;
 
-// 名前の色プリセット16色（キー, 表示名, 色コード）
+// 名前の色プリセット16色（キー, 表示名, 色コード）明るめの色調
 const COLORS = [
-  ['black',    '黒',     '#222222'],
-  ['red',      '赤',     '#cc0000'],
-  ['blue',     '青',     '#0000cc'],
-  ['green',    '緑',     '#007700'],
-  ['orange',   '橙',     '#cc6600'],
-  ['purple',   '紫',     '#770077'],
-  ['brown',    '茶',     '#774411'],
-  ['pink',     '桃',     '#cc0077'],
-  ['teal',     '青緑',   '#007777'],
-  ['gray',     '灰',     '#777777'],
-  ['navy',     '紺',     '#000066'],
-  ['darkgreen','深緑',   '#004422'],
-  ['wine',     'えんじ', '#882222'],
-  ['gold',     '金茶',   '#996600'],
-  ['sky',      '空',     '#3388cc'],
-  ['fuji',     '藤',     '#7766cc'],
+  ['black',    '黒',     '#555555'],
+  ['red',      '赤',     '#ff4444'],
+  ['blue',     '青',     '#4466ff'],
+  ['green',    '緑',     '#33bb33'],
+  ['orange',   '橙',     '#ff9922'],
+  ['purple',   '紫',     '#cc55dd'],
+  ['brown',    '茶',     '#cc8855'],
+  ['pink',     '桃',     '#ff77bb'],
+  ['teal',     '青緑',   '#22bbbb'],
+  ['gray',     '灰',     '#aaaaaa'],
+  ['navy',     '紺',     '#5566ee'],
+  ['darkgreen','深緑',   '#55bb77'],
+  ['wine',     'えんじ', '#ee5566'],
+  ['gold',     '金茶',   '#eebb33'],
+  ['sky',      '空',     '#66ccff'],
+  ['fuji',     '藤',     '#aa99ff'],
 ];
+
+// 未設定時の初期名「ゲスト+乱数4桁(1-9999)」
+function guestName() {
+  return 'ゲスト' + (1 + Math.floor(Math.random() * 9999));
+}
 
 function colorHex(key) {
   for (let i = 0; i < COLORS.length; i++) {
@@ -232,6 +237,17 @@ function findSessionByPublicId(publicId) {
   return found;
 }
 
+// 同じトークルームに入室しているか(個人チャットは同室者限定)
+function sharesRoom(sessionA, sessionB) {
+  if (!sessionA || !sessionB) return false;
+  let shared = false;
+  sessionA.rooms.forEach(function (joinedAt, roomId) {
+    const room = rooms.get(roomId);
+    if (room && room.members.has(sessionB.sid)) shared = true;
+  });
+  return shared;
+}
+
 function pmKey(pidA, pidB) {
   return pidA < pidB ? pidA + '|' + pidB : pidB + '|' + pidA;
 }
@@ -329,7 +345,7 @@ function ensureSession(req, res) {
     session = {
       sid,
       publicId: crypto.randomBytes(4).toString('hex'),
-      name: sanitizeText(cookies.name, MAX_NAME_LENGTH) || '名無しさん',
+      name: sanitizeText(cookies.name, MAX_NAME_LENGTH) || guestName(),
       color: validColor(cookies.color || 'black'),
       rooms: new Map(),      // roomId -> 入室時刻
       blocks: new Set(),     // 無視している相手のpublicId
@@ -447,10 +463,11 @@ function tabsHtml(session, current) {
 }
 
 // ポップアップで開くリンク(JS無効でも新しいタブ/ページで開ける)
+// ポップアップが開けないブラウザ(ゲーム機など)では通常のリンクとして遷移する
 function popupLink(url, label, w, h) {
   return '<a href="' + url + '" target="_blank" ' +
-    'onclick="window.open(this.href,\'hcpopup\',\'width=' + w + ',height=' + h +
-    ',scrollbars=yes,resizable=yes\');return false;">' + label + '</a>';
+    'onclick="try{var w=window.open(this.href,\'hcpopup\',\'width=' + w + ',height=' + h +
+    ',scrollbars=yes,resizable=yes\');if(w){return false;}}catch(e){}return true;">' + label + '</a>';
 }
 
 function messageHtml(msg, imagesAllowed) {
@@ -509,10 +526,10 @@ const TOP_ERRORS = {
 };
 
 function topPage(req, res) {
-  const session = getSession(req);
-  const cookies = parseCookies(req);
-  const myName = (session && session.name) || sanitizeText(cookies.name, MAX_NAME_LENGTH) || '名無しさん';
-  const myColor = validColor((session && session.color) || cookies.color || 'black');
+  // 初訪問時もここでセッションを作り、ゲスト名を自動で割り当てる
+  const session = ensureSession(req, res);
+  const myName = session.name;
+  const myColor = validColor(session.color);
 
   let noticeHtml = '';
   const e = req.query.e;
@@ -588,7 +605,7 @@ function topPage(req, res) {
 // 名前・色の保存(全部屋共通)
 app.post('/profile', function (req, res) {
   const session = ensureSession(req, res);
-  const name = sanitizeText(req.body.name, MAX_NAME_LENGTH) || '名無しさん';
+  const name = sanitizeText(req.body.name, MAX_NAME_LENGTH) || session.name;
   const color = validColor(req.body.color);
   session.name = name;
   session.color = color;
@@ -678,10 +695,9 @@ const ENTRY_ERRORS = {
 };
 
 function entryPage(req, res, room) {
-  const session = getSession(req);
-  const cookies = parseCookies(req);
-  const myName = (session && session.name) || sanitizeText(cookies.name, MAX_NAME_LENGTH) || '名無しさん';
-  const myColor = validColor((session && session.color) || cookies.color || 'black');
+  const session = ensureSession(req, res);
+  const myName = session.name;
+  const myColor = validColor(session.color);
 
   const e = req.query.e;
   const errorHtml = (e && ENTRY_ERRORS[e]) ? '<div class="err">' + ENTRY_ERRORS[e] + '</div>' : '';
@@ -858,7 +874,8 @@ app.get('/members', function (req, res) {
     memberRows +
     '</table>' +
     '<hr>' +
-    '<div class="small">このウィンドウは閉じてください</div>';
+    '[<a href="/?room=' + roomId + '">チャットに戻る</a>]' +
+    '<div class="small">※ポップアップで開いた場合はこのウィンドウを閉じてください(ゲーム機など別ウィンドウが開けないブラウザは「チャットに戻る」でどうぞ)</div>';
 
   res.send(page('参加者一覧 - ' + room.name, body));
 });
@@ -907,6 +924,7 @@ const PM_ERRORS = {
   blocked: '送信できませんでした（相手に無視されています）',
   youblock: 'この相手を無視中です。解除すると送受信できます',
   gone: '相手が見つかりませんでした（退室した可能性があります）',
+  notshared: '個人チャットは同じトークルームにいる相手とだけできます（同じ部屋に入ってから送信してください）',
 };
 
 app.get('/pm-list', function (req, res) {
@@ -984,7 +1002,7 @@ function pmPage(req, res, session, partnerPid) {
     errorHtml +
     '<hr>' +
     sendForm +
-    '<div class="small">※このやり取りは相手とあなたにしか見えません。</div>' +
+    '<div class="small">※このやり取りは相手とあなたにしか見えません。個人チャットは同じトークルームにいる相手とだけできます。</div>' +
     '<hr>' +
     (lines.join('\n') || '<div class="sys">(まだ発言はありません)</div>') +
     '<hr>' +
@@ -997,6 +1015,20 @@ app.get('/pm', function (req, res) {
   const session = ensureSession(req, res);
   const partnerPid = sanitizeText(req.query.with, 16);
   if (!partnerPid || partnerPid === session.publicId) return res.redirect('/pm-list');
+
+  // 新規スレッドは同じトークルームにいる相手とだけ開始できる
+  // (既存のやり取りは相手が退室していても閲覧できる)
+  const existing = getPmThread(session.publicId, partnerPid, false);
+  if (!existing) {
+    const partner = findSessionByPublicId(partnerPid);
+    if (!partner || !sharesRoom(session, partner)) {
+      return res.send(page('個人チャット',
+        tabsHtml(session, 'pm') +
+        '<h1>個人チャット</h1>' +
+        '<div class="err">' + PM_ERRORS.notshared + '</div>' +
+        '<hr>[<a href="/pm-list">一覧へ</a>] [<a href="/">TOPへ</a>]'));
+    }
+  }
   pmPage(req, res, session, partnerPid);
 });
 
@@ -1009,6 +1041,7 @@ app.post('/pm/say', function (req, res) {
   if (session.blocks.has(partnerPid)) return res.redirect(back + '&e=youblock');
   const partner = findSessionByPublicId(partnerPid);
   if (!partner) return res.redirect(back + '&e=gone');
+  if (!sharesRoom(session, partner)) return res.redirect(back + '&e=notshared');
   if (partner.blocks.has(session.publicId)) return res.redirect(back + '&e=blocked');
 
   const text = sanitizeText(req.body.m, MAX_MESSAGE_LENGTH);
