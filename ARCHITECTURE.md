@@ -87,6 +87,7 @@ if ( is_admin() ) {
 - ナビゲーションメニュー登録:`primary`(ヘッダー) / `footer-site`(フッター「サイト」列)
 - カスタム画像サイズ:カード用(4:3)、記事詳細アイキャッチ用(16:9)
 - ウィジェットエリア登録:`footer-widgets`。**1つも登録しないとWordPressが「外観 > ウィジェット」を `wp_die()` で拒否する**ため、配布テーマでは最低1つ持たせる。未設定なら `is_active_sidebar()` 判定で列ごと出力しない
+- ただし、テーマ切替時にWordPressは前テーマのウィジェットを**最初に登録されたエリアへ自動的に移す**(`retrieve_widgets()`)。fellowはフッターにカテゴリー/アーカイブを固定表示しているため、放置すると有効化直後に同じ内容が二重に並ぶ。`after_switch_theme`(優先度20 = `_wp_sidebars_changed` の後)で一度だけ、引き継がれたウィジェットを `wp_inactive_widgets` へ戻す
 - エディタスタイル:`add_theme_support('editor-styles')` + `add_editor_style()` の**両方**が必要。`add_editor_style()` が立てるのは単数形の `editor-style`(旧エディタ用)で、ブロックエディタは複数形の `editor-styles` を見ている
 
 **enqueue.php で行うこと**

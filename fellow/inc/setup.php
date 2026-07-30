@@ -84,6 +84,41 @@ function fellow_widgets_init() {
 add_action( 'widgets_init', 'fellow_widgets_init' );
 
 /**
+ * 初回有効化時に、他テーマから引き継がれたウィジェットを使用停止中へ戻す。
+ *
+ * テーマを切り替えると WordPress は前テーマのウィジェットを
+ * 最初に登録されたウィジェットエリアへ自動的に移す(retrieve_widgets)。
+ * fellow はフッターにカテゴリーとアーカイブを既に固定表示しているため、
+ * 何もしないと有効化直後のフッターに同じ内容が二重に並んでしまう。
+ *
+ * 削除ではなく「使用停止中のウィジェット」へ移すだけなので、
+ * 必要なら「外観 > ウィジェット」から元に戻せる。
+ * 一度きりの処理で、利用者が自分で配置したウィジェットには触れない。
+ */
+function fellow_reset_inherited_widgets() {
+	if ( get_theme_mod( 'fellow_widgets_initialized' ) ) {
+		return;
+	}
+
+	set_theme_mod( 'fellow_widgets_initialized', true );
+
+	$sidebars = (array) get_option( 'sidebars_widgets', array() );
+
+	if ( empty( $sidebars['footer-widgets'] ) ) {
+		return;
+	}
+
+	$inactive = isset( $sidebars['wp_inactive_widgets'] ) ? (array) $sidebars['wp_inactive_widgets'] : array();
+
+	$sidebars['wp_inactive_widgets'] = array_merge( $inactive, (array) $sidebars['footer-widgets'] );
+	$sidebars['footer-widgets']      = array();
+
+	update_option( 'sidebars_widgets', $sidebars );
+}
+// retrieve_widgets() が優先度10で走るため、その後に実行する。
+add_action( 'after_switch_theme', 'fellow_reset_inherited_widgets', 20 );
+
+/**
  * 埋め込みコンテンツの基準幅。
  */
 function fellow_content_width() {
