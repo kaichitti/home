@@ -4,14 +4,14 @@ Theme URI: https://setsna.com/fellow/
 Author: setsna
 Author URI: https://setsna.com/
 Description: setsna.com 発のレビュー/ブログ向けWordPressテーマ。カード型の記事一覧、レビュースコアダイヤル、プラグイン非依存のパンくず・目次を備え、共用サーバーでも軽快に動作します。A lightweight review/blog theme with card layouts, a review score dial, and zero plugin dependencies.
-Version: 0.1.0
-Requires at least: 6.0
-Tested up to: 6.7
+Version: 0.2.0
+Requires at least: 6.3
+Tested up to: 6.8
 Requires PHP: 8.0
 License: GNU General Public License v2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Text Domain: fellow
-Tags: blog, news, one-column, custom-colors, custom-logo, custom-menu, featured-images, threaded-comments, translation-ready
+Tags: blog, news, one-column, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
 
 fellow WordPress Theme, (C) 2026 setsna
 fellow is distributed under the terms of the GNU GPL v2 or later.

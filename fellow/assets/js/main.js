@@ -8,8 +8,8 @@
 ( function () {
 	'use strict';
 
-	// JS有効の印(CSS側で .js プレフィックスの出し分けに使う)
-	document.documentElement.classList.add( 'js' );
+	// .js クラスは head 内の同期スクリプト(fellow_print_js_detection)で
+	// 既に付与済み。ここで付けると初回描画がチラつくため触らない。
 
 	document.addEventListener( 'DOMContentLoaded', function () {
 		setupNavToggle();

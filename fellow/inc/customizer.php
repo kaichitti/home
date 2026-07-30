@@ -173,26 +173,33 @@ function fellow_customize_register( $wp_customize ) {
 add_action( 'customize_register', 'fellow_customize_register' );
 
 /**
- * カスタマイザー値をCSS変数として出力する。
+ * カスタマイザー値をCSS変数の宣言リストとして返す(セレクタは含まない)。
  *
- * main.css 側は変数参照のみを行う。
+ * 公開画面では :root{} に、ブロックエディタでは body{} に入れる必要があるため、
+ * 宣言部分だけを共通化する。
  *
- * @return string
+ * @return string 例: '--accent:#C2EEF2;--measure:70ch;'
  */
-function fellow_inline_css() {
-	$accent  = get_theme_mod( 'fellow_accent_color', FELLOW_DEFAULT_ACCENT );
-	$accent  = sanitize_hex_color( $accent );
+function fellow_css_custom_properties() {
+	$accent  = sanitize_hex_color( get_theme_mod( 'fellow_accent_color', FELLOW_DEFAULT_ACCENT ) );
 	$measure = fellow_sanitize_measure( get_theme_mod( 'fellow_measure', 70 ) );
 
 	if ( ! $accent ) {
 		$accent = FELLOW_DEFAULT_ACCENT;
 	}
 
-	return sprintf(
-		':root{--accent:%1$s;--measure:%2$dch;}',
-		$accent,
-		$measure
-	);
+	return sprintf( '--accent:%1$s;--measure:%2$dch;', $accent, $measure );
+}
+
+/**
+ * カスタマイザー値をCSS変数として出力する(公開画面用)。
+ *
+ * main.css 側は変数参照のみを行う。
+ *
+ * @return string
+ */
+function fellow_inline_css() {
+	return ':root{' . fellow_css_custom_properties() . '}';
 }
 
 /**

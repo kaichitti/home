@@ -272,16 +272,19 @@ function fellow_related_posts_query( $count = 3 ) {
 /**
  * フッター用カテゴリーリストを出力する。
  *
- * @param int $number 表示件数。
+ * @param int  $number       表示件数。
+ * @param bool $hierarchical 子カテゴリーを入れ子で表示するか。
+ *                           404ページのように横並びで見せる場所では false にする。
  */
-function fellow_footer_categories( $number = 6 ) {
+function fellow_footer_categories( $number = 6, $hierarchical = true ) {
 	$list = wp_list_categories(
 		array(
-			'title_li' => '',
-			'echo'     => false,
-			'number'   => $number,
-			'orderby'  => 'count',
-			'order'    => 'DESC',
+			'title_li'     => '',
+			'echo'         => false,
+			'number'       => $number,
+			'orderby'      => 'count',
+			'order'        => 'DESC',
+			'hierarchical' => (bool) $hierarchical,
 		)
 	);
 
@@ -311,6 +314,80 @@ function fellow_footer_archives( $limit = 5 ) {
 	}
 
 	echo '<ul class="footer-list">' . $list . '</ul>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- wp_get_archives() はエスケープ済みHTMLを返す。
+}
+
+/**
+ * 抜粋を「文字数」で切り詰めて返す。
+ *
+ * wp_trim_words() は空白で単語を区切るため、空白をほとんど使わない日本語では
+ * ほぼ切り詰められず本文全体が出てしまう。文字数ベースで判定する。
+ * 手動抜粋が未設定のときは本文の最初の段落だけを使う(見出しの文字列が
+ * 抜粋に混ざって読みづらくなるのを避けるため)。
+ *
+ * @param int $length 最大文字数。
+ * @return string
+ */
+function fellow_get_excerpt( $length = 120 ) {
+	$post = get_post();
+
+	if ( ! $post ) {
+		return '';
+	}
+
+	if ( '' !== trim( (string) $post->post_excerpt ) ) {
+		$text = $post->post_excerpt;
+	} else {
+		$content = strip_shortcodes( $post->post_content );
+
+		// 最初の段落だけを採用する。段落が取れなければ全体を使う。
+		if ( preg_match( '#<p[^>]*>(.*?)</p>#is', $content, $matches ) ) {
+			$text = $matches[1];
+		} else {
+			$text = $content;
+		}
+	}
+
+	$text = wp_strip_all_tags( $text, true );
+	$text = trim( preg_replace( '/\s+/u', ' ', $text ) );
+
+	if ( '' === $text ) {
+		return '';
+	}
+
+	if ( function_exists( 'mb_strlen' ) ) {
+		if ( mb_strlen( $text ) > $length ) {
+			$text = rtrim( mb_substr( $text, 0, $length ) ) . '…';
+		}
+	} elseif ( strlen( $text ) > $length * 3 ) {
+		$text = rtrim( substr( $text, 0, $length * 3 ) ) . '…';
+	}
+
+	return $text;
+}
+
+/**
+ * 記事のタグを出力する。タグ未設定なら何も出さない。
+ */
+function fellow_entry_tags() {
+	$tags = get_the_tags();
+
+	if ( ! $tags || is_wp_error( $tags ) ) {
+		return;
+	}
+	?>
+	<div class="entry-tags">
+		<span class="entry-tags__label"><?php esc_html_e( 'タグ', 'fellow' ); ?></span>
+		<ul class="entry-tags__list">
+			<?php foreach ( $tags as $tag ) : ?>
+				<li>
+					<a class="entry-tags__link" href="<?php echo esc_url( get_tag_link( $tag ) ); ?>" rel="tag">
+						<?php echo esc_html( $tag->name ); ?>
+					</a>
+				</li>
+			<?php endforeach; ?>
+		</ul>
+	</div>
+	<?php
 }
 
 /**

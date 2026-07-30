@@ -78,6 +78,8 @@ get_header();
 
 			<?php get_template_part( 'template-parts/score-dial' ); ?>
 
+			<?php fellow_entry_tags(); ?>
+
 			<?php fellow_share_links(); ?>
 
 			<?php if ( get_the_author_meta( 'description' ) ) : ?>

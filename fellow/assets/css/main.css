@@ -646,7 +646,12 @@ figcaption {
 @media (min-width: 720px) {
 	.featured__link {
 		grid-template-columns: 5fr 4fr;
-		align-items: center;
+		/* stretch にしないと、本文側が高いときに画像列の上下に余白が出る */
+		align-items: stretch;
+	}
+
+	.featured__media {
+		height: 100%;
 	}
 }
 
@@ -983,6 +988,51 @@ figcaption {
    9. シェア・著者・前後記事・関連記事
    ========================================================================== */
 
+.entry-tags {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 0.75rem;
+	margin: 2rem 0;
+}
+
+.entry-tags__label {
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: var(--color-text-muted);
+}
+
+.entry-tags__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.entry-tags__link {
+	display: inline-block;
+	padding: 0.2em 0.9em;
+	background: var(--color-bg-soft);
+	border: 1px solid var(--color-border);
+	border-radius: 999px;
+	color: var(--color-text);
+	font-size: 0.8rem;
+	text-decoration: none;
+}
+
+.entry-tags__link::before {
+	content: "#";
+	margin-right: 0.15em;
+	color: var(--color-text-muted);
+}
+
+.entry-tags__link:hover {
+	background: var(--accent);
+	border-color: var(--accent);
+}
+
 .share {
 	display: flex;
 	flex-wrap: wrap;
@@ -1265,12 +1315,49 @@ figcaption {
 	margin-bottom: 0.4em;
 }
 
+/*
+ * 入れ子のカテゴリー(ul.children)には、ブラウザ既定の
+ * `ul ul { list-style-type: circle }` が直接当たって継承値に勝つため、
+ * 明示的に打ち消す必要がある。
+ */
+.footer-list ul {
+	margin: 0.4em 0 0;
+	padding-left: 1em;
+	list-style: none;
+}
+
 .footer-list a {
 	color: var(--color-text-muted);
 	text-decoration: none;
 }
 
 .footer-list a:hover {
+	color: var(--color-link);
+	text-decoration: underline;
+}
+
+/* フッターウィジェットエリア:ウィジェット未設定時は列ごと出力されない */
+.site-footer__column--widgets .widget + .widget {
+	margin-top: 1.5rem;
+}
+
+.site-footer__column--widgets ul {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.9rem;
+}
+
+.site-footer__column--widgets li {
+	margin-bottom: 0.4em;
+}
+
+.site-footer__column--widgets a {
+	color: var(--color-text-muted);
+	text-decoration: none;
+}
+
+.site-footer__column--widgets a:hover {
 	color: var(--color-link);
 	text-decoration: underline;
 }

@@ -2,9 +2,9 @@
 # This file is distributed under the GNU General Public License v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: fellow 0.1.0\n"
+"Project-Id-Version: fellow 0.2.0\n"
 "Report-Msgid-Bugs-To: https://setsna.com/fellow/\n"
-"POT-Creation-Date: 2026-07-17 00:00+0000\n"
+"POT-Creation-Date: 2026-07-30 00:00+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -70,12 +70,12 @@ msgstr ""
 msgid "アーカイブ"
 msgstr ""
 
-#: footer.php:49
+#: footer.php:55
 msgid "フォロー"
 msgstr ""
 
 #. translators: %s: テーマ名。
-#: footer.php:71
+#: footer.php:77
 msgid "Theme: %s"
 msgstr ""
 
@@ -145,19 +145,19 @@ msgid "目次"
 msgstr ""
 
 #. translators: %s: 著者名。
-#: single.php:92
+#: single.php:94
 msgid "この記事を書いた人:%s"
 msgstr ""
 
-#: single.php:103
+#: single.php:105
 msgid "前の記事"
 msgstr ""
 
-#: single.php:104
+#: single.php:106
 msgid "次の記事"
 msgstr ""
 
-#: single.php:115
+#: single.php:117
 msgid "関連記事"
 msgstr ""
 
@@ -234,15 +234,15 @@ msgstr ""
 msgid "ヘッダーを画面上部に固定する"
 msgstr ""
 
-#: inc/customizer.php:223
+#: inc/customizer.php:230
 msgid "X"
 msgstr ""
 
-#: inc/customizer.php:224
+#: inc/customizer.php:231
 msgid "RSS"
 msgstr ""
 
-#: inc/customizer.php:225
+#: inc/customizer.php:232
 msgid "Feedly"
 msgstr ""
 
@@ -258,12 +258,20 @@ msgstr ""
 msgid "未入力にするとこの記事にはスコアダイヤルが表示されません。"
 msgstr ""
 
-#: inc/setup.php:46
+#: inc/setup.php:54
 msgid "ヘッダーメニュー"
 msgstr ""
 
-#: inc/setup.php:47
+#: inc/setup.php:55
 msgid "フッター「サイト」メニュー"
+msgstr ""
+
+#: inc/setup.php:74
+msgid "フッターウィジェットエリア"
+msgstr ""
+
+#: inc/setup.php:76
+msgid "フッターの列として表示されます。空のときは何も出力されません。"
 msgstr ""
 
 #: inc/template-tags.php:45
@@ -312,19 +320,23 @@ msgstr ""
 msgid "%s 更新"
 msgstr ""
 
-#: inc/template-tags.php:334
+#: inc/template-tags.php:379
+msgid "タグ"
+msgstr ""
+
+#: inc/template-tags.php:411
 msgid "シェア"
 msgstr ""
 
-#: inc/template-tags.php:338
+#: inc/template-tags.php:415
 msgid "Xでポスト"
 msgstr ""
 
-#: inc/template-tags.php:343
+#: inc/template-tags.php:420
 msgid "はてなブックマーク"
 msgstr ""
 
-#: inc/template-tags.php:348
+#: inc/template-tags.php:425
 msgid "URLをコピー"
 msgstr ""
 

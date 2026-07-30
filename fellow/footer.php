@@ -41,6 +41,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php fellow_footer_archives( 5 ); ?>
 			</section>
 
+			<?php if ( is_active_sidebar( 'footer-widgets' ) ) : ?>
+				<div class="site-footer__column site-footer__column--widgets">
+					<?php dynamic_sidebar( 'footer-widgets' ); ?>
+				</div>
+			<?php endif; ?>
+
 			<?php
 			$fellow_sns = fellow_sns_links();
 			if ( $fellow_sns ) :

@@ -1,12 +1,12 @@
 === fellow ===
 Contributors: setsna
-Requires at least: 6.0
-Tested up to: 6.7
+Requires at least: 6.3
+Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.1.0
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Tags: blog, news, one-column, custom-colors, custom-logo, custom-menu, featured-images, threaded-comments, translation-ready
+Tags: blog, news, one-column, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
 
 レビュー/ブログ向けの軽量WordPressテーマ。カード型一覧・レビュースコアダイヤル・プラグイン非依存のパンくず/目次を備えます。
 
@@ -19,6 +19,8 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 * プラグイン非依存のパンくず(BreadcrumbList の JSON-LD 付き)
 * 本文見出しから自動生成される目次(デスクトップは追従サイドバー、モバイルは折りたたみ)
 * ヘッダー検索のトグルUI(JS無効環境でも動作)
+* フッターウィジェットエリア(未設定なら列ごと非表示)
+* ブロックエディタのスタイルを公開画面に合わせる editor.css 同梱
 * ビルドツール非依存。CSS/JS 各1ファイルのみ
 
 == Installation ==
@@ -41,6 +43,17 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.2.0 =
+* 対応バージョンを 6.3 以上に修正(defer 読み込みに使う wp_enqueue_script の strategy 引数が 6.3 以降のため)
+* フッターウィジェットエリアを追加(「外観 > ウィジェット」が開けない問題を解消)
+* 記事にタグを表示
+* ブロックエディタ用スタイル(editor.css)を追加し、アクセントカラーもエディタへ反映
+* JS判定を head 内で行い、モバイルメニューが一瞬開いて見える問題を解消
+* 抜粋を文字数で切り詰めるよう変更(日本語で wp_trim_words が機能せず全文が出ていた)
+* 注目記事の画像列が縦に伸びず余白が出る問題を修正
+* 入れ子カテゴリーにブラウザ既定のリストマーカーが出る問題を修正
+* screenshot.png を実際の描画結果に差し替え
 
 = 0.1.0 =
 * 初回リリース(アーキテクチャに基づくスキャフォールド)

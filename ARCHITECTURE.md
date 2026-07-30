@@ -37,6 +37,7 @@ fellow/
 │   └── score-dial.php           # スコアダイヤルの描画パーツ
 ├── assets/
 │   ├── css/main.css              # ビルド後の1ファイルCSS(Sass等は使わない)
+│   ├── css/editor.css            # ブロックエディタ用(add_editor_style で読み込み)
 │   ├── js/main.js                # ハンバーガー/検索トグル/TOCスクロール追従
 │   └── fonts/                    # 自己ホストWebフォント(woff2)
 ├── languages/
@@ -82,9 +83,11 @@ if ( is_admin() ) {
 ```
 
 **setup.php で行うこと**
-- `add_theme_support('title-tag')` / `post-thumbnails` / `html5`
+- `add_theme_support('title-tag')` / `post-thumbnails` / `html5` / `align-wide`
 - ナビゲーションメニュー登録:`primary`(ヘッダー) / `footer-site`(フッター「サイト」列)
 - カスタム画像サイズ:カード用(4:3)、記事詳細アイキャッチ用(16:9)
+- ウィジェットエリア登録:`footer-widgets`。**1つも登録しないとWordPressが「外観 > ウィジェット」を `wp_die()` で拒否する**ため、配布テーマでは最低1つ持たせる。未設定なら `is_active_sidebar()` 判定で列ごと出力しない
+- エディタスタイル:`add_theme_support('editor-styles')` + `add_editor_style()` の**両方**が必要。`add_editor_style()` が立てるのは単数形の `editor-style`(旧エディタ用)で、ブロックエディタは複数形の `editor-styles` を見ている
 
 **enqueue.php で行うこと**
 - `assets/css/main.css` を1本だけ読み込み(WordPress側のブロックライブラリCSS等は`wp_dequeue_style`で除去し軽量化)
@@ -128,6 +131,11 @@ ACF等のプラグイン依存を避け、素の `add_meta_box` + `post_meta` �
 - フッターのカテゴリー一覧:`wp_list_categories()` をラップした関数で表示件数を制御
 - フッターの年別アーカイブ:`wp_get_archives(['type' => 'yearly'])` をラップ
 - 検索ボックス:`get_search_form()` をカスタムテンプレートで上書き、ヘッダー内にトグルUIとして設置(JSで`.open`クラス切り替えのみ、非表示時はネイティブの`<form>`として機能するのでJS無効環境でも壊れない)
+- タグ:記事本文下に `fellow_entry_tags()` で表示(タグ未設定なら非出力)。タグアーカイブだけ用意して流入経路を作らないのを避ける
+- 入れ子リストの注意:`wp_list_categories()` が出す `ul.children` には、ブラウザ既定の `ul ul { list-style-type: circle }` が**直接**当たるため、親の `list-style: none` の継承では消えない。`.footer-list ul` に明示的に指定する
+
+**抜粋の扱い(日本語特有の注意)**
+`wp_trim_words()` は空白で単語を区切るため、空白をほとんど使わない日本語ではほぼ切り詰められず本文全体が出てしまう。`fellow_get_excerpt()` を用意し、**文字数**(`mb_substr`)で切る。手動抜粋が無い場合は本文の最初の段落だけを使い、見出しの文字列が抜粋に混ざるのを防ぐ。
 
 ---
 
@@ -150,9 +158,20 @@ ACF等のプラグイン依存を避け、素の `add_meta_box` + `post_meta` �
 
 ---
 
-## 次のステップ
+## 動作確認の状況
 
-1. `inc/setup.php` と `header.php` / `footer.php` から実装開始(モックアップのHTML/CSSをテンプレート化)
-2. カスタマイザーの動作確認(アクセントカラー変更が即座に反映されるか)
-3. スコアダイヤルのメタボックスと表示条件分岐の実装
-4. Theme Check通過の確認
+WordPress 6.8(PHP 8.4)にzipからインストールして検証済み。
+
+- [x] `inc/setup.php` と `header.php` / `footer.php` の実装
+- [x] カスタマイザーの動作確認(アクセントカラーが `:root{--accent}` として反映されることを確認)
+- [x] スコアダイヤルのメタボックスと表示条件分岐(0.0が消えないこと、未入力で非描画になることを確認)
+- [x] Theme Check通過(REQUIRED 0 / WARNING 0)
+- [x] 全テンプレートを `WP_DEBUG` 有効で描画し、PHP警告・Notice ゼロを確認
+- [x] 保存処理の境界値・不正入力・nonce・権限チェック
+
+**対応バージョンの下限は 6.3**。`wp_enqueue_script()` に `strategy => 'defer'` を渡すのが6.3以降の機能で、6.2以下では致命的エラーにはならないが `defer` が黙って落ちる(実機で確認済み)。
+
+### 残っている検討事項
+
+- `screenshot.png` はデモ記事を入れた実描画。販売時は実サイトの内容で撮り直す
+- Theme Check の RECOMMENDED として `register_block_pattern` / `register_block_style` / `custom-header` / `custom-background` / `wp-block-styles` が残るが、いずれも該当しない機能か、ブロックCSS除去の方針と矛盾するため見送り

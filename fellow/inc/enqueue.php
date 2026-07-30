@@ -63,6 +63,40 @@ function fellow_enqueue_assets() {
 add_action( 'wp_enqueue_scripts', 'fellow_enqueue_assets' );
 
 /**
+ * JS有効の印(.js)を head 内で即座に付与する。
+ *
+ * main.js は defer かつフッター読み込みのため、そこで付与すると
+ * ハンバーガーメニューや検索フォームが「開いた状態」で一瞬描画されてしまう。
+ * CSSより先に効かせる必要があるので、head の先頭で同期実行する。
+ */
+function fellow_print_js_detection() {
+	wp_print_inline_script_tag(
+		"document.documentElement.classList.add('js');",
+		array( 'id' => 'fellow-js-detection' )
+	);
+}
+add_action( 'wp_head', 'fellow_print_js_detection', 0 );
+
+/**
+ * ブロックエディタにもカスタマイザーのCSS変数を渡す。
+ *
+ * add_editor_style() は静的ファイルしか受け付けないため、
+ * 動的な値はエディタ設定に直接追加する。エディタ側のスタイルは
+ * セレクタが .editor-styles-wrapper に置換されるので body{} に入れる。
+ *
+ * @param array $settings ブロックエディタ設定。
+ * @return array
+ */
+function fellow_editor_custom_properties( $settings ) {
+	$settings['styles'][] = array(
+		'css' => 'body{' . fellow_css_custom_properties() . '}',
+	);
+
+	return $settings;
+}
+add_filter( 'block_editor_settings_all', 'fellow_editor_custom_properties' );
+
+/**
  * コアが出力するブロックライブラリ等のCSSを除去して軽量化する。
  */
 function fellow_dequeue_core_styles() {

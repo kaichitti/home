@@ -41,7 +41,10 @@ $fellow_featured_categories = get_the_category();
 
 			<h2 class="featured__title"><?php the_title(); ?></h2>
 
-			<p class="featured__excerpt"><?php echo esc_html( wp_trim_words( get_the_excerpt(), 60 ) ); ?></p>
+			<?php $fellow_featured_excerpt = fellow_get_excerpt( 140 ); ?>
+			<?php if ( '' !== $fellow_featured_excerpt ) : ?>
+				<p class="featured__excerpt"><?php echo esc_html( $fellow_featured_excerpt ); ?></p>
+			<?php endif; ?>
 
 			<div class="card__meta">
 				<?php fellow_entry_date(); ?>

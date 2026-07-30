@@ -27,7 +27,7 @@ get_header();
 		</div>
 
 		<h2 class="section-title"><?php esc_html_e( '人気カテゴリー', 'fellow' ); ?></h2>
-		<?php fellow_footer_categories( 6 ); ?>
+		<?php fellow_footer_categories( 6, false ); ?>
 
 		<p class="error-404__home">
 			<a href="<?php echo esc_url( home_url( '/' ) ); ?>"><?php esc_html_e( 'トップページへ戻る', 'fellow' ); ?></a>
