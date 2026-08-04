@@ -93,97 +93,95 @@
 	}
 
 	/**
-	 * 目次(TOC):本文の h2/h3 から生成し、IntersectionObserver で追従ハイライト。
+	 * 目次(TOC)。
+	 *
+	 * 目次そのものは inc/toc.php がサーバー側で出力済み(JS無効でも動く)。
+	 * ここで足すのは「本文内の目次の折りたたみ」と
+	 * 「読んでいる位置のハイライト」だけ。
 	 */
 	function setupToc() {
-		var toc = document.getElementById( 'entry-toc' );
-		var source = document.querySelector( '[data-toc-source]' );
+		var tocs = document.querySelectorAll( '.fellow-toc' );
 
-		if ( ! toc || ! source ) {
+		if ( ! tocs.length ) {
 			return;
 		}
 
-		var headings = source.querySelectorAll( 'h2, h3' );
+		// 本文内の目次:モバイルで畳めるようにする
+		var inline = document.querySelector( '.fellow-toc--inline' );
 
-		if ( headings.length < 2 ) {
-			return; // 見出しが少ない記事では目次を出さない
+		if ( inline ) {
+			var toggle = inline.querySelector( '.fellow-toc__toggle' );
+
+			if ( toggle ) {
+				// 広い画面では開いた状態から始める
+				if ( window.matchMedia( '(min-width: 900px)' ).matches ) {
+					toggle.setAttribute( 'aria-expanded', 'true' );
+				}
+
+				toggle.addEventListener( 'click', function () {
+					var expanded = 'true' === toggle.getAttribute( 'aria-expanded' );
+					toggle.setAttribute( 'aria-expanded', expanded ? 'false' : 'true' );
+				} );
+			}
 		}
 
-		var body = toc.querySelector( '.entry-toc__body' );
-		var tocToggle = toc.querySelector( '.entry-toc__toggle' );
-		var rootList = document.createElement( 'ol' );
-		var currentParent = rootList;
-		var lastTopItem = null;
+		// 現在地のハイライト(全ての目次に同時に反映する)
+		if ( ! ( 'IntersectionObserver' in window ) ) {
+			return;
+		}
 
-		headings.forEach( function ( heading, index ) {
-			if ( ! heading.id ) {
-				heading.id = 'section-' + ( index + 1 );
+		var links = document.querySelectorAll( '.fellow-toc a[href^="#"]' );
+
+		if ( ! links.length ) {
+			return;
+		}
+
+		var linksById = {};
+		var headings = [];
+
+		links.forEach( function ( link ) {
+			var id = decodeURIComponent( link.hash.slice( 1 ) );
+
+			if ( ! id ) {
+				return;
 			}
 
-			var item = document.createElement( 'li' );
-			var link = document.createElement( 'a' );
-			link.href = '#' + heading.id;
-			link.textContent = heading.textContent;
-			item.appendChild( link );
+			if ( ! linksById[ id ] ) {
+				linksById[ id ] = [];
+				var heading = document.getElementById( id );
 
-			if ( 'H2' === heading.tagName || ! lastTopItem ) {
-				rootList.appendChild( item );
-				lastTopItem = item;
-				currentParent = null;
-			} else {
-				if ( ! currentParent ) {
-					currentParent = document.createElement( 'ol' );
-					lastTopItem.appendChild( currentParent );
+				if ( heading ) {
+					headings.push( heading );
 				}
-				currentParent.appendChild( item );
 			}
+
+			linksById[ id ].push( link );
 		} );
 
-		body.appendChild( rootList );
-		toc.hidden = false;
-
-		// モバイル:折りたたみトグル
-		if ( tocToggle ) {
-			tocToggle.addEventListener( 'click', function () {
-				var isOpen = toc.classList.toggle( 'is-open' );
-				tocToggle.setAttribute( 'aria-expanded', isOpen ? 'true' : 'false' );
-			} );
-		}
-
-		// スクロール追従(現在地ハイライト)
-		if ( 'IntersectionObserver' in window ) {
-			var links = body.querySelectorAll( 'a' );
-			var linkById = {};
-
+		function setActive( id ) {
 			links.forEach( function ( link ) {
-				linkById[ link.hash.slice( 1 ) ] = link;
+				link.classList.remove( 'is-active' );
 			} );
 
-			var observer = new IntersectionObserver(
-				function ( entries ) {
-					entries.forEach( function ( entry ) {
-						if ( ! entry.isIntersecting ) {
-							return;
-						}
-
-						links.forEach( function ( link ) {
-							link.classList.remove( 'is-active' );
-						} );
-
-						var active = linkById[ entry.target.id ];
-
-						if ( active ) {
-							active.classList.add( 'is-active' );
-						}
-					} );
-				},
-				{ rootMargin: '0px 0px -70% 0px' }
-			);
-
-			headings.forEach( function ( heading ) {
-				observer.observe( heading );
+			( linksById[ id ] || [] ).forEach( function ( link ) {
+				link.classList.add( 'is-active' );
 			} );
 		}
+
+		var observer = new IntersectionObserver(
+			function ( entries ) {
+				entries.forEach( function ( entry ) {
+					if ( entry.isIntersecting ) {
+						setActive( entry.target.id );
+					}
+				} );
+			},
+			{ rootMargin: '0px 0px -70% 0px' }
+		);
+
+		headings.forEach( function ( heading ) {
+			observer.observe( heading );
+		} );
 	}
 
 	/**

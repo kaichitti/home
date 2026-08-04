@@ -2,9 +2,9 @@
 # This file is distributed under the GNU General Public License v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: fellow 0.2.0\n"
+"Project-Id-Version: fellow 0.3.0\n"
 "Report-Msgid-Bugs-To: https://setsna.com/fellow/\n"
-"POT-Creation-Date: 2026-07-30 00:00+0000\n"
+"POT-Creation-Date: 2026-08-04 00:00+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -29,21 +29,21 @@ msgstr ""
 msgid "トップページへ戻る"
 msgstr ""
 
-#: archive.php:39
-#: home.php:44
-#: index.php:31
-#: search.php:48
+#: archive.php:42
+#: home.php:47
+#: index.php:34
+#: search.php:51
 msgid "前へ"
 msgstr ""
 
-#: archive.php:40
-#: home.php:45
-#: index.php:32
-#: search.php:49
+#: archive.php:43
+#: home.php:48
+#: index.php:35
+#: search.php:52
 msgid "次へ"
 msgstr ""
 
-#: archive.php:45
+#: archive.php:48
 msgid "このアーカイブには記事がありません。"
 msgstr ""
 
@@ -95,35 +95,35 @@ msgstr ""
 msgid "メニューを開閉"
 msgstr ""
 
-#: home.php:30
+#: home.php:33
 msgid "最新記事"
 msgstr ""
 
-#: home.php:51
+#: home.php:54
 msgid "まだ記事がありません。"
 msgstr ""
 
-#: index.php:37
+#: index.php:40
 msgid "記事が見つかりませんでした。"
 msgstr ""
 
 #: page.php:47
-#: single.php:71
+#: single.php:67
 msgid "ページ:"
 msgstr ""
 
 #. translators: %s: 検索キーワード。
-#: search.php:22
-#: inc/template-tags.php:128
+#: search.php:25
+#: inc/template-tags.php:191
 msgid "「%s」の検索結果"
 msgstr ""
 
 #. translators: %s: ヒット件数。
-#: search.php:29
+#: search.php:32
 msgid "%s件見つかりました。"
 msgstr ""
 
-#: search.php:55
+#: search.php:58
 msgid "一致する記事が見つかりませんでした。別のキーワードでお試しください。"
 msgstr ""
 
@@ -139,25 +139,25 @@ msgstr ""
 msgid "検索"
 msgstr ""
 
-#: single.php:60
-#: single.php:62
-msgid "目次"
+#: sidebar.php:19
+#: inc/setup.php:79
+msgid "サイドバー"
 msgstr ""
 
 #. translators: %s: 著者名。
-#: single.php:94
+#: single.php:89
 msgid "この記事を書いた人:%s"
 msgstr ""
 
-#: single.php:105
+#: single.php:100
 msgid "前の記事"
 msgstr ""
 
-#: single.php:106
+#: single.php:101
 msgid "次の記事"
 msgstr ""
 
-#: single.php:117
+#: single.php:112
 msgid "関連記事"
 msgstr ""
 
@@ -174,75 +174,95 @@ msgstr ""
 msgid "総合評価"
 msgstr ""
 
-#: inc/customizer.php:61
+#: inc/customizer.php:71
 msgid "アクセントカラー"
 msgstr ""
 
-#: inc/customizer.php:71
+#: inc/customizer.php:81
 msgid "SNSリンク"
 msgstr ""
 
-#: inc/customizer.php:77
+#: inc/customizer.php:87
 msgid "X(旧Twitter)URL"
 msgstr ""
 
-#: inc/customizer.php:78
+#: inc/customizer.php:88
 msgid "RSS URL"
 msgstr ""
 
-#: inc/customizer.php:79
+#: inc/customizer.php:89
 msgid "Feedly URL"
 msgstr ""
 
-#: inc/customizer.php:96
+#: inc/customizer.php:106
 msgid "空欄にすると表示されません。"
 msgstr ""
 
-#: inc/customizer.php:105
+#: inc/customizer.php:115
 msgid "レイアウト"
 msgstr ""
 
-#: inc/customizer.php:120
-msgid "本文の1行あたり文字数"
+#: inc/customizer.php:130
+msgid "サイドバーの位置"
 msgstr ""
 
-#: inc/customizer.php:124
-msgid "65文字(狭め)"
+#: inc/customizer.php:134
+msgid "右サイドバー(2カラム)"
 msgstr ""
 
-#: inc/customizer.php:125
-msgid "70文字(標準)"
-msgstr ""
-
-#: inc/customizer.php:126
-msgid "75文字(広め)"
-msgstr ""
-
-#: inc/customizer.php:128
-msgid "記事本文の最大行長を切り替えます。"
+#: inc/customizer.php:135
+msgid "左サイドバー(2カラム)"
 msgstr ""
 
 #: inc/customizer.php:136
+msgid "サイドバーなし(1カラム)"
+msgstr ""
+
+#: inc/customizer.php:138
+msgid "記事詳細と記事一覧・アーカイブに適用されます。固定ページは常に1カラムです。ウィジェットが未設定の場合も1カラムになります。"
+msgstr ""
+
+#: inc/customizer.php:152
+msgid "本文の1行あたり文字数"
+msgstr ""
+
+#: inc/customizer.php:156
+msgid "65文字(狭め)"
+msgstr ""
+
+#: inc/customizer.php:157
+msgid "70文字(標準)"
+msgstr ""
+
+#: inc/customizer.php:158
+msgid "75文字(広め)"
+msgstr ""
+
+#: inc/customizer.php:160
+msgid "記事本文の最大行長を切り替えます。"
+msgstr ""
+
+#: inc/customizer.php:168
 msgid "fellow 機能設定"
 msgstr ""
 
-#: inc/customizer.php:151
+#: inc/customizer.php:183
 msgid "ヘッダーに検索ボックスを表示する"
 msgstr ""
 
-#: inc/customizer.php:167
+#: inc/customizer.php:199
 msgid "ヘッダーを画面上部に固定する"
 msgstr ""
 
-#: inc/customizer.php:230
+#: inc/customizer.php:262
 msgid "X"
 msgstr ""
 
-#: inc/customizer.php:231
+#: inc/customizer.php:263
 msgid "RSS"
 msgstr ""
 
-#: inc/customizer.php:232
+#: inc/customizer.php:264
 msgid "Feedly"
 msgstr ""
 
@@ -266,77 +286,89 @@ msgstr ""
 msgid "フッター「サイト」メニュー"
 msgstr ""
 
-#: inc/setup.php:74
+#: inc/setup.php:81
+msgid "記事詳細と記事一覧・アーカイブの横に表示されます。空のときはサイドバー自体が出ず、本文が全幅になります。"
+msgstr ""
+
+#: inc/setup.php:91
+msgid "サイドバー(スクロール追従)"
+msgstr ""
+
+#: inc/setup.php:93
+msgid "サイドバーの下部に置かれ、スクロールしても画面内に留まります。目次や人気記事の設置に向いています。"
+msgstr ""
+
+#: inc/setup.php:103
 msgid "フッターウィジェットエリア"
 msgstr ""
 
-#: inc/setup.php:76
+#: inc/setup.php:105
 msgid "フッターの列として表示されます。空のときは何も出力されません。"
 msgstr ""
 
-#: inc/template-tags.php:45
+#: inc/template-tags.php:108
 msgid "ホーム"
 msgstr ""
 
-#: inc/template-tags.php:52
+#: inc/template-tags.php:115
 msgid "ブログ"
 msgstr ""
 
 #. translators: %s: 年(4桁)。
-#: inc/template-tags.php:122
+#: inc/template-tags.php:185
 msgid "%s年"
 msgstr ""
 
-#: inc/template-tags.php:133
+#: inc/template-tags.php:196
 msgid "ページが見つかりません"
 msgstr ""
 
-#: inc/template-tags.php:146
+#: inc/template-tags.php:209
 msgid "現在位置"
 msgstr ""
 
 #. translators: %s: タグ名。
-#: inc/template-tags.php:203
+#: inc/template-tags.php:266
 msgid "#%s"
 msgstr ""
 
 #. translators: %s: 年(4桁)。
-#: inc/template-tags.php:208
+#: inc/template-tags.php:271
 msgid "%s年の記事"
 msgstr ""
 
 #. translators: %s: 年月。
-#: inc/template-tags.php:213
+#: inc/template-tags.php:276
 msgid "%sの記事"
 msgstr ""
 
 #. translators: %s: 著者名。
-#: inc/template-tags.php:218
+#: inc/template-tags.php:281
 msgid "%s の記事"
 msgstr ""
 
 #. translators: %s: 更新日。
-#: inc/template-tags.php:240
+#: inc/template-tags.php:303
 msgid "%s 更新"
 msgstr ""
 
-#: inc/template-tags.php:379
+#: inc/template-tags.php:442
 msgid "タグ"
 msgstr ""
 
-#: inc/template-tags.php:411
+#: inc/template-tags.php:474
 msgid "シェア"
 msgstr ""
 
-#: inc/template-tags.php:415
+#: inc/template-tags.php:478
 msgid "Xでポスト"
 msgstr ""
 
-#: inc/template-tags.php:420
+#: inc/template-tags.php:483
 msgid "はてなブックマーク"
 msgstr ""
 
-#: inc/template-tags.php:425
+#: inc/template-tags.php:488
 msgid "URLをコピー"
 msgstr ""
 
@@ -378,7 +410,30 @@ msgstr ""
 msgid "色やロゴなど見た目の設定は「外観 > カスタマイズ」から行えます。"
 msgstr ""
 
+#: inc/toc.php:142
+#: inc/toc.php:147
+#: inc/widget-toc.php:50
+#: inc/widget-toc.php:70
+msgid "目次"
+msgstr ""
+
 #. translators: %s: 親メニュー名。
 #: inc/walker-nav.php:80
 msgid "%s のサブメニューを開閉"
+msgstr ""
+
+#: inc/widget-toc.php:25
+msgid "fellow 目次"
+msgstr ""
+
+#: inc/widget-toc.php:27
+msgid "記事詳細ページで、本文の見出しから目次を表示します。見出しが2つ未満の記事や、記事以外のページでは何も表示しません。"
+msgstr ""
+
+#: inc/widget-toc.php:74
+msgid "タイトル:"
+msgstr ""
+
+#: inc/widget-toc.php:85
+msgid "「サイドバー(スクロール追従)」に置くと、読みながら目次を参照できます。"
 msgstr ""

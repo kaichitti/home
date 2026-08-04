@@ -69,6 +69,35 @@ add_action( 'after_setup_theme', 'fellow_setup' );
  * wp_die() で拒否するため、配布テーマとしては最低1つ持たせる。
  */
 function fellow_widgets_init() {
+	/*
+	 * 登録順に意味がある。テーマ切替時、WordPress は前テーマのウィジェットを
+	 * 「最初に登録されたエリア」へ移すため(retrieve_widgets)、サイドバーを
+	 * 先頭にしておくと引き継いだウィジェットが自然な位置に収まる。
+	 */
+	register_sidebar(
+		array(
+			'name'          => __( 'サイドバー', 'fellow' ),
+			'id'            => 'sidebar-main',
+			'description'   => __( '記事詳細と記事一覧・アーカイブの横に表示されます。空のときはサイドバー自体が出ず、本文が全幅になります。', 'fellow' ),
+			'before_widget' => '<section id="%1$s" class="widget %2$s">',
+			'after_widget'  => '</section>',
+			'before_title'  => '<h2 class="widget__title">',
+			'after_title'   => '</h2>',
+		)
+	);
+
+	register_sidebar(
+		array(
+			'name'          => __( 'サイドバー(スクロール追従)', 'fellow' ),
+			'id'            => 'sidebar-sticky',
+			'description'   => __( 'サイドバーの下部に置かれ、スクロールしても画面内に留まります。目次や人気記事の設置に向いています。', 'fellow' ),
+			'before_widget' => '<section id="%1$s" class="widget %2$s">',
+			'after_widget'  => '</section>',
+			'before_title'  => '<h2 class="widget__title">',
+			'after_title'   => '</h2>',
+		)
+	);
+
 	register_sidebar(
 		array(
 			'name'          => __( 'フッターウィジェットエリア', 'fellow' ),
@@ -84,12 +113,12 @@ function fellow_widgets_init() {
 add_action( 'widgets_init', 'fellow_widgets_init' );
 
 /**
- * 初回有効化時に、他テーマから引き継がれたウィジェットを使用停止中へ戻す。
+ * 初回有効化時に、フッターへ引き継がれたウィジェットを使用停止中へ戻す。
  *
- * テーマを切り替えると WordPress は前テーマのウィジェットを
- * 最初に登録されたウィジェットエリアへ自動的に移す(retrieve_widgets)。
  * fellow はフッターにカテゴリーとアーカイブを既に固定表示しているため、
- * 何もしないと有効化直後のフッターに同じ内容が二重に並んでしまう。
+ * 他テーマから同じ内容のウィジェットが流れ込むと二重に並んでしまう。
+ * サイドバーを先に登録しているので通常はそちらへ移るが、
+ * 登録順に依存しない保険としてフッター側だけを空にしておく。
  *
  * 削除ではなく「使用停止中のウィジェット」へ移すだけなので、
  * 必要なら「外観 > ウィジェット」から元に戻せる。

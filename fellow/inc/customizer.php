@@ -28,6 +28,16 @@ function fellow_sanitize_checkbox( $checked ) {
 }
 
 /**
+ * サイドバー位置のサニタイズ。
+ *
+ * @param mixed $value 入力値。
+ * @return string
+ */
+function fellow_sanitize_sidebar_position( $value ) {
+	return in_array( $value, array( 'right', 'left', 'none' ), true ) ? $value : 'right';
+}
+
+/**
  * 本文幅セレクト用サニタイズ(65〜75文字、5刻み)。
  *
  * @param mixed $value 入力値。
@@ -104,6 +114,28 @@ function fellow_customize_register( $wp_customize ) {
 		array(
 			'title'    => __( 'レイアウト', 'fellow' ),
 			'priority' => 95,
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_sidebar_position',
+		array(
+			'default'           => 'right',
+			'sanitize_callback' => 'fellow_sanitize_sidebar_position',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_sidebar_position',
+		array(
+			'label'       => __( 'サイドバーの位置', 'fellow' ),
+			'section'     => 'fellow_layout',
+			'type'        => 'select',
+			'choices'     => array(
+				'right' => __( '右サイドバー(2カラム)', 'fellow' ),
+				'left'  => __( '左サイドバー(2カラム)', 'fellow' ),
+				'none'  => __( 'サイドバーなし(1カラム)', 'fellow' ),
+			),
+			'description' => __( '記事詳細と記事一覧・アーカイブに適用されます。固定ページは常に1カラムです。ウィジェットが未設定の場合も1カラムになります。', 'fellow' ),
 		)
 	);
 

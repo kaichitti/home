@@ -23,12 +23,15 @@ fellow/
 ├── header.php
 ├── footer.php
 ├── comments.php               # 使わない場合もテーマチェック対応で用意
+├── sidebar.php                # ウィジェット2エリア(通常/スクロール追従)
 ├── inc/
 │   ├── setup.php              # add_theme_support, メニュー登録, 画像サイズ
 │   ├── enqueue.php             # CSS/JS読み込み、フォントの自己ホスト設定
 │   ├── customizer.php          # カスタマイザー定義
 │   ├── review-meta.php         # レビュースコア用メタボックス
-│   ├── template-tags.php       # パンくず, TOC, 関連記事などの関数群
+│   ├── template-tags.php       # パンくず, レイアウト判定, 関連記事などの関数群
+│   ├── toc.php                 # 目次:見出し解析とID付与(サーバーサイド)
+│   ├── widget-toc.php          # サイドバー用の目次ウィジェット
 │   ├── walker-nav.php          # ハンバーガーメニュー用カスタムWalker
 │   └── theme-options-page.php  # 配布版のみ:テーマ全体設定(検索ON/OFF等)
 ├── template-parts/
@@ -55,10 +58,10 @@ WordPress標準の階層に素直に従い、「セツナのブログ」の情�
 
 | 画面 | テンプレート | 備考 |
 |---|---|---|
-| トップ(記事一覧) | `home.php` | 注目記事1件 + 最新記事リスト |
-| 記事詳細 | `single.php` | TOCはサイドバー、スマホは本文上に折りたたみ |
-| カテゴリー/タグ/年別 | `archive.php` | `get_the_archive_title()`を日本語向けに上書き |
-| 検索結果 | `search.php` | ヘッダーの検索ボックスから遷移 |
+| トップ(記事一覧) | `home.php` | 注目記事1件 + 最新記事リスト + サイドバー |
+| 記事詳細 | `single.php` | 本文 + サイドバー。目次は本文の最初の見出し前に挿入 |
+| カテゴリー/タグ/年別 | `archive.php` | `get_the_archive_title()`を日本語向けに上書き + サイドバー |
+| 検索結果 | `search.php` | ヘッダーの検索ボックスから遷移 + サイドバー |
 | 固定ページ(プロフィール等) | `page.php` | サイドバーなしのシンプル1カラム |
 | 404 | `404.php` | 検索ボックス+人気カテゴリーへの導線 |
 
@@ -76,6 +79,8 @@ require get_template_directory() . '/inc/enqueue.php';
 require get_template_directory() . '/inc/customizer.php';
 require get_template_directory() . '/inc/review-meta.php';
 require get_template_directory() . '/inc/template-tags.php';
+require get_template_directory() . '/inc/toc.php';
+require get_template_directory() . '/inc/widget-toc.php';
 require get_template_directory() . '/inc/walker-nav.php';
 if ( is_admin() ) {
     require get_template_directory() . '/inc/theme-options-page.php';
@@ -86,8 +91,8 @@ if ( is_admin() ) {
 - `add_theme_support('title-tag')` / `post-thumbnails` / `html5` / `align-wide`
 - ナビゲーションメニュー登録:`primary`(ヘッダー) / `footer-site`(フッター「サイト」列)
 - カスタム画像サイズ:カード用(4:3)、記事詳細アイキャッチ用(16:9)
-- ウィジェットエリア登録:`footer-widgets`。**1つも登録しないとWordPressが「外観 > ウィジェット」を `wp_die()` で拒否する**ため、配布テーマでは最低1つ持たせる。未設定なら `is_active_sidebar()` 判定で列ごと出力しない
-- ただし、テーマ切替時にWordPressは前テーマのウィジェットを**最初に登録されたエリアへ自動的に移す**(`retrieve_widgets()`)。fellowはフッターにカテゴリー/アーカイブを固定表示しているため、放置すると有効化直後に同じ内容が二重に並ぶ。`after_switch_theme`(優先度20 = `_wp_sidebars_changed` の後)で一度だけ、引き継がれたウィジェットを `wp_inactive_widgets` へ戻す
+- ウィジェットエリア登録:`sidebar-main` / `sidebar-sticky` / `footer-widgets` の3つ。**1つも登録しないとWordPressが「外観 > ウィジェット」を `wp_die()` で拒否する**。未設定のエリアは `is_active_sidebar()` 判定で丸ごと出力しない
+- **登録順に意味がある**。テーマ切替時、WordPressは前テーマのウィジェットを**最初に登録されたエリアへ自動的に移す**(`retrieve_widgets()`)。サイドバーを先頭に登録しておくと、有効化直後から2カラムが自然に埋まった状態になる。逆にフッターが先頭だと、テーマが固定表示しているカテゴリー/アーカイブと二重に並ぶ。保険として `after_switch_theme`(優先度20 = `_wp_sidebars_changed` の後)でフッター側だけ `wp_inactive_widgets` へ戻す
 - エディタスタイル:`add_theme_support('editor-styles')` + `add_editor_style()` の**両方**が必要。`add_editor_style()` が立てるのは単数形の `editor-style`(旧エディタ用)で、ブロックエディタは複数形の `editor-styles` を見ている
 
 **enqueue.php で行うこと**
@@ -107,6 +112,7 @@ if ( is_admin() ) {
 | カラー | アクセントカラー | `WP_Customize_Color_Control`、デフォルト`#C2EEF2` |
 | ロゴ/サイト名 | ロゴ画像 or テキストロゴ | `add_theme_support('custom-logo')` |
 | SNSリンク | X / RSS / Feedly URL | テキストフィールド、空なら非表示 |
+| レイアウト | サイドバーの位置(右/左/1カラム) | セレクトボックス、`body_class`で出し分け |
 | レイアウト | 本文の文字数幅(65〜75文字) | セレクトボックス、CSS変数`--measure`を出し分け |
 | 機能 | ヘッダー検索ボックスの表示/非表示 | チェックボックス(前回「検索欲しい」「ジャンルは不要」のような好みの違いに配布先も対応できるようにする) |
 | 機能 | ヘッダー固定(sticky)切り替え | チェックボックス |
@@ -126,7 +132,37 @@ ACF等のプラグイン依存を避け、素の `add_meta_box` + `post_meta` �
 
 ---
 
-## 6. カテゴリー・アーカイブ・パンくず
+## 6. レイアウトとサイドバー
+
+Luxeritas系の構成に合わせ、本文+サイドバーの2カラムを基本にする。
+
+| 画面 | サイドバー |
+|---|---|
+| 記事詳細 / 記事一覧 / アーカイブ / 検索結果 | あり |
+| 固定ページ / 404 | なし(1カラム) |
+
+- 位置はカスタマイザーで **右 / 左 / 1カラム** を切り替え。`fellow_body_classes()` が `has-sidebar` `sidebar-right|left` `no-sidebar` を `body` に付け、CSS側のGridで出し分ける
+- 左サイドバーはHTMLの順序を変えず、CSSの `order` だけで入れ替える(本文が先に読まれる方がスクリーンリーダー・SEOの双方で自然なため)
+- ウィジェットが1つも無いときは `fellow_has_sidebar()` が false を返し、空の列を作らずに本文を全幅にする
+- **`position: sticky` の注意**:追従エリアは親(`.site-sidebar`)の中で動くため、親が行の高さいっぱいに伸びている必要がある。Gridに `align-items: start` を付けるとサイドバーが中身の高さに縮み、追従が効かなくなる
+
+**ブロックウィジェットへの対応**
+WordPress 5.8以降、ウィジェットは既定でブロックになる。ブロックウィジェットは `before_title`/`after_title` を使わず独自に `h2.wp-block-heading` を出力し、さらに本テーマは軽量化のため `wp-block-library` を除去している。そのままだとサイドバーが素のHTMLで表示されるため、`main.css` 側で見出し・リスト・検索ブロックの体裁を明示的に当てる。
+
+---
+
+## 7. 目次(TOC)
+
+本文内とサイドバーの2箇所に同じ目次を出すため、**サーバーサイドで一度だけ**解析する(`inc/toc.php`)。
+
+- `the_content` フィルタ(優先度12 = `wpautop`/`do_shortcode` の後)で h2/h3 を走査し、IDが無ければ `fellow-heading-N` を付与
+- 解析結果を保持し、本文内の目次ボックスとサイドバーの `fellow 目次` ウィジェットの両方へ供給する
+- 目次は**本文の最初の見出しの直前**に挿入する(導入文は目次より上に残る)
+- 見出しが2つ未満の記事では目次ごと出さない
+- 既にIDがある見出しはそのIDを使う(既存のアンカーリンクを壊さないため)
+- JSが担うのは「モバイルでの折りたたみ」と「読んでいる位置のハイライト」だけ。**JS無効でも目次は機能する**
+
+## 8. カテゴリー・アーカイブ・パンくず
 
 - パンくず:`template-tags.php`内に自前関数(`fellow_breadcrumb()`)を実装。プラグイン非依存。構造化データ(`BreadcrumbList`)もついでにJSON-LDで出力し、SEO面を補強
 - フッターのカテゴリー一覧:`wp_list_categories()` をラップした関数で表示件数を制御
@@ -140,7 +176,7 @@ ACF等のプラグイン依存を避け、素の `add_meta_box` + `post_meta` �
 
 ---
 
-## 7. パフォーマンス方針(XREA共有サーバー前提)
+## 9. パフォーマンス方針(XREA共有サーバー前提)
 
 - 画像は`loading="lazy"`をデフォルト付与、アイキャッチのみ`fetchpriority="high"`でLCP対策
 - CSS/JSは合計でも数十KB以内を目標(Tailwind等のユーティリティ大量出力フレームワークは使わない)
@@ -149,7 +185,7 @@ ACF等のプラグイン依存を避け、素の `add_meta_box` + `post_meta` �
 
 ---
 
-## 8. 配布パッケージとして必要なもの
+## 10. 配布パッケージとして必要なもの
 
 - **Theme Check プラグイン**でのエラー・警告ゼロ化(テーマ販売サイト・自前配布いずれでも信頼性の担保になる)
 - **翻訳対応**:全文言を`__()`/`esc_html_e()`でラップし、`languages/fellow.pot`を同梱(日本語圏中心でも将来の多言語展開の余地を残す)

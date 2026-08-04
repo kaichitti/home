@@ -3,10 +3,10 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.2.0
+Stable tag: 0.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Tags: blog, news, one-column, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
+Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
 
 レビュー/ブログ向けの軽量WordPressテーマ。カード型一覧・レビュースコアダイヤル・プラグイン非依存のパンくず/目次を備えます。
 
@@ -14,10 +14,12 @@ Tags: blog, news, one-column, custom-colors, custom-logo, custom-menu, featured-
 
 fellow は共用サーバー(XREA等)でも軽快に動くことを重視した、レビュー/ブログ向けテーマです。
 
+* 本文+サイドバーの2カラム。カスタマイザーで右/左/1カラムを切り替え
+* スクロール追従のサイドバーエリア(目次や人気記事の設置に)
 * カード型の記事一覧と、ブログトップの注目記事ブロック
 * レビュースコアダイヤル(0.0〜10.0)。プラグイン不要、未入力なら非表示
 * プラグイン非依存のパンくず(BreadcrumbList の JSON-LD 付き)
-* 本文見出しから自動生成される目次(デスクトップは追従サイドバー、モバイルは折りたたみ)
+* 本文見出しから自動生成される目次。本文内とサイドバーの両方に出せ、JS無効でも機能します
 * ヘッダー検索のトグルUI(JS無効環境でも動作)
 * フッターウィジェットエリア(未設定なら列ごと非表示)
 * ブロックエディタのスタイルを公開画面に合わせる editor.css 同梱
@@ -43,6 +45,15 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.3.0 =
+* 本文+サイドバーの2カラムレイアウトに変更(記事詳細・記事一覧・アーカイブ・検索結果)。固定ページは従来どおり1カラム
+* ウィジェットエリアを追加:「サイドバー」「サイドバー(スクロール追従)」
+* カスタマイザーに「サイドバーの位置」(右/左/1カラム)を追加
+* 目次をサーバーサイド生成に変更。本文の最初の見出し前に挿入され、JS無効でも機能します
+* サイドバー用の「fellow 目次」ウィジェットを追加(スクロール追従エリア向け)
+* ブロックウィジェット(WordPress 5.8以降の既定)の見た目を整えた。検索・カテゴリー・アーカイブ等がテーマの体裁で表示されます
+* ウィジェットが未設定のときはサイドバーを描画せず、本文を全幅にする
 
 = 0.2.0 =
 * 対応バージョンを 6.3 以上に修正(defer 読み込みに使う wp_enqueue_script の strategy 引数が 6.3 以降のため)

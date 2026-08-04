@@ -33,6 +33,69 @@ function fellow_get_option( $key ) {
 }
 
 /**
+ * サイドバーの位置設定を返す。
+ *
+ * @return string 'right' | 'left' | 'none'
+ */
+function fellow_sidebar_position() {
+	$position = get_theme_mod( 'fellow_sidebar_position', 'right' );
+
+	return in_array( $position, array( 'right', 'left', 'none' ), true ) ? $position : 'right';
+}
+
+/**
+ * 現在の画面がサイドバーを持ちうるテンプレートかどうか。
+ *
+ * 固定ページと404は意図的に1カラムのままにする。
+ *
+ * @return bool
+ */
+function fellow_template_supports_sidebar() {
+	if ( is_page() || is_404() || is_attachment() ) {
+		return false;
+	}
+
+	return is_home() || is_singular( 'post' ) || is_archive() || is_search();
+}
+
+/**
+ * 実際にサイドバーを描画するかどうか。
+ *
+ * ウィジェットが1つも無いときは空の列を作らず、本文を全幅にする。
+ *
+ * @return bool
+ */
+function fellow_has_sidebar() {
+	if ( 'none' === fellow_sidebar_position() ) {
+		return false;
+	}
+
+	if ( ! fellow_template_supports_sidebar() ) {
+		return false;
+	}
+
+	return is_active_sidebar( 'sidebar-main' ) || is_active_sidebar( 'sidebar-sticky' );
+}
+
+/**
+ * レイアウト判定用のクラスを body に付与する。
+ *
+ * @param string[] $classes 既存のクラス。
+ * @return string[]
+ */
+function fellow_body_classes( $classes ) {
+	if ( fellow_has_sidebar() ) {
+		$classes[] = 'has-sidebar';
+		$classes[] = 'sidebar-' . fellow_sidebar_position();
+	} else {
+		$classes[] = 'no-sidebar';
+	}
+
+	return $classes;
+}
+add_filter( 'body_class', 'fellow_body_classes' );
+
+/**
  * パンくずリストを出力する(JSON-LD の BreadcrumbList 付き)。
  */
 function fellow_breadcrumb() {
