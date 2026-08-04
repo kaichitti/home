@@ -1,5 +1,21 @@
 name: Build theme zip
 
+# ============================================================================
+# 【注意】このワークフローは現在の置き場所では実行されません。
+#
+# GitHub Actions は「リポジトリ直下の .github/workflows/」に置かれた
+# ファイルしか読み込みません。GitHub側の仕様で、設定では変更できません。
+# 現在このファイルは fellow/.github/workflows/ にあるため、プッシュしても
+# 何も動きません。
+#
+# 自動生成を有効にしたい場合は、リポジトリ直下へ戻してください:
+#   git mv fellow/.github .github
+#
+# 直下を汚したくない場合は、ローカルで下記を実行すれば同じzipが作れます:
+#   cd <リポジトリ直下> && zip -rq fellow.zip fellow \
+#     -x 'fellow/ARCHITECTURE.md' -x 'fellow/.github/*' -x 'fellow/.gitignore'
+# ============================================================================
+#
 # 管理画面にそのままアップロードできる fellow.zip を用意する。
 # zip の中身は必ず fellow/ で始まる構造にする(WordPress のテーマ
 # アップローダーは zip 直下のフォルダ名をテーマのフォルダ名として使うため)。
@@ -41,12 +57,14 @@ jobs:
       - name: zipを作る
         run: |
           mkdir -p build
-          # 配布物に含めない内部向けファイル。
+          # 配布物に含めない開発用ファイル。
           # ARCHITECTURE.md は設計メモ(販売条件などの内部情報を含む)なので除外する。
-          # 購入者へ同梱したい場合はこの行から外す。
+          # 購入者へ同梱したい場合はこの行を消す。
           zip -rq build/fellow.zip fellow \
             -x 'fellow/ARCHITECTURE.md' \
-            -x 'fellow/.*' \
+            -x 'fellow/.github/*' \
+            -x 'fellow/.gitignore' \
+            -x 'fellow/build/*' \
             -x '*/.DS_Store'
           echo "--- zipの中身(先頭) ---"
           unzip -l build/fellow.zip | head -20
@@ -64,10 +82,14 @@ jobs:
             fi
           done
 
-          if printf '%s\n' "$listing" | grep -qF 'ARCHITECTURE.md'; then
-            echo '✗ 内部ドキュメントが zip に混入している'
-            exit 1
-          fi
+          # 開発用ファイルが配布物に混入していないこと。
+          # テーマ配下のファイルはWebから直接読めるため、内部資料は入れない。
+          for excluded in 'ARCHITECTURE.md' '.github' '.gitignore'; do
+            if printf '%s\n' "$listing" | grep -qF "$excluded"; then
+              echo "✗ 開発用ファイル $excluded が zip に混入している"
+              exit 1
+            fi
+          done
 
           echo '✓ zipの構造は正しい'
 
