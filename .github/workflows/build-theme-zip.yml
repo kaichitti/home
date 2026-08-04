@@ -1,0 +1,85 @@
+name: Build theme zip
+
+# 管理画面にそのままアップロードできる fellow.zip を用意する。
+# zip の中身は必ず fellow/ で始まる構造にする(WordPress のテーマ
+# アップローダーは zip 直下のフォルダ名をテーマのフォルダ名として使うため)。
+
+on:
+  push:
+    paths:
+      - 'fellow/**'
+      - '.github/workflows/build-theme-zip.yml'
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: テーマのバージョンを読む
+        id: version
+        run: |
+          version=$(grep -m1 '^Version:' fellow/style.css | sed 's/Version:[[:space:]]*//' | tr -d '\r')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "テーマバージョン: $version"
+
+      - name: PHP構文チェック
+        run: |
+          fail=0
+          while IFS= read -r file; do
+            php -l "$file" > /dev/null || { echo "構文エラー: $file"; fail=1; }
+          done < <(find fellow -name '*.php')
+          exit $fail
+
+      - name: zipを作る
+        run: |
+          mkdir -p build
+          # 配布物に含めない内部向けファイル。
+          # ARCHITECTURE.md は設計メモ(販売条件などの内部情報を含む)なので除外する。
+          # 購入者へ同梱したい場合はこの行から外す。
+          zip -rq build/fellow.zip fellow \
+            -x 'fellow/ARCHITECTURE.md' \
+            -x 'fellow/.*' \
+            -x '*/.DS_Store'
+          echo "--- zipの中身(先頭) ---"
+          unzip -l build/fellow.zip | head -20
+
+      - name: zipの構造を検証
+        run: |
+          listing=$(unzip -l build/fellow.zip)
+
+          # WordPress は zip 直下のフォルダをテーマフォルダとして扱う。
+          # style.css がその直下に無いとアップロードが弾かれる。
+          for required in 'fellow/style.css' 'fellow/index.php' 'fellow/functions.php' 'fellow/screenshot.png'; do
+            if ! printf '%s\n' "$listing" | grep -qF " $required"; then
+              echo "✗ $required が zip に無い"
+              exit 1
+            fi
+          done
+
+          if printf '%s\n' "$listing" | grep -qF 'ARCHITECTURE.md'; then
+            echo '✗ 内部ドキュメントが zip に混入している'
+            exit 1
+          fi
+
+          echo '✓ zipの構造は正しい'
+
+      - name: アーティファクトとして添付
+        uses: actions/upload-artifact@v4
+        with:
+          name: fellow-${{ steps.version.outputs.version }}
+          path: build/fellow.zip
+          if-no-files-found: error
+
+      - name: リリースに添付
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/fellow.zip
