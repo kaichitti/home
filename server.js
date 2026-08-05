@@ -12,7 +12,9 @@ const path = require('path');
 const express = require('express');
 
 const app = express();
-app.set('trust proxy', true);
+// リバースプロキシの後ろに置く場合のみ TRUST_PROXY=1 を設定する。
+// 無条件に信用すると X-Forwarded-For を偽装してIPを詐称できてしまう。
+if (process.env.TRUST_PROXY === '1') app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: false }));
 
 const PORT = process.env.PORT || 3000;

@@ -1,0 +1,38 @@
+# ぷらチャット - XREA向け Apache設定
+#
+# このファイルは index.cgi と同じディレクトリに置きます。
+
+# ディレクトリを開いたら index.cgi を実行する(/chat/?room=5 の形で使える)
+DirectoryIndex index.cgi
+
+# .cgi をCGIとして実行する
+Options +ExecCGI -Indexes
+AddHandler cgi-script .cgi
+
+# HTTPSへ強制リダイレクトする
+# ※XREAの無料SSL(Let's Encrypt)を有効にしてから使ってください。
+#   SSLを使わない場合はこのブロックをコメントアウトし、
+#   ChatLib.pm の https_only を 0 にしてください。
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+</IfModule>
+
+# Perlのソースやデータを直接ダウンロードされないようにする
+<FilesMatch "\.(pm|pl|json|log|tmp|lock)$">
+  Require all denied
+</FilesMatch>
+
+# Apache 2.2系の場合は上のRequireの代わりにこちら
+# <FilesMatch "\.(pm|pl|json|log|tmp|lock)$">
+#   Order allow,deny
+#   Deny from all
+# </FilesMatch>
+
+# 簡単なセキュリティヘッダ
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "no-referrer"
+</IfModule>
