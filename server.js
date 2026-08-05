@@ -349,6 +349,7 @@ function ensureSession(req, res) {
       color: validColor(cookies.color || 'black'),
       rooms: new Map(),      // roomId -> 入室時刻
       blocks: new Set(),     // 無視している相手のpublicId
+      autoSec: 10,           // ログの自動更新間隔(秒・0でOFF)
       userAgent: '',
       ip: '',
       host: '',
@@ -435,11 +436,13 @@ function colorPaletteHtml(selected) {
 }
 
 // TOPと入室中の部屋(最大5)・個人チャットを行き来するタブ
-function tabsHtml(session, current) {
+// topTarget=true のときはフレーム内から全体を遷移させる(target="_top")
+function tabsHtml(session, current, topTarget) {
+  const target = topTarget ? ' target="_top"' : '';
   let html = '<div class="tabbar">';
   html += current === 'top' ?
     '<span class="tabon">TOP</span>' :
-    '<a class="tab" href="/">TOP</a>';
+    '<a class="tab" href="/"' + target + '>TOP</a>';
   if (session) {
     session.rooms.forEach(function (joinedAt, roomId) {
       const room = rooms.get(roomId);
@@ -449,14 +452,14 @@ function tabsHtml(session, current) {
       label = escapeHtml(label) + '(' + room.members.size + ')';
       html += current === 'room' + roomId ?
         '<span class="tabon">' + label + '</span>' :
-        '<a class="tab" href="/?room=' + roomId + '">' + label + '</a>';
+        '<a class="tab" href="/?room=' + roomId + '"' + target + '>' + label + '</a>';
     });
     const unread = unreadPmCount(session.publicId);
     const pmLabel = '個人チャット' + (unread > 0 ? '(新着' + unread + ')' : '');
     if (current === 'pm') {
       html += '<span class="tabon">' + pmLabel + '</span>';
     } else {
-      html += '<a class="' + (unread > 0 ? 'tabnew' : 'tab') + '" href="/pm-list">' + pmLabel + '</a>';
+      html += '<a class="' + (unread > 0 ? 'tabnew' : 'tab') + '" href="/pm-list"' + target + '>' + pmLabel + '</a>';
     }
   }
   return html + '</div>';
@@ -731,14 +734,100 @@ function entryPage(req, res, room) {
 
 // ---- チャット画面 -------------------------------------------------------
 
+// 自動更新間隔: 0(OFF)/5/10/30秒のみ受け付ける。それ以外は null
 function autoParam(value) {
   const n = parseInt(value, 10);
-  return (n === 10 || n === 30) ? n : 0;
+  return (n === 0 || n === 5 || n === 10 || n === 30) ? n : null;
 }
 
+// 標準のチャット画面: 2フレーム構成。
+// 上のフレーム(ログ)だけが自動更新され、下のフレーム(入力欄)は
+// 更新されないので、入力中の文字が消えない。
+function framesetPage(req, res, room) {
+  res.send('<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN">\n' +
+    '<html><head>' +
+    '<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">' +
+    '<meta name="viewport" content="width=device-width">' +
+    '<title>' + escapeHtml(SITE_NAME + ' - ' + room.name) + '</title>' +
+    '</head>' +
+    '<frameset rows="*,120">' +
+    '<frame src="/room-log?room=' + room.id + '" name="chatlog">' +
+    '<frame src="/room-post?room=' + room.id + '" name="chatpost">' +
+    '<noframes><body>お使いのブラウザはフレームに対応していません。' +
+    '<a href="/?room=' + room.id + '&noframe=1">フレームなし版はこちら</a></body></noframes>' +
+    '</frameset></html>');
+}
+
+// ログフレーム(自動更新される側)
+app.get('/room-log', function (req, res) {
+  const roomId = parseInt(req.query.room, 10);
+  const room = rooms.get(roomId);
+  const session = getSession(req);
+  if (!room || !session || !session.rooms.has(roomId)) {
+    return res.send(page('チャット',
+      '<div class="err">この部屋には入室していません</div>[<a href="/" target="_top">TOPへ</a>]'));
+  }
+
+  const q = autoParam(req.query.auto);
+  if (q !== null) session.autoSec = q;
+  const auto = (typeof session.autoSec === 'number') ? session.autoSec : 10;
+  const self = '/room-log?room=' + room.id;
+  const refreshMeta = auto ?
+    '<meta http-equiv="refresh" content="' + auto + ';url=' + self + '">' : '';
+
+  function autoLink(v, label) {
+    return auto === v ? '<b>[' + label + ']</b>' : '<a href="' + self + '&auto=' + v + '">[' + label + ']</a>';
+  }
+
+  const adminLink = room.adminPass ? ' [<a href="/admin?room=' + room.id + '" target="_top">管理</a>]' : '';
+
+  const body =
+    refreshMeta +
+    tabsHtml(session, 'room' + room.id, true) +
+    '<b>' + (room.official ? '★' : '') + escapeHtml(room.name) + '</b>' +
+    ' (' + room.members.size + '/' + room.capacity + '人) ' + lockMark(room) +
+    ' [' + popupLink('/members?room=' + room.id, '参加者一覧', 480, 420) + ']' +
+    adminLink +
+    ' [<a href="/leave?room=' + room.id + '" target="_top">退室</a>]' +
+    ' [<a href="' + self + '">更新</a>]' +
+    '<div class="small">自動更新: ' +
+    autoLink(5, '5秒') + ' ' + autoLink(10, '10秒') + ' ' + autoLink(30, '30秒') + ' ' + autoLink(0, 'OFF') +
+    ' ／ <a href="/?room=' + room.id + '&noframe=1" target="_top">フレームなし版</a></div>' +
+    '<hr>' +
+    logHtml(room);
+
+  res.send(page(room.name, body));
+});
+
+// 入力フレーム(自動更新されない側)
+app.get('/room-post', function (req, res) {
+  const roomId = parseInt(req.query.room, 10);
+  const room = rooms.get(roomId);
+  const session = getSession(req);
+  if (!room || !session || !session.rooms.has(roomId)) {
+    return res.send(page('発言', '<div class="err">この部屋には入室していません</div>'));
+  }
+
+  const body =
+    '<form method="POST" action="/say" target="chatlog"' +
+    ' onsubmit="var f=this;setTimeout(function(){f.m.value=\'\';},100);">' +
+    '<input type="hidden" name="room" value="' + room.id + '">' +
+    '<input type="hidden" name="fromframe" value="1">' +
+    nameHtml(session.name, session.color) + '＞ ' +
+    '<input type="text" name="m" size="30" maxlength="' + MAX_MESSAGE_LENGTH + '"> ' +
+    '<input type="submit" value="送信">' +
+    '</form>' +
+    '<div class="small">発言すると上のログがすぐ更新されます ／ 「2d6」でサイコロ' +
+    (room.imagesAllowed ? ' ／ 画像URL(jpg/gif/png)で画像表示' : '') + '</div>';
+
+  res.send(page('発言 - ' + room.name, body));
+});
+
+// フレームなし版のチャット画面(フレーム非対応ブラウザ用・手動更新が基本)
 function chatPage(req, res, room, session) {
-  const auto = autoParam(req.query.auto);
-  const base = '/?room=' + room.id;
+  let auto = autoParam(req.query.auto);
+  if (auto === null) auto = 0;
+  const base = '/?room=' + room.id + '&noframe=1';
   const refreshMeta = auto ?
     '<meta http-equiv="refresh" content="' + auto + ';url=' + base + '&auto=' + auto + '">' : '';
 
@@ -746,7 +835,8 @@ function chatPage(req, res, room, session) {
     '自動更新: ' +
     (auto === 0 ? '<b>[OFF]</b>' : '<a href="' + base + '&auto=0">[OFF]</a>') + ' ' +
     (auto === 10 ? '<b>[10秒]</b>' : '<a href="' + base + '&auto=10">[10秒]</a>') + ' ' +
-    (auto === 30 ? '<b>[30秒]</b>' : '<a href="' + base + '&auto=30">[30秒]</a>');
+    (auto === 30 ? '<b>[30秒]</b>' : '<a href="' + base + '&auto=30">[30秒]</a>') +
+    ' <span class="small">(自動更新中は入力中の文字が消えるのでご注意)</span>';
 
   const adminLink = room.adminPass ? ' [<a href="/admin?room=' + room.id + '">管理</a>]' : '';
 
@@ -763,6 +853,7 @@ function chatPage(req, res, room, session) {
     '<form method="POST" action="/say">' +
     '<input type="hidden" name="room" value="' + room.id + '">' +
     '<input type="hidden" name="auto" value="' + auto + '">' +
+    '<input type="hidden" name="noframe" value="1">' +
     nameHtml(session.name, session.color) + '＞ ' +
     '<input type="text" name="m" size="24" maxlength="' + MAX_MESSAGE_LENGTH + '"> ' +
     '<input type="submit" value="送信"> ' +
@@ -770,7 +861,8 @@ function chatPage(req, res, room, session) {
     '</form>' +
     '<div class="small">「2d6」でサイコロ' +
     (room.imagesAllowed ? ' ／ 画像URL(jpg/gif/png)を発言すると画像表示' : '') +
-    ' ／ ' + autoLinks + '</div>' +
+    ' ／ ' + autoLinks +
+    ' ／ <a href="/?room=' + room.id + '">自動更新(フレーム)版へ</a></div>' +
     '<hr>' +
     logHtml(room) +
     '<hr>' +
@@ -789,7 +881,10 @@ app.get('/', function (req, res) {
   if (!room) return res.redirect('/?e=noroom');
 
   const session = getSession(req);
-  if (session && session.rooms.has(room.id)) return chatPage(req, res, room, session);
+  if (session && session.rooms.has(room.id)) {
+    if (req.query.noframe === '1') return chatPage(req, res, room, session);
+    return framesetPage(req, res, room);
+  }
   return entryPage(req, res, room);
 });
 
@@ -820,7 +915,6 @@ app.post('/say', function (req, res) {
   const roomId = parseInt(req.body.room, 10);
   const room = rooms.get(roomId);
   const session = getSession(req);
-  const auto = autoParam(req.body.auto);
   if (!room || !session || !session.rooms.has(roomId)) return res.redirect('/');
 
   const text = sanitizeText(req.body.m, MAX_MESSAGE_LENGTH);
@@ -831,7 +925,14 @@ app.post('/say', function (req, res) {
       pushLog(room, { type: 'dice', name: session.name, color: session.color, text: dice });
     }
   }
-  res.redirect('/?room=' + roomId + '&auto=' + auto);
+
+  // フレーム版はログフレームへ、フレームなし版は従来のページへ戻す
+  if (req.body.fromframe === '1') {
+    return res.redirect('/room-log?room=' + roomId);
+  }
+  let auto = autoParam(req.body.auto);
+  if (auto === null) auto = 0;
+  res.redirect('/?room=' + roomId + '&noframe=1&auto=' + auto);
 });
 
 app.get('/leave', function (req, res) {
