@@ -20,7 +20,18 @@ get_header();
 	<div class="site-layout">
 		<div class="site-layout__main">
 			<?php if ( have_posts() ) : ?>
-				<h1 class="section-title"><?php esc_html_e( '最新記事', 'fellow' ); ?></h1>
+				<?php
+				/*
+				 * header.php はフロントページでのみサイト名を h1 で出す。
+				 * そこと重複しないよう、見出しレベルを切り替える。
+				 * (静的フロントページを設定した場合、このテンプレートは
+				 *  ブログ用ページになるので h1 を持つ側になる)
+				 */
+				$fellow_home_heading = ( is_front_page() && ! is_paged() ) ? 'h2' : 'h1';
+				?>
+				<<?php echo esc_attr( $fellow_home_heading ); ?> class="section-title">
+					<?php esc_html_e( '最新記事', 'fellow' ); ?>
+				</<?php echo esc_attr( $fellow_home_heading ); ?>>
 
 				<div class="post-list">
 					<?php
