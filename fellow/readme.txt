@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.3.0
+Stable tag: 0.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -45,6 +45,12 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.4.0 =
+* 固定ページを2カラムに変更(サイドバーにアーカイブ等の回遊導線を置けるようにするため)
+* 静的フロントページにもサイドバーを表示
+* サイドバーが出ない画面(ウィジェット未設定時など)では、固定ページとフロントページの本文幅を読みやすい幅に絞るようにした
+* 1カラムのままなのは404ページと添付ファイルページのみ
 
 = 0.3.0 =
 * 本文+サイドバーの2カラムレイアウトに変更(記事詳細・記事一覧・アーカイブ・検索結果)。固定ページは従来どおり1カラム

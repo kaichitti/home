@@ -46,16 +46,28 @@ function fellow_sidebar_position() {
 /**
  * 現在の画面がサイドバーを持ちうるテンプレートかどうか。
  *
- * 固定ページと404は意図的に1カラムのままにする。
+ * 404と添付ファイルページだけは1カラムのままにする
+ * (どちらもサイドバーの回遊導線より、目的の導線に集中させたいため)。
  *
  * @return bool
  */
 function fellow_template_supports_sidebar() {
-	if ( is_page() || is_404() || is_attachment() ) {
+	if ( is_404() || is_attachment() ) {
 		return false;
 	}
 
-	return is_home() || is_singular( 'post' ) || is_archive() || is_search();
+	return is_home() || is_singular( 'post' ) || is_page() || is_archive() || is_search();
+}
+
+/**
+ * コンテナのクラスを返す。
+ *
+ * サイドバーが無い画面は本文だけが残るため、読みやすい幅に絞る。
+ *
+ * @return string
+ */
+function fellow_container_class() {
+	return fellow_has_sidebar() ? 'container' : 'container container--narrow';
 }
 
 /**
