@@ -3,12 +3,12 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.4.0
+Stable tag: 0.5.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
 
-レビュー/ブログ向けの軽量WordPressテーマ。カード型一覧・レビュースコアダイヤル・プラグイン非依存のパンくず/目次を備えます。
+レビュー/ブログ向けの軽量WordPressテーマ。リスト型一覧・レビュースコアダイヤル・プラグイン非依存のパンくず/目次を備えます。
 
 == Description ==
 
@@ -16,7 +16,7 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 
 * 本文+サイドバーの2カラム。カスタマイザーで右/左/1カラムを切り替え
 * スクロール追従のサイドバーエリア(目次や人気記事の設置に)
-* カード型の記事一覧と、ブログトップの注目記事ブロック
+* テキスト中心のリスト型一覧。アイキャッチ未設定の記事では画像枠を出さない
 * レビュースコアダイヤル(0.0〜10.0)。プラグイン不要、未入力なら非表示
 * プラグイン非依存のパンくず(BreadcrumbList の JSON-LD 付き)
 * 本文見出しから自動生成される目次。本文内とサイドバーの両方に出せ、JS無効でも機能します
@@ -45,6 +45,13 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.5.0 =
+* 記事一覧をカード型からリスト型に変更(トップ・カテゴリー・タグ・年別・検索結果・関連記事)
+* アイキャッチ未設定の記事では画像枠そのものを出さないようにした。画像を設定していない記事が多くても間延びしません
+* サムネイルは本文の右側に配置。画像の有無で本文の左端がずれないようにするため
+* トップページの「注目記事」ブロック(先頭1件を大きく表示する枠)を廃止し、通常の一覧に含めるようにした
+* 一覧のサムネイルはコアの medium サイズを使用(常に生成済みで転送量も小さい)
 
 = 0.4.0 =
 * 固定ページを2カラムに変更(サイドバーにアーカイブ等の回遊導線を置けるようにするため)

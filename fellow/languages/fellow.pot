@@ -30,14 +30,14 @@ msgid "トップページへ戻る"
 msgstr ""
 
 #: archive.php:42
-#: home.php:47
+#: home.php:37
 #: index.php:34
 #: search.php:51
 msgid "前へ"
 msgstr ""
 
 #: archive.php:43
-#: home.php:48
+#: home.php:38
 #: index.php:35
 #: search.php:52
 msgid "次へ"
@@ -95,11 +95,11 @@ msgstr ""
 msgid "メニューを開閉"
 msgstr ""
 
-#: home.php:33
+#: home.php:23
 msgid "最新記事"
 msgstr ""
 
-#: home.php:54
+#: home.php:43
 msgid "まだ記事がありません。"
 msgstr ""
 
@@ -107,14 +107,14 @@ msgstr ""
 msgid "記事が見つかりませんでした。"
 msgstr ""
 
-#: page.php:47
+#: page.php:53
 #: single.php:67
 msgid "ページ:"
 msgstr ""
 
 #. translators: %s: 検索キーワード。
 #: search.php:25
-#: inc/template-tags.php:191
+#: inc/template-tags.php:203
 msgid "「%s」の検索結果"
 msgstr ""
 
@@ -159,10 +159,6 @@ msgstr ""
 
 #: single.php:112
 msgid "関連記事"
-msgstr ""
-
-#: template-parts/content-featured.php:36
-msgid "注目記事"
 msgstr ""
 
 #. translators: %s: スコア(0.0〜10.0)。
@@ -306,69 +302,69 @@ msgstr ""
 msgid "フッターの列として表示されます。空のときは何も出力されません。"
 msgstr ""
 
-#: inc/template-tags.php:108
+#: inc/template-tags.php:120
 msgid "ホーム"
 msgstr ""
 
-#: inc/template-tags.php:115
+#: inc/template-tags.php:127
 msgid "ブログ"
 msgstr ""
 
 #. translators: %s: 年(4桁)。
-#: inc/template-tags.php:185
+#: inc/template-tags.php:197
 msgid "%s年"
 msgstr ""
 
-#: inc/template-tags.php:196
+#: inc/template-tags.php:208
 msgid "ページが見つかりません"
 msgstr ""
 
-#: inc/template-tags.php:209
+#: inc/template-tags.php:221
 msgid "現在位置"
 msgstr ""
 
 #. translators: %s: タグ名。
-#: inc/template-tags.php:266
+#: inc/template-tags.php:278
 msgid "#%s"
 msgstr ""
 
 #. translators: %s: 年(4桁)。
-#: inc/template-tags.php:271
+#: inc/template-tags.php:283
 msgid "%s年の記事"
 msgstr ""
 
 #. translators: %s: 年月。
-#: inc/template-tags.php:276
+#: inc/template-tags.php:288
 msgid "%sの記事"
 msgstr ""
 
 #. translators: %s: 著者名。
-#: inc/template-tags.php:281
+#: inc/template-tags.php:293
 msgid "%s の記事"
 msgstr ""
 
 #. translators: %s: 更新日。
-#: inc/template-tags.php:303
+#: inc/template-tags.php:315
 msgid "%s 更新"
 msgstr ""
 
-#: inc/template-tags.php:442
+#: inc/template-tags.php:454
 msgid "タグ"
 msgstr ""
 
-#: inc/template-tags.php:474
+#: inc/template-tags.php:486
 msgid "シェア"
 msgstr ""
 
-#: inc/template-tags.php:478
+#: inc/template-tags.php:490
 msgid "Xでポスト"
 msgstr ""
 
-#: inc/template-tags.php:483
+#: inc/template-tags.php:495
 msgid "はてなブックマーク"
 msgstr ""
 
-#: inc/template-tags.php:488
+#: inc/template-tags.php:500
 msgid "URLをコピー"
 msgstr ""
 

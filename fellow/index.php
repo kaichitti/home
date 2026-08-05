@@ -19,11 +19,11 @@ get_header();
 		<div class="site-layout__main">
 
 		<?php if ( have_posts() ) : ?>
-			<div class="card-grid">
+			<div class="post-list">
 				<?php
 				while ( have_posts() ) :
 					the_post();
-					get_template_part( 'template-parts/content', 'card' );
+					get_template_part( 'template-parts/content', 'list' );
 				endwhile;
 				?>
 			</div>

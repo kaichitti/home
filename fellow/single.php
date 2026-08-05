@@ -110,11 +110,11 @@ get_header();
 				?>
 				<section class="related-posts">
 					<h2 class="section-title"><?php esc_html_e( '関連記事', 'fellow' ); ?></h2>
-					<div class="card-grid">
+					<div class="post-list">
 						<?php
 						while ( $fellow_related->have_posts() ) :
 							$fellow_related->the_post();
-							get_template_part( 'template-parts/content', 'card' );
+							get_template_part( 'template-parts/content', 'list' );
 						endwhile;
 						wp_reset_postdata();
 						?>
