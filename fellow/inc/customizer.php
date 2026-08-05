@@ -28,6 +28,28 @@ function fellow_sanitize_checkbox( $checked ) {
 }
 
 /**
+ * ピックアップの取得元のサニタイズ。
+ *
+ * @param mixed $value 入力値。
+ * @return string
+ */
+function fellow_sanitize_pickup_source( $value ) {
+	return in_array( $value, array( 'sticky', 'recent', 'none' ), true ) ? $value : 'sticky';
+}
+
+/**
+ * ピックアップ件数のサニタイズ。
+ *
+ * @param mixed $value 入力値。
+ * @return int
+ */
+function fellow_sanitize_pickup_count( $value ) {
+	$value = (int) $value;
+
+	return ( $value >= 2 && $value <= 5 ) ? $value : 3;
+}
+
+/**
  * サイドバー位置のサニタイズ。
  *
  * @param mixed $value 入力値。
@@ -158,6 +180,111 @@ function fellow_customize_register( $wp_customize ) {
 				75 => __( '75文字(広め)', 'fellow' ),
 			),
 			'description' => __( '記事本文の最大行長を切り替えます。', 'fellow' ),
+		)
+	);
+
+	// --- トップページ ---------------------------------------------------.
+	$wp_customize->add_section(
+		'fellow_front',
+		array(
+			'title'       => __( 'トップページ', 'fellow' ),
+			'priority'    => 94,
+			'description' => __( 'ブログトップの最上部に表示する内容を設定します。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_hero_display',
+		array(
+			'default'           => true,
+			'sanitize_callback' => 'fellow_sanitize_checkbox',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_hero_display',
+		array(
+			'label'       => __( 'ヘッダー下に紹介の帯を表示する', 'fellow' ),
+			'section'     => 'fellow_front',
+			'type'        => 'checkbox',
+			'description' => __( '見出しもリード文も空のときは、チェックが入っていても表示されません。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_hero_title',
+		array(
+			'default'           => '',
+			'sanitize_callback' => 'sanitize_text_field',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_hero_title',
+		array(
+			'label'       => __( '帯の見出し', 'fellow' ),
+			'section'     => 'fellow_front',
+			'type'        => 'text',
+			'description' => __( '空欄にするとサイト名が入ります。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_hero_lead',
+		array(
+			'default'           => '',
+			'sanitize_callback' => 'sanitize_text_field',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_hero_lead',
+		array(
+			'label'       => __( '帯のリード文', 'fellow' ),
+			'section'     => 'fellow_front',
+			'type'        => 'text',
+			'description' => __( '空欄にすると「設定 > 一般」のキャッチフレーズが入ります。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_pickup_source',
+		array(
+			'default'           => 'sticky',
+			'sanitize_callback' => 'fellow_sanitize_pickup_source',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_pickup_source',
+		array(
+			'label'       => __( 'ピックアップ記事に出す記事', 'fellow' ),
+			'section'     => 'fellow_front',
+			'type'        => 'select',
+			'choices'     => array(
+				'sticky' => __( '「先頭に固定」した記事', 'fellow' ),
+				'recent' => __( '最新の記事', 'fellow' ),
+				'none'   => __( '表示しない', 'fellow' ),
+			),
+			'description' => __( 'ピックアップに出した記事は、下の一覧には重複して出ません。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_pickup_count',
+		array(
+			'default'           => 3,
+			'sanitize_callback' => 'fellow_sanitize_pickup_count',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_pickup_count',
+		array(
+			'label'   => __( 'ピックアップ記事の件数', 'fellow' ),
+			'section' => 'fellow_front',
+			'type'    => 'select',
+			'choices' => array(
+				2 => __( '2件', 'fellow' ),
+				3 => __( '3件', 'fellow' ),
+				4 => __( '4件', 'fellow' ),
+				5 => __( '5件', 'fellow' ),
+			),
 		)
 	);
 

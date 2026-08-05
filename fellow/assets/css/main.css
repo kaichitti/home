@@ -703,6 +703,156 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 }
 
 /* ==========================================================================
+   5.5 トップ最上部(紹介の帯 / ピックアップ)
+   ========================================================================== */
+
+/*
+ * 画像に依存せず、アクセントカラーと文字組みだけで「顔」を作る。
+ * アイキャッチを設定しない運用でも成立させるための構成。
+ */
+
+.site-hero {
+	background:
+		linear-gradient(
+			135deg,
+			var(--accent) 0%,
+			color-mix(in srgb, var(--accent) 35%, #fff) 100%
+		);
+	border-bottom: 1px solid var(--color-border);
+}
+
+/* color-mix 未対応ブラウザ向けのフォールバック(単色) */
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+	.site-hero {
+		background: var(--accent);
+	}
+}
+
+.site-hero__inner {
+	max-width: var(--container);
+	margin: 0 auto;
+	padding: 2.75rem 1rem;
+	text-align: center;
+}
+
+.site-hero__title {
+	margin: 0;
+	font-size: clamp(1.5rem, 4vw, 2.1rem);
+	font-weight: 700;
+	line-height: 1.4;
+	letter-spacing: 0.04em;
+	color: var(--color-text);
+}
+
+.site-hero__lead {
+	margin: 0.6rem 0 0;
+	font-size: 0.95rem;
+	line-height: 1.8;
+	color: var(--color-text);
+	opacity: 0.75;
+}
+
+/* --- ピックアップ --- */
+
+.pickup {
+	margin-bottom: 2.5rem;
+	padding: 1.25rem 1.5rem 1.5rem;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	background: var(--color-bg-soft);
+}
+
+.pickup__heading {
+	margin: 0 0 0.75rem;
+	padding-left: 0.7rem;
+	border-left: 5px solid var(--accent);
+	font-size: 1.05rem;
+	line-height: 1.4;
+}
+
+.pickup__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: pickup;
+}
+
+.pickup__item + .pickup__item {
+	border-top: 1px dashed var(--color-border);
+}
+
+.pickup__link {
+	display: flex;
+	align-items: center;
+	gap: 0.9rem;
+	padding: 0.7rem 0.25rem;
+	color: inherit;
+	text-decoration: none;
+}
+
+.pickup__link:hover .pickup__title {
+	text-decoration: underline;
+}
+
+.pickup__num {
+	flex: 0 0 auto;
+	width: 2em;
+	font-size: 1.15rem;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--color-text);
+	opacity: 0.35;
+	font-variant-numeric: tabular-nums;
+}
+
+.pickup__body {
+	flex: 1;
+	min-width: 0;
+}
+
+.pickup__category {
+	display: inline-block;
+	margin-bottom: 0.2rem;
+	padding: 0.05em 0.65em;
+	background: var(--accent);
+	font-size: 0.7rem;
+	font-weight: 700;
+	border-radius: 999px;
+}
+
+.pickup__title {
+	display: block;
+	font-size: 0.98rem;
+	font-weight: 700;
+	line-height: 1.6;
+}
+
+.pickup__score {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.6em;
+	padding: 0.1em 0.5em;
+	background: var(--color-text);
+	color: #fff;
+	font-size: 0.75rem;
+	font-weight: 700;
+	border-radius: 999px;
+}
+
+@media (max-width: 599.98px) {
+	.pickup {
+		padding: 1rem 1rem 1.15rem;
+	}
+
+	.pickup__num {
+		width: 1.6em;
+		font-size: 1rem;
+	}
+}
+
+/* ==========================================================================
    6. 記事一覧(リスト型)
    ========================================================================== */
 

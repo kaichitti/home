@@ -70,4 +70,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 	</div>
 </header>
 
+<?php get_template_part( 'template-parts/hero' ); ?>
+
 <main id="content" class="site-main">

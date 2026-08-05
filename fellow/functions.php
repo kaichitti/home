@@ -16,6 +16,7 @@ require get_template_directory() . '/inc/enqueue.php';
 require get_template_directory() . '/inc/customizer.php';
 require get_template_directory() . '/inc/review-meta.php';
 require get_template_directory() . '/inc/template-tags.php';
+require get_template_directory() . '/inc/front-page-parts.php';
 require get_template_directory() . '/inc/toc.php';
 require get_template_directory() . '/inc/widget-toc.php';
 require get_template_directory() . '/inc/walker-nav.php';

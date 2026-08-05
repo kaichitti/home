@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.5.0
+Stable tag: 0.6.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -14,6 +14,7 @@ Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-c
 
 fellow は共用サーバー(XREA等)でも軽快に動くことを重視した、レビュー/ブログ向けテーマです。
 
+* トップ最上部の紹介の帯とピックアップ記事(どちらも表示/非表示・内容を設定で選択可能)
 * 本文+サイドバーの2カラム。カスタマイザーで右/左/1カラムを切り替え
 * スクロール追従のサイドバーエリア(目次や人気記事の設置に)
 * テキスト中心のリスト型一覧。アイキャッチ未設定の記事では画像枠を出さない
@@ -45,6 +46,13 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.6.0 =
+* ブログトップの最上部に「紹介の帯」を追加。見出しとリード文はカスタマイザーで指定でき、空欄ならサイト名とキャッチフレーズが入ります。表示/非表示も切り替えられます
+* 「ピックアップ記事」を追加。出す記事は「先頭に固定した記事」「最新の記事」「表示しない」から選べ、件数も2〜5件で指定できます
+* ピックアップに出した記事は下の一覧から除外し、重複しないようにしました
+* どちらも画像に依存しない作りです(アイキャッチ未設定でも成立します)
+* トップページに h1 が2つ出ていた問題を修正
 
 = 0.5.0 =
 * 記事一覧をカード型からリスト型に変更(トップ・カテゴリー・タグ・年別・検索結果・関連記事)

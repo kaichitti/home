@@ -2,8 +2,9 @@
 /**
  * ブログトップ(最新記事一覧)。
  *
- * 全記事を同じリスト形式で並べる。先頭1件を大きく見せる枠は持たない
- * (アイキャッチ未設定の記事が多いと、大きな画像枠が空のまま残るため)。
+ * 1ページ目の先頭にピックアップ記事を置き、その下に通常のリストを並べる。
+ * ピックアップに出した記事は下の一覧から除いて重複させない。
+ * ヘッダー直下の紹介の帯は header.php 側で全幅として出している。
  *
  * @package fellow
  */
@@ -13,12 +14,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 get_header();
+
+$fellow_pickup_ids = fellow_pickup_ids();
 ?>
 
 <div class="container">
 
 	<div class="site-layout">
 		<div class="site-layout__main">
+			<?php get_template_part( 'template-parts/pickup' ); ?>
+
 			<?php if ( have_posts() ) : ?>
 				<?php
 				/*
@@ -35,10 +40,25 @@ get_header();
 
 				<div class="post-list">
 					<?php
+					$fellow_shown = 0;
+
 					while ( have_posts() ) :
 						the_post();
+
+						// ピックアップに出した記事はここでは飛ばす。
+						if ( in_array( get_the_ID(), $fellow_pickup_ids, true ) ) {
+							continue;
+						}
+
+						++$fellow_shown;
 						get_template_part( 'template-parts/content', 'list' );
 					endwhile;
+
+					if ( 0 === $fellow_shown ) :
+						?>
+						<p class="no-results"><?php esc_html_e( 'ほかに記事がありません。', 'fellow' ); ?></p>
+						<?php
+					endif;
 					?>
 				</div>
 
