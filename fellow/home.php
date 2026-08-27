@@ -22,6 +22,8 @@ $fellow_pickup_ids = fellow_pickup_ids();
 
 	<div class="site-layout">
 		<div class="site-layout__main">
+			<?php get_template_part( 'template-parts/category-nav' ); ?>
+
 			<?php get_template_part( 'template-parts/pickup' ); ?>
 
 			<?php if ( have_posts() ) : ?>

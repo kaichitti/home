@@ -245,6 +245,23 @@ function fellow_customize_register( $wp_customize ) {
 	);
 
 	$wp_customize->add_setting(
+		'fellow_category_nav_display',
+		array(
+			'default'           => true,
+			'sanitize_callback' => 'fellow_sanitize_checkbox',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_category_nav_display',
+		array(
+			'label'       => __( 'カテゴリー導線を表示する', 'fellow' ),
+			'section'     => 'fellow_front',
+			'type'        => 'checkbox',
+			'description' => __( '記事の多いカテゴリーを最大8件、上部に並べます。スマホでは横スクロールになります。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
 		'fellow_pickup_source',
 		array(
 			'default'           => 'sticky',

@@ -2,7 +2,7 @@
 # This file is distributed under the GNU General Public License v2 or later.
 msgid ""
 msgstr ""
-"Project-Id-Version: fellow 0.3.0\n"
+"Project-Id-Version: fellow 0.7.0\n"
 "Report-Msgid-Bugs-To: https://setsna.com/fellow/\n"
 "POT-Creation-Date: 2026-08-04 00:00+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
@@ -29,17 +29,11 @@ msgstr ""
 msgid "トップページへ戻る"
 msgstr ""
 
-#: archive.php:42
-#: home.php:68
-#: index.php:34
-#: search.php:51
+#: archive.php:42 home.php:70 index.php:34 search.php:51
 msgid "前へ"
 msgstr ""
 
-#: archive.php:43
-#: home.php:69
-#: index.php:35
-#: search.php:52
+#: archive.php:43 home.php:71 index.php:35 search.php:52
 msgid "次へ"
 msgstr ""
 
@@ -47,16 +41,15 @@ msgstr ""
 msgid "このアーカイブには記事がありません。"
 msgstr ""
 
-#. translators: %s: コメント数。
+#: comments.php:41
+msgid "コメントは締め切られています。"
+msgstr ""
+
 #: comments.php:23
 msgid "%s件のコメント"
 msgid_plural "%s件のコメント"
 msgstr[0] ""
 msgstr[1] ""
-
-#: comments.php:41
-msgid "コメントは締め切られています。"
-msgstr ""
 
 #: footer.php:19
 msgid "サイト"
@@ -74,7 +67,6 @@ msgstr ""
 msgid "フォロー"
 msgstr ""
 
-#. translators: %s: テーマ名。
 #: footer.php:77
 msgid "Theme: %s"
 msgstr ""
@@ -95,87 +87,16 @@ msgstr ""
 msgid "メニューを開閉"
 msgstr ""
 
-#: home.php:38
+#: home.php:40
 msgid "最新記事"
 msgstr ""
 
-#: home.php:59
+#: home.php:61
 msgid "ほかに記事がありません。"
 msgstr ""
 
-#: home.php:74
+#: home.php:76
 msgid "まだ記事がありません。"
-msgstr ""
-
-#: index.php:40
-msgid "記事が見つかりませんでした。"
-msgstr ""
-
-#: page.php:53
-#: single.php:67
-msgid "ページ:"
-msgstr ""
-
-#. translators: %s: 検索キーワード。
-#: search.php:25
-#: inc/template-tags.php:203
-msgid "「%s」の検索結果"
-msgstr ""
-
-#. translators: %s: ヒット件数。
-#: search.php:32
-msgid "%s件見つかりました。"
-msgstr ""
-
-#: search.php:58
-msgid "一致する記事が見つかりませんでした。別のキーワードでお試しください。"
-msgstr ""
-
-#: searchform.php:16
-msgid "検索キーワード"
-msgstr ""
-
-#: searchform.php:20
-msgid "サイト内を検索"
-msgstr ""
-
-#: searchform.php:25
-msgid "検索"
-msgstr ""
-
-#: sidebar.php:19
-#: inc/setup.php:79
-msgid "サイドバー"
-msgstr ""
-
-#. translators: %s: 著者名。
-#: single.php:89
-msgid "この記事を書いた人:%s"
-msgstr ""
-
-#: single.php:100
-msgid "前の記事"
-msgstr ""
-
-#: single.php:101
-msgid "次の記事"
-msgstr ""
-
-#: single.php:112
-msgid "関連記事"
-msgstr ""
-
-#: template-parts/pickup.php:37
-msgid "ピックアップ"
-msgstr ""
-
-#. translators: %s: スコア(0.0〜10.0)。
-#: template-parts/score-dial.php:24
-msgid "レビュースコア %s / 10"
-msgstr ""
-
-#: template-parts/score-dial.php:29
-msgid "総合評価"
 msgstr ""
 
 #: inc/customizer.php:93
@@ -279,66 +200,74 @@ msgid "空欄にすると「設定 > 一般」のキャッチフレーズが入�
 msgstr ""
 
 #: inc/customizer.php:257
+msgid "カテゴリー導線を表示する"
+msgstr ""
+
+#: inc/customizer.php:260
+msgid "記事の多いカテゴリーを最大8件、上部に並べます。スマホでは横スクロールになります。"
+msgstr ""
+
+#: inc/customizer.php:274
 msgid "ピックアップ記事に出す記事"
 msgstr ""
 
-#: inc/customizer.php:261
+#: inc/customizer.php:278
 msgid "「先頭に固定」した記事"
 msgstr ""
 
-#: inc/customizer.php:262
+#: inc/customizer.php:279
 msgid "最新の記事"
 msgstr ""
 
-#: inc/customizer.php:263
+#: inc/customizer.php:280
 msgid "表示しない"
 msgstr ""
 
-#: inc/customizer.php:265
+#: inc/customizer.php:282
 msgid "ピックアップに出した記事は、下の一覧には重複して出ません。"
 msgstr ""
 
-#: inc/customizer.php:279
+#: inc/customizer.php:296
 msgid "ピックアップ記事の件数"
 msgstr ""
 
-#: inc/customizer.php:283
+#: inc/customizer.php:300
 msgid "2件"
 msgstr ""
 
-#: inc/customizer.php:284
+#: inc/customizer.php:301
 msgid "3件"
 msgstr ""
 
-#: inc/customizer.php:285
+#: inc/customizer.php:302
 msgid "4件"
 msgstr ""
 
-#: inc/customizer.php:286
+#: inc/customizer.php:303
 msgid "5件"
 msgstr ""
 
-#: inc/customizer.php:295
+#: inc/customizer.php:312
 msgid "fellow 機能設定"
 msgstr ""
 
-#: inc/customizer.php:310
+#: inc/customizer.php:327
 msgid "ヘッダーに検索ボックスを表示する"
 msgstr ""
 
-#: inc/customizer.php:326
+#: inc/customizer.php:343
 msgid "ヘッダーを画面上部に固定する"
 msgstr ""
 
-#: inc/customizer.php:389
+#: inc/customizer.php:406
 msgid "X"
 msgstr ""
 
-#: inc/customizer.php:390
+#: inc/customizer.php:407
 msgid "RSS"
 msgstr ""
 
-#: inc/customizer.php:391
+#: inc/customizer.php:408
 msgid "Feedly"
 msgstr ""
 
@@ -360,6 +289,10 @@ msgstr ""
 
 #: inc/setup.php:55
 msgid "フッター「サイト」メニュー"
+msgstr ""
+
+#: inc/setup.php:79 sidebar.php:19
+msgid "サイドバー"
 msgstr ""
 
 #: inc/setup.php:81
@@ -390,9 +323,12 @@ msgstr ""
 msgid "ブログ"
 msgstr ""
 
-#. translators: %s: 年(4桁)。
 #: inc/template-tags.php:197
 msgid "%s年"
+msgstr ""
+
+#: inc/template-tags.php:203 search.php:25
+msgid "「%s」の検索結果"
 msgstr ""
 
 #: inc/template-tags.php:208
@@ -403,27 +339,22 @@ msgstr ""
 msgid "現在位置"
 msgstr ""
 
-#. translators: %s: タグ名。
 #: inc/template-tags.php:278
 msgid "#%s"
 msgstr ""
 
-#. translators: %s: 年(4桁)。
 #: inc/template-tags.php:283
 msgid "%s年の記事"
 msgstr ""
 
-#. translators: %s: 年月。
 #: inc/template-tags.php:288
 msgid "%sの記事"
 msgstr ""
 
-#. translators: %s: 著者名。
 #: inc/template-tags.php:293
 msgid "%s の記事"
 msgstr ""
 
-#. translators: %s: 更新日。
 #: inc/template-tags.php:315
 msgid "%s 更新"
 msgstr ""
@@ -448,9 +379,7 @@ msgstr ""
 msgid "URLをコピー"
 msgstr ""
 
-#: inc/theme-options-page.php:20
-#: inc/theme-options-page.php:21
-#: inc/theme-options-page.php:126
+#: inc/theme-options-page.php:20 inc/theme-options-page.php:21 inc/theme-options-page.php:126
 msgid "fellow 設定"
 msgstr ""
 
@@ -486,14 +415,10 @@ msgstr ""
 msgid "色やロゴなど見た目の設定は「外観 > カスタマイズ」から行えます。"
 msgstr ""
 
-#: inc/toc.php:142
-#: inc/toc.php:147
-#: inc/widget-toc.php:50
-#: inc/widget-toc.php:70
+#: inc/toc.php:142 inc/toc.php:147 inc/widget-toc.php:50 inc/widget-toc.php:70
 msgid "目次"
 msgstr ""
 
-#. translators: %s: 親メニュー名。
 #: inc/walker-nav.php:80
 msgid "%s のサブメニューを開閉"
 msgstr ""
@@ -512,4 +437,64 @@ msgstr ""
 
 #: inc/widget-toc.php:85
 msgid "「サイドバー(スクロール追従)」に置くと、読みながら目次を参照できます。"
+msgstr ""
+
+#: index.php:40
+msgid "記事が見つかりませんでした。"
+msgstr ""
+
+#: page.php:53 single.php:67
+msgid "ページ:"
+msgstr ""
+
+#: search.php:32
+msgid "%s件見つかりました。"
+msgstr ""
+
+#: search.php:58
+msgid "一致する記事が見つかりませんでした。別のキーワードでお試しください。"
+msgstr ""
+
+#: searchform.php:16
+msgid "検索キーワード"
+msgstr ""
+
+#: searchform.php:20
+msgid "サイト内を検索"
+msgstr ""
+
+#: searchform.php:25
+msgid "検索"
+msgstr ""
+
+#: single.php:89
+msgid "この記事を書いた人:%s"
+msgstr ""
+
+#: single.php:100
+msgid "前の記事"
+msgstr ""
+
+#: single.php:101
+msgid "次の記事"
+msgstr ""
+
+#: single.php:112
+msgid "関連記事"
+msgstr ""
+
+#: template-parts/category-nav.php:26
+msgid "カテゴリーから探す"
+msgstr ""
+
+#: template-parts/pickup.php:37
+msgid "ピックアップ"
+msgstr ""
+
+#: template-parts/score-dial.php:24
+msgid "レビュースコア %s / 10"
+msgstr ""
+
+#: template-parts/score-dial.php:29
+msgid "総合評価"
 msgstr ""

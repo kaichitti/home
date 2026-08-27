@@ -124,3 +124,47 @@ function fellow_pickup_ids() {
 
 	return $ids;
 }
+
+/**
+ * カテゴリー導線を表示すべきか。
+ *
+ * ガジェット系のブログは「イヤホン」「デスク環境」のように目的の分類から
+ * 探す読者が多い。ヘッダーメニューはスマホだとハンバーガーの中に隠れ、
+ * サイドバーのカテゴリーは本文の下(実測で1.6画面目)まで下がるため、
+ * トップの上部に独立した導線を置く。
+ *
+ * @return bool
+ */
+function fellow_show_category_nav() {
+	if ( ! is_home() || is_paged() ) {
+		return false;
+	}
+
+	return (bool) get_theme_mod( 'fellow_category_nav_display', true );
+}
+
+/**
+ * 導線に出すカテゴリーを返す。
+ *
+ * 記事のあるカテゴリーのみ。投稿数の多い順に並べる。
+ *
+ * @return WP_Term[]
+ */
+function fellow_category_nav_terms() {
+	$terms = get_categories(
+		array(
+			'orderby'    => 'count',
+			'order'      => 'DESC',
+			'hide_empty' => true,
+			'number'     => 8,
+			/*
+			 * 親カテゴリーは直下に記事が無くても、子に記事があれば
+			 * hide_empty を通り抜けてくる。pad_counts を立てないと
+			 * 件数が 0 と表示されて誤解を招く。
+			 */
+			'pad_counts' => true,
+		)
+	);
+
+	return is_wp_error( $terms ) ? array() : $terms;
+}

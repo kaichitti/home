@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.6.0
+Stable tag: 0.7.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -14,7 +14,7 @@ Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-c
 
 fellow は共用サーバー(XREA等)でも軽快に動くことを重視した、レビュー/ブログ向けテーマです。
 
-* トップ最上部の紹介の帯とピックアップ記事(どちらも表示/非表示・内容を設定で選択可能)
+* トップ最上部の紹介の帯・カテゴリー導線・ピックアップ記事(いずれも表示/非表示や内容を設定で選択可能)
 * 本文+サイドバーの2カラム。カスタマイザーで右/左/1カラムを切り替え
 * スクロール追従のサイドバーエリア(目次や人気記事の設置に)
 * テキスト中心のリスト型一覧。アイキャッチ未設定の記事では画像枠を出さない
@@ -46,6 +46,12 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.7.0 =
+* トップ上部に「カテゴリー導線」を追加。記事の多いカテゴリーを最大8件チップで並べます。スマホでは横スクロールになり、縦を消費しません
+* スマホでの表示密度を調整。紹介の帯とピックアップの余白を詰め、記事一覧が上に来るようにしました(実測で1件目が y=747 から y=685 へ)
+* スマホでも記事の抜粋を表示するようにしました(2行で打ち切り)。テキスト中心の一覧では抜粋が読むかどうかの判断材料になるため
+* 親カテゴリーの件数が 0 と表示されていた問題を修正(子カテゴリーぶんを合算するようにしました)
 
 = 0.6.0 =
 * ブログトップの最上部に「紹介の帯」を追加。見出しとリード文はカスタマイザーで指定でき、空欄ならサイト名とキャッチフレーズが入ります。表示/非表示も切り替えられます
