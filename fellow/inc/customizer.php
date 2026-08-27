@@ -305,6 +305,120 @@ function fellow_customize_register( $wp_customize ) {
 		)
 	);
 
+	// --- SEO -------------------------------------------------------------.
+	$wp_customize->add_section(
+		'fellow_seo',
+		array(
+			'title'       => __( 'SEO', 'fellow' ),
+			'priority'    => 93,
+			'description' => __( 'SEOプラグインを入れている場合、テーマ側のメタタグ出力は自動的に止まります(二重に出るのを避けるため)。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_seo_meta',
+		array(
+			'default'           => true,
+			'sanitize_callback' => 'fellow_sanitize_checkbox',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_seo_meta',
+		array(
+			'label'       => __( 'メタタグ(description / OGP / Twitter Card)を出力する', 'fellow' ),
+			'section'     => 'fellow_seo',
+			'type'        => 'checkbox',
+			'description' => __( 'SEOプラグインが検出された場合は、この設定にかかわらず出力しません。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_schema',
+		array(
+			'default'           => true,
+			'sanitize_callback' => 'fellow_sanitize_checkbox',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_schema',
+		array(
+			'label'       => __( '構造化データ(BlogPosting / WebSite)を出力する', 'fellow' ),
+			'section'     => 'fellow_seo',
+			'type'        => 'checkbox',
+			'description' => __( 'レビュースコアの構造化データ(Review)は、この設定とは別に常に出力されます。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_og_image',
+		array(
+			'default'           => 0,
+			'sanitize_callback' => 'absint',
+		)
+	);
+	$wp_customize->add_control(
+		new WP_Customize_Media_Control(
+			$wp_customize,
+			'fellow_og_image',
+			array(
+				'label'       => __( 'SNSシェア用の既定画像', 'fellow' ),
+				'section'     => 'fellow_seo',
+				'mime_type'   => 'image',
+				'description' => __( 'アイキャッチが無い記事や一覧ページで使われます。1200x630px 程度を推奨。', 'fellow' ),
+			)
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_twitter_site',
+		array(
+			'default'           => '',
+			'sanitize_callback' => 'sanitize_text_field',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_twitter_site',
+		array(
+			'label'       => __( 'X(旧Twitter)のユーザー名', 'fellow' ),
+			'section'     => 'fellow_seo',
+			'type'        => 'text',
+			'description' => __( '@ は付けても付けなくても構いません。シェア時のカードに表示されます。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_noindex_tag',
+		array(
+			'default'           => false,
+			'sanitize_callback' => 'fellow_sanitize_checkbox',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_noindex_tag',
+		array(
+			'label'       => __( 'タグアーカイブを noindex にする', 'fellow' ),
+			'section'     => 'fellow_seo',
+			'type'        => 'checkbox',
+			'description' => __( 'カテゴリーと内容が重なりやすい場合に有効です。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_noindex_date_author',
+		array(
+			'default'           => false,
+			'sanitize_callback' => 'fellow_sanitize_checkbox',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_noindex_date_author',
+		array(
+			'label'   => __( '日付・著者アーカイブを noindex にする', 'fellow' ),
+			'section' => 'fellow_seo',
+			'type'    => 'checkbox',
+		)
+	);
+
 	// --- 機能 -----------------------------------------------------------.
 	$wp_customize->add_section(
 		'fellow_features',

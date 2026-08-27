@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.7.0
+Stable tag: 0.8.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -19,7 +19,8 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 * スクロール追従のサイドバーエリア(目次や人気記事の設置に)
 * テキスト中心のリスト型一覧。アイキャッチ未設定の記事では画像枠を出さない
 * レビュースコアダイヤル(0.0〜10.0)。プラグイン不要、未入力なら非表示
-* プラグイン非依存のパンくず(BreadcrumbList の JSON-LD 付き)
+* SEO用のメタタグ(description / OGP / Twitter Card)と noindex 設定。SEOプラグイン検出時は自動で出力を止めます
+* 構造化データ:BreadcrumbList / BlogPosting / WebSite、レビュー記事には Review(スコア連動)
 * 本文見出しから自動生成される目次。本文内とサイドバーの両方に出せ、JS無効でも機能します
 * ヘッダー検索のトグルUI(JS無効環境でも動作)
 * フッターウィジェットエリア(未設定なら列ごと非表示)
@@ -46,6 +47,14 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.8.0 =
+* SEO用のメタタグを追加:メタディスクリプション、OGP、Twitter Card
+* SEOプラグイン(Yoast / Rank Math / All in One SEO / SEO SIMPLE PACK 等)を検出したら、テーマ側のメタタグ出力を自動で止めるようにしました。二重に出るのを避けるためです
+* 構造化データを追加:記事の BlogPosting、トップの WebSite(サイト内検索付き)
+* レビュースコアから Review の構造化データを出力するようにしました。投稿編集画面で「レビュー対象の名前」を指定できます(空欄なら記事タイトル)
+* noindex設定を追加:記事ごとの指定、タグ/日付/著者アーカイブの一括指定。検索結果と404は常にnoindex
+* SNSシェア用の既定画像をカスタマイザーで指定できるようにしました(アイキャッチが無い記事で使われます)
 
 = 0.7.0 =
 * トップ上部に「カテゴリー導線」を追加。記事の多いカテゴリーを最大8件チップで並べます。スマホでは横スクロールになり、縦を消費しません

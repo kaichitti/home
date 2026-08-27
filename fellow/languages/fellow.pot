@@ -248,39 +248,103 @@ msgid "5件"
 msgstr ""
 
 #: inc/customizer.php:312
+msgid "SEO"
+msgstr ""
+
+#: inc/customizer.php:314
+msgid "SEOプラグインを入れている場合、テーマ側のメタタグ出力は自動的に止まります(二重に出るのを避けるため)。"
+msgstr ""
+
+#: inc/customizer.php:328
+msgid "メタタグ(description / OGP / Twitter Card)を出力する"
+msgstr ""
+
+#: inc/customizer.php:331
+msgid "SEOプラグインが検出された場合は、この設定にかかわらず出力しません。"
+msgstr ""
+
+#: inc/customizer.php:345
+msgid "構造化データ(BlogPosting / WebSite)を出力する"
+msgstr ""
+
+#: inc/customizer.php:348
+msgid "レビュースコアの構造化データ(Review)は、この設定とは別に常に出力されます。"
+msgstr ""
+
+#: inc/customizer.php:364
+msgid "SNSシェア用の既定画像"
+msgstr ""
+
+#: inc/customizer.php:367
+msgid "アイキャッチが無い記事や一覧ページで使われます。1200x630px 程度を推奨。"
+msgstr ""
+
+#: inc/customizer.php:382
+msgid "X(旧Twitter)のユーザー名"
+msgstr ""
+
+#: inc/customizer.php:385
+msgid "@ は付けても付けなくても構いません。シェア時のカードに表示されます。"
+msgstr ""
+
+#: inc/customizer.php:399
+msgid "タグアーカイブを noindex にする"
+msgstr ""
+
+#: inc/customizer.php:402
+msgid "カテゴリーと内容が重なりやすい場合に有効です。"
+msgstr ""
+
+#: inc/customizer.php:416
+msgid "日付・著者アーカイブを noindex にする"
+msgstr ""
+
+#: inc/customizer.php:426
 msgid "fellow 機能設定"
 msgstr ""
 
-#: inc/customizer.php:327
+#: inc/customizer.php:441
 msgid "ヘッダーに検索ボックスを表示する"
 msgstr ""
 
-#: inc/customizer.php:343
+#: inc/customizer.php:457
 msgid "ヘッダーを画面上部に固定する"
 msgstr ""
 
-#: inc/customizer.php:406
+#: inc/customizer.php:520
 msgid "X"
 msgstr ""
 
-#: inc/customizer.php:407
+#: inc/customizer.php:521
 msgid "RSS"
 msgstr ""
 
-#: inc/customizer.php:408
+#: inc/customizer.php:522
 msgid "Feedly"
 msgstr ""
 
 #: inc/review-meta.php:31
-msgid "レビュースコア"
+msgid "fellow 記事設定"
 msgstr ""
 
-#: inc/review-meta.php:52
+#: inc/review-meta.php:54
 msgid "スコア(0.0〜10.0)"
 msgstr ""
 
-#: inc/review-meta.php:68
+#: inc/review-meta.php:70
 msgid "未入力にするとこの記事にはスコアダイヤルが表示されません。"
+msgstr ""
+
+#: inc/review-meta.php:77
+msgid "レビュー対象の名前"
+msgstr ""
+
+#: inc/review-meta.php:90
+msgid "構造化データ(Review)で「何をレビューしたか」として使われます。空欄なら記事タイトルが使われます。"
+msgstr ""
+
+#: inc/review-meta.php:104
+msgid "この記事を検索エンジンに登録させない(noindex)"
 msgstr ""
 
 #: inc/setup.php:54

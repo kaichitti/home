@@ -28,7 +28,7 @@ function fellow_add_review_meta_box() {
 
 	add_meta_box(
 		'fellow-review-score',
-		__( 'レビュースコア', 'fellow' ),
+		__( 'fellow 記事設定', 'fellow' ),
 		'fellow_render_review_meta_box',
 		'post',
 		'side',
@@ -43,7 +43,9 @@ add_action( 'add_meta_boxes', 'fellow_add_review_meta_box' );
  * @param WP_Post $post 編集中の投稿。
  */
 function fellow_render_review_meta_box( $post ) {
-	$score = get_post_meta( $post->ID, FELLOW_REVIEW_SCORE_KEY, true );
+	$score   = get_post_meta( $post->ID, FELLOW_REVIEW_SCORE_KEY, true );
+	$item    = get_post_meta( $post->ID, '_fellow_review_item', true );
+	$noindex = get_post_meta( $post->ID, '_fellow_noindex', true );
 
 	wp_nonce_field( 'fellow_save_review_score', 'fellow_review_score_nonce' );
 	?>
@@ -66,6 +68,41 @@ function fellow_render_review_meta_box( $post ) {
 	</p>
 	<p class="description">
 		<?php esc_html_e( '未入力にするとこの記事にはスコアダイヤルが表示されません。', 'fellow' ); ?>
+	</p>
+
+	<hr>
+
+	<p>
+		<label for="fellow-review-item-field">
+			<?php esc_html_e( 'レビュー対象の名前', 'fellow' ); ?>
+		</label>
+	</p>
+	<p>
+		<input
+			type="text"
+			id="fellow-review-item-field"
+			name="fellow_review_item"
+			value="<?php echo esc_attr( $item ); ?>"
+			style="width:100%"
+		>
+	</p>
+	<p class="description">
+		<?php esc_html_e( '構造化データ(Review)で「何をレビューしたか」として使われます。空欄なら記事タイトルが使われます。', 'fellow' ); ?>
+	</p>
+
+	<hr>
+
+	<p>
+		<label for="fellow-noindex-field">
+			<input
+				type="checkbox"
+				id="fellow-noindex-field"
+				name="fellow_noindex"
+				value="1"
+				<?php checked( $noindex, '1' ); ?>
+			>
+			<?php esc_html_e( 'この記事を検索エンジンに登録させない(noindex)', 'fellow' ); ?>
+		</label>
 	</p>
 	<?php
 }
@@ -92,6 +129,24 @@ function fellow_save_review_score( $post_id ) {
 
 	if ( ! current_user_can( 'edit_post', $post_id ) ) {
 		return;
+	}
+
+	// レビュー対象名。空なら削除する。
+	if ( isset( $_POST['fellow_review_item'] ) ) {
+		$item = sanitize_text_field( wp_unslash( $_POST['fellow_review_item'] ) );
+
+		if ( '' === trim( $item ) ) {
+			delete_post_meta( $post_id, '_fellow_review_item' );
+		} else {
+			update_post_meta( $post_id, '_fellow_review_item', $item );
+		}
+	}
+
+	// noindex はチェックボックスなので、未送信＝オフとして扱う。
+	if ( isset( $_POST['fellow_noindex'] ) ) {
+		update_post_meta( $post_id, '_fellow_noindex', '1' );
+	} else {
+		delete_post_meta( $post_id, '_fellow_noindex' );
 	}
 
 	if ( ! isset( $_POST['fellow_review_score'] ) ) {

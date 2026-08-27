@@ -30,7 +30,9 @@ fellow/
 │   ├── customizer.php          # カスタマイザー定義
 │   ├── review-meta.php         # レビュースコア用メタボックス
 │   ├── template-tags.php       # パンくず, レイアウト判定, 関連記事などの関数群
-│   ├── front-page-parts.php    # 帯とピックアップの表示判定・記事取得
+│   ├── front-page-parts.php    # 帯・カテゴリー導線・ピックアップの表示判定
+│   ├── seo.php                 # description / OGP / Twitter Card / noindex
+│   ├── structured-data.php     # BlogPosting / Review / WebSite の JSON-LD
 │   ├── toc.php                 # 目次:見出し解析とID付与(サーバーサイド)
 │   ├── widget-toc.php          # サイドバー用の目次ウィジェット
 │   ├── walker-nav.php          # ハンバーガーメニュー用カスタムWalker
@@ -84,6 +86,8 @@ require get_template_directory() . '/inc/enqueue.php';
 require get_template_directory() . '/inc/customizer.php';
 require get_template_directory() . '/inc/review-meta.php';
 require get_template_directory() . '/inc/template-tags.php';
+require get_template_directory() . '/inc/seo.php';
+require get_template_directory() . '/inc/structured-data.php';
 require get_template_directory() . '/inc/toc.php';
 require get_template_directory() . '/inc/widget-toc.php';
 require get_template_directory() . '/inc/walker-nav.php';
@@ -170,6 +174,17 @@ WordPress 5.8以降、ウィジェットは既定でブロックになる。ブ�
 - どちらも内容が無ければセクションごと出さない(未設定の購入者の画面に空枠を残さない)
 - **スマホの縦の予算**:上部のブロックは積み上がるとファーストビューを食う。実測(390x844)で ヘッダー65 + 帯108 + 導線46 + ピックアップ334 + 見出し28 = 581px。ここを緩めると記事一覧が画面外に押し出されるので、スマホ側の余白は個別に詰めてある
 - **重複の回避**:「先頭に固定」した記事は WordPress がトップ1ページ目の先頭へ回すため、そのままだとピックアップと一覧の両方に出る。`fellow_pickup_ids()` が返すIDを `home.php` のループで `continue` して除外する
+
+---
+
+## 6.8 SEOと構造化データ
+
+- **SEOプラグインとの二重出力**が最大の注意点。テーマとプラグインが両方 OGP を出すと `og:description` などが重複する。`fellow_detected_seo_plugin()` が既知のプラグイン(Yoast / Rank Math / All in One SEO / The SEO Framework / SEOPress / Slim SEO / SEO SIMPLE PACK)の定数・クラスを見て、検出したらテーマ側は出力しない。新しいプラグインには追従できないため、カスタマイザーの手動スイッチを逃げ道として残す
+- **canonical はコア任せ**。WordPress の `rel_canonical` が出すのでテーマでは触らない
+- **`wp_head` はループの外**で発火する。`get_the_author()` が使う `$authordata` はまだ設定されておらず空文字になるため、構造化データの著者は `get_post_field( 'post_author', ... )` から引く必要がある
+- **Review はプラグイン検出時も出す**。レビュースコアは本テーマ固有のデータで、プラグインが知り得ないため
+- Google のレビューのリッチリザルトは `itemReviewed` が対応済みのタイプであることを求めるため `Product` として出力する。実際に表示されるかは Google の判断なので、リッチリザルトテストでの確認を README で案内している
+- noindex はプラグインの有無にかかわらずテーマの設定を尊重する(表示の意思決定なので)
 
 ---
 
