@@ -31,6 +31,8 @@ fellow/
 │   ├── review-meta.php         # レビュースコア用メタボックス
 │   ├── template-tags.php       # パンくず, レイアウト判定, 関連記事などの関数群
 │   ├── front-page-parts.php    # 帯・カテゴリー導線・ピックアップの表示判定
+│   ├── block-patterns.php      # 記事内パーツ(ブロックパターン)
+│   ├── block-styles.php        # コアブロックのスタイルバリエーション
 │   ├── seo.php                 # description / OGP / Twitter Card / noindex
 │   ├── structured-data.php     # BlogPosting / Review / WebSite の JSON-LD
 │   ├── toc.php                 # 目次:見出し解析とID付与(サーバーサイド)
@@ -86,6 +88,8 @@ require get_template_directory() . '/inc/enqueue.php';
 require get_template_directory() . '/inc/customizer.php';
 require get_template_directory() . '/inc/review-meta.php';
 require get_template_directory() . '/inc/template-tags.php';
+require get_template_directory() . '/inc/block-patterns.php';
+require get_template_directory() . '/inc/block-styles.php';
 require get_template_directory() . '/inc/seo.php';
 require get_template_directory() . '/inc/structured-data.php';
 require get_template_directory() . '/inc/toc.php';
@@ -185,6 +189,23 @@ WordPress 5.8以降、ウィジェットは既定でブロックになる。ブ�
 - **Review はプラグイン検出時も出す**。レビュースコアは本テーマ固有のデータで、プラグインが知り得ないため
 - Google のレビューのリッチリザルトは `itemReviewed` が対応済みのタイプであることを求めるため `Product` として出力する。実際に表示されるかは Google の判断なので、リッチリザルトテストでの確認を README で案内している
 - noindex はプラグインの有無にかかわらずテーマの設定を尊重する(表示の意思決定なので)
+
+---
+
+## 6.9 記事内パーツ
+
+独自ブロックではなく**ブロックパターン**で提供する。コアブロックの組み合わせ+CSSなので、JSもビルドも要らず「zipを上げるだけ」という方針を崩さずに済む。挿入後は通常のコアブロックになるため、専用の設定パネルは持てないが、利用者は自由に編集できる。
+
+- **タブ**だけは動きが要るので、パターン+JSの上乗せ(段階的強化)にした。JSが無ければ見出し付きの段落が縦に並ぶだけで、内容は全部読める
+- **アコーディオン**はコアの `details` ブロック(WordPress 6.3以降)を使う。JSは不要
+- **FAQ に FAQPage の構造化データは付けない**。Google の FAQ リッチリザルトは2023年に政府・医療系へ限定されたのち完全に終了しており、出しても検索結果に反映されないため
+
+**実装上の落とし穴**
+
+- WordPress はグループブロックの中身を `.wp-block-group__inner-container` で包む。パターン内の要素は直接の子ではなく**孫**になるため、`:scope >` で拾おうとすると外れる
+- パーツ内の見出し(タブ名・ステップ名)は目次に入れない。`inc/toc.php` がクラス名(`fellow-tabs__label` / `fellow-steps__title` / `fellow-toc-skip`)を見て除外する
+- **`wp-block-library` と `global-styles` を除去している副作用**で、カラム・ボタン・メディアとテキスト・ギャラリー・埋め込みがレイアウトを失う。`main.css` のセクション7.2で最低限だけ自前で持つ。全部を再実装はしない
+- パーツのCSSは `main.css` と `editor.css` に同じものを置いている。片方だけ直すと編集画面と公開画面がズレるので、変更時は両方を揃えること
 
 ---
 

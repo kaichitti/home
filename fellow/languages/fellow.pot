@@ -99,6 +99,166 @@ msgstr ""
 msgid "まだ記事がありません。"
 msgstr ""
 
+#: inc/block-patterns.php:30
+msgid "fellow の記事パーツ"
+msgstr ""
+
+#: inc/block-patterns.php:58
+msgid "ここに話し言葉が入ります。左のアイコンは画像を差し替えてください。"
+msgstr ""
+
+#: inc/block-patterns.php:59
+msgid "名前"
+msgstr ""
+
+#: inc/block-patterns.php:62
+msgid "ふきだし(左)"
+msgstr ""
+
+#: inc/block-patterns.php:85
+msgid "ふきだし(右)"
+msgstr ""
+
+#: inc/block-patterns.php:108
+msgid "最初の手順"
+msgstr ""
+
+#: inc/block-patterns.php:109
+msgid "次の手順"
+msgstr ""
+
+#: inc/block-patterns.php:110
+msgid "最後の手順"
+msgstr ""
+
+#: inc/block-patterns.php:111
+msgid "ここに説明を書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:114
+msgid "ステップ(手順)"
+msgstr ""
+
+#: inc/block-patterns.php:153
+msgid "よくある質問をここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:154
+msgid "答えをここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:157
+msgid "FAQ(質問と回答)"
+msgstr ""
+
+#: inc/block-patterns.php:186
+msgid "ポイント"
+msgstr ""
+
+#: inc/block-patterns.php:187
+msgid "囲みで強調したい内容をここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:190
+msgid "キャプションボックス"
+msgstr ""
+
+#: inc/block-patterns.php:206 inc/block-styles.php:29
+msgid "注意"
+msgstr ""
+
+#: inc/block-patterns.php:207
+msgid "読者に気をつけてほしいことをここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:210
+msgid "キャプションボックス(注意)"
+msgstr ""
+
+#: inc/block-patterns.php:227
+msgid "リンク先の見出し"
+msgstr ""
+
+#: inc/block-patterns.php:228
+msgid "短い説明"
+msgstr ""
+
+#: inc/block-patterns.php:231
+msgid "ボックスメニュー"
+msgstr ""
+
+#: inc/block-patterns.php:260
+msgid "あわせて読みたい記事のタイトル"
+msgstr ""
+
+#: inc/block-patterns.php:261
+msgid "あわせて読みたい"
+msgstr ""
+
+#: inc/block-patterns.php:264
+msgid "バナーリンク"
+msgstr ""
+
+#: inc/block-patterns.php:281
+msgid "タブ1"
+msgstr ""
+
+#: inc/block-patterns.php:282
+msgid "タブ2"
+msgstr ""
+
+#: inc/block-patterns.php:283
+msgid "タブ3"
+msgstr ""
+
+#: inc/block-patterns.php:284
+msgid "タブの中身をここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:287
+msgid "タブ切り替え"
+msgstr ""
+
+#: inc/block-patterns.php:290
+msgid "見出しがタブの名前になります。JavaScriptが無効な環境では、見出し付きの段組みとして順に表示されます。"
+msgstr ""
+
+#: inc/block-patterns.php:328
+msgid "クリックすると開きます"
+msgstr ""
+
+#: inc/block-patterns.php:329
+msgid "折りたたんでおきたい内容をここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:332
+msgid "アコーディオン(開閉)"
+msgstr ""
+
+#: inc/block-patterns.php:335
+msgid "HTMLの details 要素を使うため、JavaScriptが無効でも開閉できます。"
+msgstr ""
+
+#: inc/block-styles.php:25
+msgid "線だけ"
+msgstr ""
+
+#: inc/block-styles.php:28
+msgid "チェック"
+msgstr ""
+
+#: inc/block-styles.php:32
+msgid "枠線つき"
+msgstr ""
+
+#: inc/block-styles.php:35
+msgid "コンパクト"
+msgstr ""
+
+#: inc/block-styles.php:38
+msgid "ドット"
+msgstr ""
+
 #: inc/customizer.php:93
 msgid "アクセントカラー"
 msgstr ""
@@ -479,7 +639,7 @@ msgstr ""
 msgid "色やロゴなど見た目の設定は「外観 > カスタマイズ」から行えます。"
 msgstr ""
 
-#: inc/toc.php:142 inc/toc.php:147 inc/widget-toc.php:50 inc/widget-toc.php:70
+#: inc/toc.php:151 inc/toc.php:156 inc/widget-toc.php:50 inc/widget-toc.php:70
 msgid "目次"
 msgstr ""
 

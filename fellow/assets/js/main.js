@@ -16,6 +16,7 @@
 		setupSubmenuToggles();
 		setupSearchToggle();
 		setupToc();
+		setupTabs();
 		setupCopyButtons();
 	} );
 
@@ -89,6 +90,101 @@
 			if ( wrap.classList.contains( 'open' ) && ! wrap.contains( event.target ) ) {
 				close();
 			}
+		} );
+	}
+
+	/**
+	 * タブ切り替え。
+	 *
+	 * ブロックパターンで作られた「見出し+中身のグループが縦に並んだもの」を、
+	 * JSが動く環境でだけタブUIに組み替える(段階的強化)。
+	 * JSが無ければ見出し付きの段落が順に並ぶだけなので、内容は全部読める。
+	 */
+	function setupTabs() {
+		var groups = document.querySelectorAll( '.fellow-tabs' );
+
+		groups.forEach( function ( group, groupIndex ) {
+			/*
+			 * WordPress はグループブロックの中身を .wp-block-group__inner-container で
+			 * 包むため、パネルは直接の子ではなく孫になる。子孫から拾ったうえで、
+			 * 入れ子のタブを取り違えないよう closest で自分のものだけに絞る。
+			 */
+			var panels = Array.prototype.filter.call(
+				group.querySelectorAll( '.fellow-tabs__panel' ),
+				function ( panel ) {
+					return panel.closest( '.fellow-tabs' ) === group;
+				}
+			);
+
+			if ( panels.length < 2 ) {
+				return;
+			}
+
+			var list = document.createElement( 'div' );
+			list.className = 'fellow-tabs__list';
+			list.setAttribute( 'role', 'tablist' );
+
+			var tabs = [];
+
+			panels.forEach( function ( panel, index ) {
+				var label = panel.querySelector( '.fellow-tabs__label' );
+				var name = label ? label.textContent.trim() : String( index + 1 );
+				var id = 'fellow-tab-' + groupIndex + '-' + index;
+
+				var tab = document.createElement( 'button' );
+				tab.type = 'button';
+				tab.className = 'fellow-tabs__tab';
+				tab.textContent = name;
+				tab.id = id;
+				tab.setAttribute( 'role', 'tab' );
+				tab.setAttribute( 'aria-selected', index === 0 ? 'true' : 'false' );
+				tab.setAttribute( 'aria-controls', id + '-panel' );
+				tab.tabIndex = index === 0 ? 0 : -1;
+
+				panel.id = id + '-panel';
+				panel.setAttribute( 'role', 'tabpanel' );
+				panel.setAttribute( 'aria-labelledby', id );
+				panel.hidden = index !== 0;
+
+				list.appendChild( tab );
+				tabs.push( tab );
+			} );
+
+			function select( index ) {
+				tabs.forEach( function ( tab, i ) {
+					var on = i === index;
+					tab.setAttribute( 'aria-selected', on ? 'true' : 'false' );
+					tab.tabIndex = on ? 0 : -1;
+					panels[ i ].hidden = ! on;
+				} );
+			}
+
+			tabs.forEach( function ( tab, index ) {
+				tab.addEventListener( 'click', function () {
+					select( index );
+				} );
+
+				// 左右キーでの移動(WAI-ARIA のタブパターン)
+				tab.addEventListener( 'keydown', function ( event ) {
+					var next = null;
+
+					if ( 'ArrowRight' === event.key ) {
+						next = ( index + 1 ) % tabs.length;
+					} else if ( 'ArrowLeft' === event.key ) {
+						next = ( index - 1 + tabs.length ) % tabs.length;
+					}
+
+					if ( null !== next ) {
+						event.preventDefault();
+						select( next );
+						tabs[ next ].focus();
+					}
+				} );
+			} );
+
+			// パネルと同じ階層(inner-container の中)へ差し込む
+			panels[ 0 ].parentNode.insertBefore( list, panels[ 0 ] );
+			group.classList.add( 'is-tabbed' );
 		} );
 	}
 

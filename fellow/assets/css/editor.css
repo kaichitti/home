@@ -141,3 +141,699 @@ ul,
 ol {
 	padding-left: 1.5em;
 }
+
+/* ==========================================================================
+   7.2 コアブロックの最低限のレイアウト
+   ==========================================================================
+   軽量化のため wp-block-library と global-styles を除去している。
+   その副作用でカラム・ボタン・メディアとテキスト等がレイアウトを失うため、
+   崩れると困る部分だけ自前で持つ。全部を再実装はしない。
+   ========================================================================== */
+
+/* --- カラム --- */
+
+.wp-block-columns {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: normal;
+	gap: 1.5em;
+	margin: 1.75em 0;
+}
+
+.wp-block-columns.are-vertically-aligned-top {
+	align-items: flex-start;
+}
+
+.wp-block-columns.are-vertically-aligned-center {
+	align-items: center;
+}
+
+.wp-block-columns.are-vertically-aligned-bottom {
+	align-items: flex-end;
+}
+
+.wp-block-column {
+	flex: 1 1 0;
+	min-width: 0;
+	word-break: break-word;
+}
+
+/* 幅を指定した列は伸ばさない */
+.wp-block-column[style*="flex-basis"] {
+	flex-grow: 0;
+}
+
+/* WordPress のカラムは 782px 未満で縦積みになる。その挙動に合わせる */
+@media (max-width: 781.98px) {
+	.wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column {
+		flex-basis: 100% !important;
+	}
+}
+
+/* --- ボタン --- */
+
+.wp-block-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6em;
+	margin: 1.5em 0;
+}
+
+.wp-block-buttons.is-content-justification-center {
+	justify-content: center;
+}
+
+.wp-block-button__link {
+	display: inline-block;
+	padding: 0.7em 1.7em;
+	background: var(--accent);
+	border: 2px solid var(--accent);
+	border-radius: 999px;
+	color: var(--color-text);
+	font-weight: 700;
+	line-height: 1.5;
+	text-decoration: none;
+}
+
+.wp-block-button__link:hover {
+	opacity: 0.85;
+}
+
+.wp-block-button.is-style-outline .wp-block-button__link {
+	background: transparent;
+}
+
+/* --- メディアとテキスト --- */
+
+.wp-block-media-text {
+	display: flex;
+	gap: 1.5em;
+	align-items: center;
+	margin: 1.75em 0;
+}
+
+.wp-block-media-text.has-media-on-the-right {
+	flex-direction: row-reverse;
+}
+
+.wp-block-media-text__media {
+	flex: 1 1 50%;
+	min-width: 0;
+}
+
+.wp-block-media-text__media img {
+	width: 100%;
+	height: auto;
+	border-radius: var(--radius);
+}
+
+.wp-block-media-text__content {
+	flex: 1 1 50%;
+	min-width: 0;
+}
+
+.wp-block-media-text__content > *:last-child {
+	margin-bottom: 0;
+}
+
+@media (max-width: 599.98px) {
+	.wp-block-media-text,
+	.wp-block-media-text.has-media-on-the-right {
+		flex-direction: column;
+	}
+}
+
+/* --- ギャラリー --- */
+
+.wp-block-gallery {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6em;
+	margin: 1.75em 0;
+	list-style: none;
+	padding: 0;
+}
+
+.wp-block-gallery .wp-block-image {
+	flex: 1 1 calc(50% - 0.3em);
+	margin: 0;
+}
+
+.wp-block-gallery.columns-3 .wp-block-image {
+	flex-basis: calc(33.333% - 0.4em);
+}
+
+.wp-block-gallery.columns-4 .wp-block-image {
+	flex-basis: calc(25% - 0.45em);
+}
+
+.wp-block-gallery .wp-block-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: var(--radius);
+}
+
+/* --- 埋め込み(YouTube等)をレスポンシブにする --- */
+
+.wp-block-embed {
+	margin: 1.75em 0;
+}
+
+.wp-block-embed.wp-has-aspect-ratio .wp-block-embed__wrapper {
+	position: relative;
+}
+
+.wp-block-embed.wp-has-aspect-ratio .wp-block-embed__wrapper::before {
+	content: "";
+	display: block;
+	padding-top: 56.25%;
+}
+
+.wp-block-embed.wp-has-aspect-ratio iframe {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.wp-block-embed.wp-embed-aspect-4-3 .wp-block-embed__wrapper::before {
+	padding-top: 75%;
+}
+
+/* --- グループの横並びバリエーション(Row) --- */
+
+.is-layout-flex {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6em;
+	align-items: center;
+}
+
+.is-layout-flex > * {
+	margin: 0;
+}
+
+.is-content-justification-center {
+	justify-content: center;
+}
+
+.is-content-justification-right {
+	justify-content: flex-end;
+}
+
+.is-content-justification-space-between {
+	justify-content: space-between;
+}
+
+/* ==========================================================================
+   記事内パーツ(ブロックパターン / ブロックスタイル)
+   ==========================================================================
+   main.css のセクション7.5と同じ定義。編集画面でも同じ見た目になるよう
+   複製している。片方だけ直すとズレるので、変更時は両方を揃えること。
+   ========================================================================== */
+
+/* ==========================================================================
+   7.5 記事内パーツ(ブロックパターン / ブロックスタイル)
+   ========================================================================== */
+
+/*
+ * 独自ブロックではなくコアブロック+クラスで作られている。
+ * 編集画面での見た目も揃えるため、同じ定義を editor.css にも置く。
+ */
+
+/* --- ふきだし --- */
+
+.fellow-balloon {
+	display: flex;
+	gap: 0.9rem;
+	align-items: flex-start;
+	margin: 1.75em 0;
+}
+
+.fellow-balloon--right {
+	flex-direction: row-reverse;
+}
+
+.fellow-balloon__speaker {
+	flex: 0 0 auto;
+	width: 56px;
+	text-align: center;
+}
+
+.fellow-balloon__avatar {
+	margin: 0;
+}
+
+.fellow-balloon__avatar img {
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	object-fit: cover;
+	background: var(--color-bg-soft);
+}
+
+.fellow-balloon__name {
+	margin: 0.3em 0 0;
+	font-size: 0.7rem;
+	line-height: 1.3;
+	color: var(--color-text-muted);
+}
+
+.fellow-balloon__body {
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	padding: 0.9em 1.15em;
+	background: var(--color-bg-soft);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+}
+
+/* 吹き出しの尻尾。三角形は border で作る */
+.fellow-balloon__body::before,
+.fellow-balloon__body::after {
+	content: "";
+	position: absolute;
+	top: 1.1em;
+	border: 8px solid transparent;
+}
+
+.fellow-balloon--left .fellow-balloon__body::before {
+	left: -17px;
+	border-right-color: var(--color-border);
+}
+
+.fellow-balloon--left .fellow-balloon__body::after {
+	left: -16px;
+	border-right-color: var(--color-bg-soft);
+}
+
+.fellow-balloon--right .fellow-balloon__body::before {
+	right: -17px;
+	border-left-color: var(--color-border);
+}
+
+.fellow-balloon--right .fellow-balloon__body::after {
+	right: -16px;
+	border-left-color: var(--color-bg-soft);
+}
+
+/* --- ステップ --- */
+
+.fellow-steps {
+	counter-reset: fellow-step;
+	margin: 1.75em 0;
+}
+
+.fellow-steps__item {
+	position: relative;
+	counter-increment: fellow-step;
+	padding: 0 0 1.25em 2.6em;
+	border-left: 2px solid var(--color-border);
+	margin-left: 0.9em;
+}
+
+.fellow-steps__item:last-child {
+	border-left-color: transparent;
+	padding-bottom: 0;
+}
+
+.fellow-steps__item::before {
+	content: counter(fellow-step);
+	position: absolute;
+	left: -0.95em;
+	top: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.9em;
+	height: 1.9em;
+	background: var(--accent);
+	border-radius: 50%;
+	font-size: 0.85rem;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--color-text);
+}
+
+.fellow-steps__title {
+	margin: 0 0 0.4em;
+	padding: 0;
+	background: none;
+	border: 0;
+	font-size: 1.02rem;
+	line-height: 1.5;
+}
+
+.fellow-steps__item > p:last-child {
+	margin-bottom: 0;
+}
+
+/* --- FAQ --- */
+
+.fellow-faq {
+	margin: 1.75em 0;
+}
+
+.fellow-faq__item {
+	padding: 1em 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.fellow-faq__item:first-child {
+	border-top: 1px solid var(--color-border);
+}
+
+.fellow-faq__q,
+.fellow-faq__a {
+	position: relative;
+	margin: 0;
+	padding-left: 2em;
+}
+
+.fellow-faq__q {
+	font-weight: 700;
+}
+
+.fellow-faq__a {
+	margin-top: 0.5em;
+	color: var(--color-text-muted);
+}
+
+.fellow-faq__q::before,
+.fellow-faq__a::before {
+	position: absolute;
+	left: 0;
+	top: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 4px;
+	font-size: 0.8em;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.fellow-faq__q::before {
+	content: "Q";
+	background: var(--accent);
+	color: var(--color-text);
+}
+
+.fellow-faq__a::before {
+	content: "A";
+	background: var(--color-bg-soft);
+	border: 1px solid var(--color-border);
+	color: var(--color-text-muted);
+}
+
+/* --- キャプションボックス --- */
+
+.fellow-capbox {
+	position: relative;
+	margin: 2em 0 1.75em;
+	padding: 1.4em 1.25em 1.1em;
+	border: 2px solid var(--accent);
+	border-radius: var(--radius);
+}
+
+.fellow-capbox__label {
+	position: absolute;
+	top: 0;
+	left: 1em;
+	transform: translateY(-50%);
+	margin: 0;
+	padding: 0.15em 0.9em;
+	background: var(--accent);
+	border-radius: 999px;
+	font-size: 0.8rem;
+	font-weight: 700;
+	line-height: 1.5;
+	color: var(--color-text);
+}
+
+.fellow-capbox > p:last-child {
+	margin-bottom: 0;
+}
+
+.fellow-capbox--warning {
+	border-color: #e8b4b8;
+	background: #fdf6f6;
+}
+
+.fellow-capbox--warning .fellow-capbox__label {
+	background: #e8b4b8;
+}
+
+/* --- ボックスメニュー --- */
+
+.fellow-boxmenu {
+	gap: 1rem;
+	margin: 1.75em 0;
+}
+
+.fellow-boxmenu__item {
+	padding: 1.1em 1.25em;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	background: var(--color-bg);
+}
+
+.fellow-boxmenu__item:hover {
+	border-color: var(--accent);
+	background: var(--color-bg-soft);
+}
+
+.fellow-boxmenu__title {
+	margin: 0 0 0.3em;
+	font-weight: 700;
+	line-height: 1.5;
+}
+
+.fellow-boxmenu__title a {
+	text-decoration: none;
+	color: var(--color-text);
+}
+
+.fellow-boxmenu__desc {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--color-text-muted);
+}
+
+/* --- バナーリンク --- */
+
+.fellow-banner {
+	margin: 1.75em 0;
+	padding: 0.9em 1.25em;
+	border: 1px solid var(--color-border);
+	border-left: 5px solid var(--accent);
+	border-radius: 0 var(--radius) var(--radius) 0;
+	background: var(--color-bg-soft);
+}
+
+.fellow-banner__label {
+	margin: 0 0 0.2em;
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	color: var(--color-text-muted);
+}
+
+.fellow-banner__title {
+	margin: 0;
+	font-weight: 700;
+	line-height: 1.6;
+}
+
+/* --- タブ --- */
+
+/*
+ * JSが無ければ「見出し付きの段落が縦に並ぶ」だけになる。
+ * JSが動くと .is-tabbed が付いてタブUIになる(段階的強化)。
+ */
+.fellow-tabs {
+	margin: 1.75em 0;
+}
+
+.fellow-tabs__panel + .fellow-tabs__panel {
+	margin-top: 1.25em;
+}
+
+.fellow-tabs__label {
+	margin: 0 0 0.5em;
+	padding: 0;
+	background: none;
+	border: 0;
+	font-size: 1.02rem;
+}
+
+.fellow-tabs.is-tabbed {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	overflow: hidden;
+}
+
+.fellow-tabs__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	background: var(--color-bg-soft);
+	border-bottom: 1px solid var(--color-border);
+}
+
+.fellow-tabs__tab {
+	flex: 1 1 auto;
+	padding: 0.7em 1em;
+	background: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	font-size: 0.9rem;
+	font-weight: 700;
+	color: var(--color-text-muted);
+}
+
+.fellow-tabs__tab[aria-selected="true"] {
+	background: var(--color-bg);
+	border-bottom-color: var(--accent);
+	color: var(--color-text);
+}
+
+.fellow-tabs.is-tabbed .fellow-tabs__panel {
+	margin: 0;
+	padding: 1.25em;
+}
+
+.fellow-tabs.is-tabbed .fellow-tabs__label {
+	/* タブのボタンに出しているので本文側では隠す */
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+}
+
+.fellow-tabs.is-tabbed .fellow-tabs__panel > *:last-child {
+	margin-bottom: 0;
+}
+
+/* --- アコーディオン(コアの details ブロック) --- */
+
+.fellow-accordion {
+	margin: 1.75em 0;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	background: var(--color-bg);
+}
+
+.fellow-accordion > summary {
+	padding: 0.85em 1.15em;
+	background: var(--color-bg-soft);
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.fellow-accordion[open] > summary {
+	border-bottom: 1px solid var(--color-border);
+}
+
+.fellow-accordion > *:not(summary) {
+	margin: 0;
+	padding: 0 1.15em;
+}
+
+.fellow-accordion > *:not(summary):first-of-type {
+	padding-top: 1em;
+}
+
+.fellow-accordion > *:not(summary):last-child {
+	padding-bottom: 1em;
+}
+
+/* --- ブロックスタイル --- */
+
+.is-style-fellow-quote-plain {
+	background: none;
+	border-left: 3px solid var(--accent);
+	border-radius: 0;
+	color: inherit;
+}
+
+.is-style-fellow-list-check,
+.is-style-fellow-list-note {
+	list-style: none;
+	padding-left: 0;
+}
+
+.is-style-fellow-list-check li,
+.is-style-fellow-list-note li {
+	position: relative;
+	padding-left: 1.6em;
+}
+
+.is-style-fellow-list-check li::before {
+	content: "";
+	position: absolute;
+	left: 0.25em;
+	top: 0.55em;
+	width: 0.5em;
+	height: 0.9em;
+	border-right: 2px solid var(--color-link);
+	border-bottom: 2px solid var(--color-link);
+	transform: rotate(45deg);
+}
+
+.is-style-fellow-list-note li::before {
+	content: "!";
+	position: absolute;
+	left: 0;
+	top: 0.35em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.15em;
+	height: 1.15em;
+	background: #e8b4b8;
+	border-radius: 50%;
+	font-size: 0.75em;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.is-style-fellow-image-bordered img {
+	border: 1px solid var(--color-border);
+	padding: 4px;
+	background: var(--color-bg);
+}
+
+.is-style-fellow-table-compact table,
+.is-style-fellow-table-compact th,
+.is-style-fellow-table-compact td {
+	font-size: 0.88em;
+}
+
+.is-style-fellow-table-compact th,
+.is-style-fellow-table-compact td {
+	padding: 0.35em 0.6em;
+}
+
+.is-style-fellow-separator-dots {
+	border: 0;
+	height: auto;
+	text-align: center;
+	background: none;
+}
+
+.is-style-fellow-separator-dots::before {
+	content: "\2022 \2022 \2022";
+	letter-spacing: 0.7em;
+	color: var(--color-text-muted);
+}
+

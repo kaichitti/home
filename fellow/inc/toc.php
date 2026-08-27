@@ -62,6 +62,15 @@ function fellow_process_content_headings( $content ) {
 			$attrs = isset( $matches[2] ) ? $matches[2] : '';
 			$inner = $matches[3];
 
+			/*
+			 * 記事内パーツ(タブ・ステップ等)の見出しは目次に入れない。
+			 * タブの名前やステップの番号が章立てとして並ぶと目次が読めなくなる。
+			 * fellow-toc-skip を付ければ任意の見出しも除外できる。
+			 */
+			if ( preg_match( '/\bfellow-(?:tabs__label|steps__title|toc-skip)\b/', $attrs ) ) {
+				return $matches[0];
+			}
+
 			// 既にIDがあればそれを使う(アンカーリンクを壊さないため)。
 			if ( preg_match( '#\sid=["\']([^"\']+)["\']#i', $attrs, $id_match ) ) {
 				$id = $id_match[1];
