@@ -448,6 +448,11 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	margin-left: auto;
 }
 
+/*
+ * ナビが本文の流れに乗っているデスクトップでは、ナビ側の margin-left:auto が
+ * 右寄せを担うので、操作ボタン側は auto を解除する。
+ * モバイル(ナビが absolute)側の扱いは下のメディアクエリで戻す。
+ */
 .global-nav + .header-actions {
 	margin-left: 0;
 }
@@ -534,12 +539,29 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 }
 
 .search-form__field {
+	/*
+	 * iOS/macOS Safari は input[type="search"] を既定で
+	 * -webkit-appearance: searchfield として描く。この状態では border や
+	 * border-radius、padding が無視され、送信ボタンと高さも揃わない。
+	 * ネイティブ外観を切ってテーマ側の見た目に統一する。
+	 */
+	-webkit-appearance: none;
+	appearance: none;
 	width: 100%;
 	min-width: 0;
 	padding: 0.5em 0.75em;
 	font: inherit;
+	color: var(--color-text);
+	background: var(--color-bg);
 	border: 1px solid var(--color-border);
 	border-radius: var(--radius);
+}
+
+/* Safari が入力欄の中に描く「×」ボタンも外観を揃える */
+.search-form__field::-webkit-search-cancel-button,
+.search-form__field::-webkit-search-decoration {
+	-webkit-appearance: none;
+	appearance: none;
 }
 
 .search-form__field:focus {
@@ -612,6 +634,34 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 
 /* モバイル:ナビはドロワー化(JS有効時のみ隠す) */
 @media (max-width: 899.98px) {
+	/*
+	 * JS有効時のナビは absolute で流れから外れる。すると
+	 * `.global-nav + .header-actions` の margin-left:0 だけが残り、
+	 * 検索とハンバーガーがサイト名の直後(ヘッダー中央付近)に取り残される。
+	 * ナビが流れにいないこの条件でだけ auto を戻して右端に寄せる。
+	 */
+	.js .global-nav + .header-actions {
+		margin-left: auto;
+	}
+
+	/*
+	 * 検索ドロップダウンを 44px のボタンに right:0 で紐づけると、
+	 * 320px の箱が画面左外へ大きくはみ出す(実測 x=-104)。
+	 * モバイルではヘッダー全体を基準にして左右 1rem の全幅に開く。
+	 */
+	.js .header-search {
+		position: static;
+	}
+
+	.js .header-search__form {
+		left: 1rem;
+		right: 1rem;
+		width: auto;
+		/* タブレット幅で間延びしないよう上限を設け、右端に寄せる */
+		max-width: 420px;
+		margin-left: auto;
+	}
+
 	.js .global-nav {
 		display: none;
 		position: absolute;

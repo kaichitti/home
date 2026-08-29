@@ -35,6 +35,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<?php endif; ?>
 		</div>
 
+		<?php if ( has_nav_menu( 'primary' ) ) : ?>
 		<nav class="global-nav" id="global-nav" aria-label="<?php esc_attr_e( 'メインメニュー', 'fellow' ); ?>">
 			<?php
 			wp_nav_menu(
@@ -48,6 +49,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			);
 			?>
 		</nav>
+		<?php endif; ?>
 
 		<div class="header-actions">
 			<?php if ( fellow_show_search() ) : ?>
@@ -62,10 +64,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 				</div>
 			<?php endif; ?>
 
-			<button type="button" class="nav-toggle" aria-expanded="false" aria-controls="global-nav">
-				<span class="screen-reader-text"><?php esc_html_e( 'メニューを開閉', 'fellow' ); ?></span>
-				<span class="nav-toggle__bar" aria-hidden="true"></span>
-			</button>
+			<?php if ( has_nav_menu( 'primary' ) ) : ?>
+				<?php /* メニュー未割り当てのときは、空のドロワーが開くだけなので出さない。 */ ?>
+				<button type="button" class="nav-toggle" aria-expanded="false" aria-controls="global-nav">
+					<span class="screen-reader-text"><?php esc_html_e( 'メニューを開閉', 'fellow' ); ?></span>
+					<span class="nav-toggle__bar" aria-hidden="true"></span>
+				</button>
+			<?php endif; ?>
 		</div>
 	</div>
 </header>

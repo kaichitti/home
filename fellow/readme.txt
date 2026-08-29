@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.9.1
+Stable tag: 0.9.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -49,6 +49,12 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.9.2 =
+* スマホでヘッダーの検索・メニューのボタンが右端ではなく中央付近に取り残されていた問題を修正しました。JS有効時のナビが absolute で流れから外れると、右寄せを担っていた margin が効かなくなっていたためです
+* スマホでヘッダーの検索ボックスを開くと、画面の左外へ大きくはみ出していた問題を修正しました(幅420pxで約104px欠けていました)。44pxのボタンを基準に開いていたためで、ヘッダー全体を基準にした左右1remの幅へ変更しています
+* Safari で検索の入力欄が枠線も角丸も反映されず、送信ボタンと高さが揃わない問題を修正しました。iOS/macOS Safari が input[type="search"] をネイティブ外観で描くため、それを無効化しています
+* メニューを割り当てていないとき、ハンバーガーを押しても空のドロワーが開くだけだったので、メニュー未割り当て時はハンバーガー自体を出さないようにしました
 
 = 0.9.1 =
 * 幅の狭い端末(およそ345px以下)で検索フォームの送信ボタンが枠外へはみ出し、ページが横スクロールしていた問題を修正しました。入力欄を包む label が伸縮せず、入力欄が既定幅のまま固まっていたためです
