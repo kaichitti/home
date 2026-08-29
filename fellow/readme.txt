@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.9.0
+Stable tag: 0.9.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -49,6 +49,9 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.9.1 =
+* 幅の狭い端末(およそ345px以下)で検索フォームの送信ボタンが枠外へはみ出し、ページが横スクロールしていた問題を修正しました。入力欄を包む label が伸縮せず、入力欄が既定幅のまま固まっていたためです
 
 = 0.9.0 =
 * 記事内パーツをブロックパターンとして10種追加しました。ブロック挿入画面の「fellow の記事パーツ」から選べます

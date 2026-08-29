@@ -523,8 +523,18 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	gap: 0.5rem;
 }
 
-.search-form__field {
+/*
+ * flex の子になるのは入力欄ではなく、それを包む label。
+ * label 側を伸縮させないと入力欄が既定幅(約233px)のまま固まり、
+ * 狭い画面で検索ボタンが枠外へはみ出す。
+ */
+.search-form__label {
 	flex: 1;
+	min-width: 0;
+}
+
+.search-form__field {
+	width: 100%;
 	min-width: 0;
 	padding: 0.5em 0.75em;
 	font: inherit;
