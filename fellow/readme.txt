@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.9.2
+Stable tag: 0.9.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -49,6 +49,11 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.9.3 =
+* 「クエリーループ」「最新の記事」ブロックで記事一覧を組んだページが、まったく体裁を持たない状態(箇条書きの点つき・青い下線リンク・区切り線なし)で表示される問題を修正しました。軽量化のため wp-block-library を外している副作用で、これらのブロックにCSSが無いままでした
+* あわせて、投稿タイトル・カテゴリー・抜粋・日付・アイキャッチ・ページ送りの各ブロックを、テーマ自前のリスト型一覧と同じ見た目に揃えました
+* サイドバーやフッターに置いた「最新の記事」ブロックは、本文の一覧と主従が逆転しないよう詰めた表示にしています
 
 = 0.9.2 =
 * スマホでヘッダーの検索・メニューのボタンが右端ではなく中央付近に取り残されていた問題を修正しました。JS有効時のナビが absolute で流れから外れると、右寄せを担っていた margin が効かなくなっていたためです

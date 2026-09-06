@@ -1589,6 +1589,294 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	justify-content: space-between;
 }
 
+/* --------------------------------------------------------------------------
+   記事一覧系のコアブロック(クエリーループ / 最新の記事)
+
+   トップや固定ページを「クエリーループ」ブロックで組む使い方は多い。
+   ところが wp-block-library を外している都合で、これらのブロックは
+   体裁を一切持たない状態になる。投稿テンプレートは ul なので箇条書きの
+   点が出たまま、タイトルとカテゴリーはブラウザ既定の青い下線リンク、
+   抜粋は本文と同じ大きさ、記事の区切りも無い、という見た目になる。
+
+   テーマ自前のリスト型一覧(.post-item)に寄せて揃える。
+   -------------------------------------------------------------------------- */
+
+.wp-block-query {
+	margin: 1.5em 0;
+}
+
+/* 投稿テンプレートは ul。マーカーと既定の余白を落とす */
+.wp-block-post-template {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* 1件分。テーマの一覧と同じ罫線で区切る */
+.wp-block-post-template > .wp-block-post {
+	margin: 0;
+	padding: 1.25rem 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.wp-block-post-template > .wp-block-post:first-child {
+	border-top: 1px solid var(--color-border);
+}
+
+.wp-block-post-template > .wp-block-post > * + * {
+	margin-top: 0.4rem;
+}
+
+/*
+ * 段組み表示にしたときは、罫線ではなく余白で分ける。
+ * グリッドの列数はコア側の container スタイルが持つが、
+ * global-styles を外している環境でも最低限は並ぶようにしておく。
+ */
+.wp-block-post-template.is-flex-container,
+.wp-block-post-template.is-layout-flex {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.75rem;
+}
+
+.wp-block-post-template.is-flex-container > .wp-block-post,
+.wp-block-post-template.is-layout-flex > .wp-block-post {
+	flex: 1 1 16rem;
+	padding: 0;
+	border: 0;
+}
+
+.wp-block-post-template.is-layout-grid {
+	display: grid;
+	gap: 1.75rem;
+	grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+}
+
+.wp-block-post-template.is-layout-grid > .wp-block-post {
+	padding: 0;
+	border: 0;
+}
+
+/*
+ * 投稿タイトルは h2 で出ることが多い。本文の h2(帯+左の太線)が
+ * そのまま当たると一覧としては強すぎるので、ここでは打ち消す。
+ */
+.wp-block-post-title,
+.entry-content .wp-block-post-title {
+	margin: 0;
+	padding: 0;
+	background: none;
+	border: 0;
+	border-radius: 0;
+	font-size: 1.05rem;
+	line-height: 1.6;
+}
+
+.wp-block-post-title a {
+	color: var(--color-text);
+	text-decoration: none;
+}
+
+.wp-block-post-title a:hover {
+	text-decoration: underline;
+}
+
+/* カテゴリー/タグはテーマのラベルと同じ丸いピルにする */
+.wp-block-post-terms {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 0.75rem;
+}
+
+.wp-block-post-terms a {
+	display: inline-block;
+	padding: 0.1em 0.7em;
+	background: var(--accent);
+	border-radius: 999px;
+	color: var(--color-text);
+	font-weight: 700;
+	text-decoration: none;
+}
+
+.wp-block-post-terms a:hover {
+	opacity: 0.85;
+}
+
+/* 区切り文字はピルの間に出ると邪魔なので消す */
+.wp-block-post-terms .wp-block-post-terms__separator {
+	display: none;
+}
+
+.wp-block-post-excerpt {
+	margin: 0;
+}
+
+.wp-block-post-excerpt__excerpt {
+	margin: 0;
+	font-size: 0.85rem;
+	line-height: 1.8;
+	color: var(--color-text-muted);
+}
+
+.wp-block-post-excerpt__more-link {
+	display: inline-block;
+	margin-top: 0.2rem;
+	font-size: 0.8rem;
+}
+
+.wp-block-post-date,
+.wp-block-post-author,
+.wp-block-post-author-name,
+.wp-block-post-comments-count {
+	font-size: 0.8rem;
+	color: var(--color-text-muted);
+}
+
+.wp-block-post-date a,
+.wp-block-post-author a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.wp-block-post-featured-image {
+	margin: 0 0 0.6rem;
+	border-radius: var(--radius);
+	overflow: hidden;
+}
+
+.wp-block-post-featured-image img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.wp-block-query-no-results {
+	padding: 2rem 0;
+	color: var(--color-text-muted);
+}
+
+/* ページ送り。テーマの .pagination と同じ見た目に揃える */
+.wp-block-query-pagination {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	margin-top: 2.5rem;
+}
+
+.wp-block-query-pagination .wp-block-query-pagination-numbers,
+.wp-block-query-pagination-numbers {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.wp-block-query-pagination a,
+.wp-block-query-pagination .page-numbers {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.4em;
+	padding: 0.4em 0.7em;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	color: var(--color-text);
+	text-decoration: none;
+}
+
+.wp-block-query-pagination .page-numbers.current {
+	background: var(--accent);
+	font-weight: 700;
+}
+
+.wp-block-query-pagination a:hover {
+	background: var(--color-bg-soft);
+}
+
+/* --- 「最新の記事」ブロック --- */
+
+.wp-block-latest-posts,
+.wp-block-latest-posts__list {
+	margin: 1.5em 0;
+	padding: 0;
+	list-style: none;
+}
+
+.wp-block-latest-posts__list > li {
+	padding: 0.9rem 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.wp-block-latest-posts__list > li:first-child {
+	border-top: 1px solid var(--color-border);
+}
+
+.wp-block-latest-posts__post-title {
+	display: block;
+	color: var(--color-text);
+	font-weight: 700;
+	line-height: 1.6;
+	text-decoration: none;
+}
+
+.wp-block-latest-posts__post-title:hover {
+	text-decoration: underline;
+}
+
+.wp-block-latest-posts__post-date {
+	display: block;
+	margin-top: 0.2rem;
+	font-size: 0.8rem;
+	color: var(--color-text-muted);
+}
+
+.wp-block-latest-posts__post-excerpt,
+.wp-block-latest-posts__post-full-content {
+	margin-top: 0.3rem;
+	font-size: 0.85rem;
+	line-height: 1.8;
+	color: var(--color-text-muted);
+}
+
+.wp-block-latest-posts__featured-image img {
+	border-radius: var(--radius);
+}
+
+/* 段組み指定のとき(is-grid)は罫線をやめて余白で分ける */
+.wp-block-latest-posts.is-grid {
+	display: grid;
+	gap: 1.5rem;
+	grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+}
+
+.wp-block-latest-posts.is-grid > li {
+	padding: 0;
+	border: 0;
+}
+
+/*
+ * ウィジェットの中では詰める。
+ * サイドバーやフッターに置いた「最新の記事」まで罫線つきの行にすると、
+ * 本文の一覧と同じ重さになって主従が逆転するため。
+ */
+.widget .wp-block-latest-posts__list > li,
+.widget .wp-block-post-template > .wp-block-post {
+	padding: 0;
+	border: 0;
+}
+
+.widget .wp-block-latest-posts__post-title {
+	font-weight: inherit;
+}
+
+.widget .wp-block-latest-posts__post-date,
+.widget .wp-block-latest-posts__post-excerpt {
+	font-size: 0.8rem;
+}
+
 /* ==========================================================================
    7.5 記事内パーツ(ブロックパターン / ブロックスタイル)
    ========================================================================== */
