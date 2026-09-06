@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.9.3
+Stable tag: 0.9.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -49,6 +49,11 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.9.4 =
+* 「外観 > fellow 設定」に「初期設定の状況」を追加しました。テーマ見本(screenshot.png)は各所を設定し終えた状態を写しているため、未設定のままだと見本と大きく違って見えます。何が残っているのかを一覧で確認できます
+* 特に「設定 > 表示設定」の「ホームページの表示」が固定ページになっていると、紹介の帯・カテゴリー導線・ピックアップ・リスト型一覧がまとめて使われません。この場合に理由と直し方を表示します
+* 有効化時にサイドバーが空だった場合、既定のウィジェット(サイト内検索・カテゴリー・アーカイブ・最近の記事)を配置するようにしました。サイドバーが空だとサイドバー自体が描画されず、見本と印象が大きく変わるためです。すでにウィジェットがある場合は何もしません
 
 = 0.9.3 =
 * 「クエリーループ」「最新の記事」ブロックで記事一覧を組んだページが、まったく体裁を持たない状態(箇条書きの点つき・青い下線リンク・区切り線なし)で表示される問題を修正しました。軽量化のため wp-block-library を外している副作用で、これらのブロックにCSSが無いままでした

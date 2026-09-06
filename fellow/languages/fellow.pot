@@ -55,11 +55,11 @@ msgstr[1] ""
 msgid "サイト"
 msgstr ""
 
-#: footer.php:35
+#: footer.php:35 inc/setup.php:180
 msgid "カテゴリー"
 msgstr ""
 
-#: footer.php:40
+#: footer.php:40 inc/setup.php:186
 msgid "アーカイブ"
 msgstr ""
 
@@ -75,15 +75,15 @@ msgstr ""
 msgid "本文へスキップ"
 msgstr ""
 
-#: header.php:38
+#: header.php:39
 msgid "メインメニュー"
 msgstr ""
 
-#: header.php:56
+#: header.php:58
 msgid "検索ボックスを開閉"
 msgstr ""
 
-#: header.php:66
+#: header.php:70
 msgid "メニューを開閉"
 msgstr ""
 
@@ -507,7 +507,7 @@ msgstr ""
 msgid "この記事を検索エンジンに登録させない(noindex)"
 msgstr ""
 
-#: inc/setup.php:54
+#: inc/setup.php:54 inc/theme-options-page.php:132
 msgid "ヘッダーメニュー"
 msgstr ""
 
@@ -515,7 +515,7 @@ msgstr ""
 msgid "フッター「サイト」メニュー"
 msgstr ""
 
-#: inc/setup.php:79 sidebar.php:19
+#: inc/setup.php:79 inc/theme-options-page.php:139 sidebar.php:19
 msgid "サイドバー"
 msgstr ""
 
@@ -537,6 +537,14 @@ msgstr ""
 
 #: inc/setup.php:105
 msgid "フッターの列として表示されます。空のときは何も出力されません。"
+msgstr ""
+
+#: inc/setup.php:177
+msgid "サイト内検索"
+msgstr ""
+
+#: inc/setup.php:191
+msgid "最近の記事"
 msgstr ""
 
 #: inc/template-tags.php:120
@@ -603,7 +611,7 @@ msgstr ""
 msgid "URLをコピー"
 msgstr ""
 
-#: inc/theme-options-page.php:20 inc/theme-options-page.php:21 inc/theme-options-page.php:126
+#: inc/theme-options-page.php:20 inc/theme-options-page.php:21 inc/theme-options-page.php:229
 msgid "fellow 設定"
 msgstr ""
 
@@ -635,9 +643,71 @@ msgstr ""
 msgid "クレジット表記はいつでも非表示にできます(GPLのため義務ではありません)。"
 msgstr ""
 
-#: inc/theme-options-page.php:127
+#: inc/theme-options-page.php:134
+msgid "未割り当ての間は、ヘッダーのメニューとスマホのハンバーガーを表示しません。"
+msgstr ""
+
+#: inc/theme-options-page.php:136
+msgid "メニューを設定"
+msgstr ""
+
+#: inc/theme-options-page.php:141
+msgid "ウィジェットが1つも無いとサイドバーは描画されず、本文が全幅になります。"
+msgstr ""
+
+#: inc/theme-options-page.php:143
+msgid "ウィジェットを配置"
+msgstr ""
+
+#: inc/theme-options-page.php:146
+msgid "ホームページの表示"
+msgstr ""
+
+#: inc/theme-options-page.php:153
+msgid "「固定ページ」になっています。この場合トップは固定ページの中身がそのまま出るため、紹介の帯・カテゴリー導線・ピックアップ・リスト型一覧は使われません。見本と同じ構成にするには「最新の投稿」を選んでください。"
+msgstr ""
+
+#: inc/theme-options-page.php:155
+msgid "表示設定を開く"
+msgstr ""
+
+#: inc/theme-options-page.php:158
+msgid "ピックアップ記事"
+msgstr ""
+
+#: inc/theme-options-page.php:160
+msgid "ピックアップの取得元が「先頭に固定した記事」ですが、固定された記事がまだありません。投稿を固定するか、カスタマイザーで「最新の記事」に変えてください。"
+msgstr ""
+
+#: inc/theme-options-page.php:162
+msgid "投稿一覧を開く"
+msgstr ""
+
+#: inc/theme-options-page.php:180
+msgid "初期設定の状況"
+msgstr ""
+
+#: inc/theme-options-page.php:182
+msgid "設定は一通り終わっています。"
+msgstr ""
+
+#: inc/theme-options-page.php:202
+msgid "設定済み"
+msgstr ""
+
+#: inc/theme-options-page.php:204
+msgid "未設定"
+msgstr ""
+
+#: inc/theme-options-page.php:230
 msgid "色やロゴなど見た目の設定は「外観 > カスタマイズ」から行えます。"
 msgstr ""
+
+#: inc/theme-options-page.php:188
+msgid "未設定の項目が %d 件あります。テーマ見本と見た目が違う場合は、まずここを確認してください。"
+msgid_plural "未設定の項目が %d 件あります。テーマ見本と見た目が違う場合は、まずここを確認してください。"
+msgstr[0] ""
+msgstr[1] ""
 
 #: inc/toc.php:151 inc/toc.php:156 inc/widget-toc.php:50 inc/widget-toc.php:70
 msgid "目次"

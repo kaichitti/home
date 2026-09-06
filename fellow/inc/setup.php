@@ -148,6 +148,82 @@ function fellow_reset_inherited_widgets() {
 add_action( 'after_switch_theme', 'fellow_reset_inherited_widgets', 20 );
 
 /**
+ * 初回有効化時、サイドバーが空ならテーマ既定のウィジェットを置く。
+ *
+ * テーマ選択画面に出る見本(screenshot.png)は、メニューもサイドバーも
+ * 設定済みの状態を写している。ところが有効化した直後のサイトは
+ * サイドバーが空で、その場合サイドバー自体が描画されない作りのため、
+ * 「見本とまるで違う」という印象になる。その差を埋めるための処理。
+ *
+ * 既にウィジェットが置かれている場合は何もしない。
+ * 置いた内容は「外観 > ウィジェット」から自由に変更・削除できる。
+ */
+function fellow_seed_default_widgets() {
+	if ( get_theme_mod( 'fellow_default_widgets_placed' ) ) {
+		return;
+	}
+
+	set_theme_mod( 'fellow_default_widgets_placed', true );
+
+	$sidebars = (array) get_option( 'sidebars_widgets', array() );
+
+	// 利用者が既に何か置いている(他テーマから引き継いだ場合も含む)なら触らない。
+	if ( ! empty( $sidebars['sidebar-main'] ) ) {
+		return;
+	}
+
+	$defaults = array(
+		'search'       => array(
+			'title' => __( 'サイト内検索', 'fellow' ),
+		),
+		'categories'   => array(
+			'title'        => __( 'カテゴリー', 'fellow' ),
+			'count'        => 0,
+			'hierarchical' => 1,
+			'dropdown'     => 0,
+		),
+		'archives'     => array(
+			'title'    => __( 'アーカイブ', 'fellow' ),
+			'count'    => 0,
+			'dropdown' => 0,
+		),
+		'recent-posts' => array(
+			'title'     => __( '最近の記事', 'fellow' ),
+			'number'    => 5,
+			'show_date' => 0,
+		),
+	);
+
+	$placed = array();
+
+	foreach ( $defaults as $base => $instance ) {
+		$option = 'widget_' . $base;
+		$stored = (array) get_option( $option, array() );
+
+		// 既存インスタンスと衝突しない番号を選ぶ。
+		$index = 2;
+		foreach ( array_keys( $stored ) as $key ) {
+			if ( is_numeric( $key ) && (int) $key >= $index ) {
+				$index = (int) $key + 1;
+			}
+		}
+
+		$stored[ $index ]       = $instance;
+		$stored['_multiwidget'] = 1;
+
+		update_option( $option, $stored );
+
+		$placed[] = $base . '-' . $index;
+	}
+
+	$sidebars['sidebar-main'] = $placed;
+
+	update_option( 'sidebars_widgets', $sidebars );
+}
+// 引き継ぎウィジェットの整理(優先度20)より後に走らせる。
+add_action( 'after_switch_theme', 'fellow_seed_default_widgets', 21 );
+
+/**
  * 埋め込みコンテンツの基準幅。
  */
 function fellow_content_width() {
