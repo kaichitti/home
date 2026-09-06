@@ -1,24 +1,28 @@
 name: Build theme zip
 
 # ============================================================================
-# 【注意】このワークフローは現在の置き場所では実行されません。
-#
-# GitHub Actions は「リポジトリ直下の .github/workflows/」に置かれた
-# ファイルしか読み込みません。GitHub側の仕様で、設定では変更できません。
-# 現在このファイルは fellow/.github/workflows/ にあるため、プッシュしても
-# 何も動きません。
-#
-# 自動生成を有効にしたい場合は、リポジトリ直下へ戻してください:
-#   git mv fellow/.github .github
-#
-# 直下を汚したくない場合は、ローカルで下記を実行すれば同じzipが作れます:
-#   cd <リポジトリ直下> && zip -rq fellow.zip fellow \
-#     -x 'fellow/ARCHITECTURE.md' -x 'fellow/.github/*' -x 'fellow/.gitignore'
-# ============================================================================
-#
 # 管理画面にそのままアップロードできる fellow.zip を用意する。
-# zip の中身は必ず fellow/ で始まる構造にする(WordPress のテーマ
-# アップローダーは zip 直下のフォルダ名をテーマのフォルダ名として使うため)。
+#
+# zip の中身は必ず fellow/ で始まる構造にする。WordPress のテーマ
+# アップローダーは zip 直下のフォルダ名をそのままテーマのフォルダ名として
+# 使うため、ここを間違えると2通りの形で失敗する:
+#
+#   - zip 直下に style.css が無い(二重フォルダ)
+#       → 「テーマにスタイルシート style.css がありません」でインストール失敗
+#   - zip 直下のフォルダ名が fellow 以外
+#       → 別テーマとして増えるだけで、有効化中の fellow は更新されない
+#         (見た目が何も変わらないので原因が分かりにくい)
+#
+# GitHub の「Code > Download ZIP」は前者になるため、テーマの更新には使えない。
+# 必ずこのワークフローが作った zip を使うこと。
+#
+# 取得先:
+#   - 通常の push  … Actions の実行ページ > Artifacts
+#   - リリース公開 … そのリリースの添付ファイル
+#
+# ローカルで同じものを作る場合:
+#   cd <リポジトリ直下> && zip -rq fellow.zip fellow -x 'fellow/ARCHITECTURE.md'
+# ============================================================================
 
 on:
   push:
@@ -62,9 +66,6 @@ jobs:
           # 購入者へ同梱したい場合はこの行を消す。
           zip -rq build/fellow.zip fellow \
             -x 'fellow/ARCHITECTURE.md' \
-            -x 'fellow/.github/*' \
-            -x 'fellow/.gitignore' \
-            -x 'fellow/build/*' \
             -x '*/.DS_Store'
           echo "--- zipの中身(先頭) ---"
           unzip -l build/fellow.zip | head -20
