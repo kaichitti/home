@@ -504,3 +504,24 @@ function fellow_share_links() {
 	</div>
 	<?php
 }
+
+/**
+ * 記事一覧コンテナのクラスを返す。
+ *
+ * カスタマイザーの「記事一覧のレイアウト」に追従する。
+ * 記事詳細の関連記事だけは常にリスト型のままにする。
+ * 本文の途中に置く小さな回遊枠なので、カード型にすると
+ * 本文より目立ってしまい主従が入れ替わるため。
+ *
+ * @param bool $follow_setting 設定に追従するか。false なら常にリスト型。
+ * @return string
+ */
+function fellow_post_list_class( $follow_setting = true ) {
+	$classes = array( 'post-list' );
+
+	if ( $follow_setting && 'card' === get_theme_mod( 'fellow_list_layout', 'list' ) ) {
+		$classes[] = 'post-list--card';
+	}
+
+	return implode( ' ', $classes );
+}

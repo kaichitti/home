@@ -27,7 +27,7 @@ get_header();
 		</header>
 
 		<?php if ( have_posts() ) : ?>
-			<div class="post-list">
+			<div class="<?php echo esc_attr( fellow_post_list_class() ); ?>">
 				<?php
 				while ( have_posts() ) :
 					the_post();

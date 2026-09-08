@@ -60,6 +60,16 @@ function fellow_sanitize_sidebar_position( $value ) {
 }
 
 /**
+ * 記事一覧レイアウトのサニタイズ。
+ *
+ * @param mixed $value 入力値。
+ * @return string
+ */
+function fellow_sanitize_list_layout( $value ) {
+	return in_array( $value, array( 'list', 'card' ), true ) ? $value : 'list';
+}
+
+/**
  * 本文幅セレクト用サニタイズ(65〜75文字、5刻み)。
  *
  * @param mixed $value 入力値。
@@ -158,6 +168,27 @@ function fellow_customize_register( $wp_customize ) {
 				'none'  => __( 'サイドバーなし(1カラム)', 'fellow' ),
 			),
 			'description' => __( '記事詳細と記事一覧・アーカイブに適用されます。固定ページは常に1カラムです。ウィジェットが未設定の場合も1カラムになります。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_list_layout',
+		array(
+			'default'           => 'list',
+			'sanitize_callback' => 'fellow_sanitize_list_layout',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_list_layout',
+		array(
+			'label'       => __( '記事一覧のレイアウト', 'fellow' ),
+			'section'     => 'fellow_layout',
+			'type'        => 'select',
+			'choices'     => array(
+				'list' => __( 'リスト型(サムネイルは右に小さく)', 'fellow' ),
+				'card' => __( 'カード型(2列・サムネイルは上に大きく)', 'fellow' ),
+			),
+			'description' => __( 'トップ・カテゴリー・タグ・検索結果に適用されます。カード型はアイキャッチを設定した記事が多いブログ向けです。未設定の記事では画像枠を出さないため、混在すると高さが不揃いに見えます。', 'fellow' ),
 		)
 	);
 

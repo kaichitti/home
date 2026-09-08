@@ -1135,6 +1135,73 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	color: var(--color-text-muted);
 }
 
+/* --------------------------------------------------------------------------
+   カード型の一覧(カスタマイザーで選択)
+
+   マークアップはリスト型と共通で、並べ替えは CSS だけで行う。
+   サムネイルは HTML 上は本文の後ろにあるが(リスト型で右に置くため)、
+   カード型では order で先頭へ移す。
+   -------------------------------------------------------------------------- */
+
+.post-list--card {
+	display: grid;
+	gap: 1.5rem;
+	grid-template-columns: 1fr;
+}
+
+@media (min-width: 600px) {
+	.post-list--card {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+/* 罫線区切りはカード型では使わない(枠が二重になるため) */
+.post-list--card .post-item,
+.post-list--card .post-item:first-child {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	overflow: hidden;
+	transition: box-shadow 0.2s ease;
+}
+
+.post-list--card .post-item:hover {
+	box-shadow: var(--shadow-card);
+}
+
+.post-list--card .post-item__link {
+	flex-direction: column;
+	gap: 0;
+	height: 100%;
+	padding: 0;
+}
+
+.post-list--card .post-item__link:hover {
+	background: transparent;
+}
+
+/* HTML では本文の後ろにあるサムネイルを、カードでは上へ */
+.post-list--card .post-item__thumb {
+	order: -1;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	border-radius: 0;
+}
+
+.post-list--card .post-item__body {
+	width: 100%;
+	padding: 0.9rem 1rem 1rem;
+}
+
+.post-list--card .post-item__title {
+	font-size: 1rem;
+}
+
+/*
+ * アイキャッチ未設定の記事では画像枠を出さない方針は、カード型でも変えない。
+ * グリッドの行は高さが揃うので、画像の無いカードは本文が上に詰まるだけで
+ * レイアウトは崩れない。
+ */
+
 /* 狭い画面ではサムネイルを小さくして、タイトルの行数を稼ぐ */
 @media (max-width: 599.98px) {
 	.post-item__link {

@@ -259,227 +259,243 @@ msgstr ""
 msgid "ドット"
 msgstr ""
 
-#: inc/customizer.php:93
+#: inc/customizer.php:103
 msgid "アクセントカラー"
 msgstr ""
 
-#: inc/customizer.php:103
+#: inc/customizer.php:113
 msgid "SNSリンク"
 msgstr ""
 
-#: inc/customizer.php:109
+#: inc/customizer.php:119
 msgid "X(旧Twitter)URL"
 msgstr ""
 
-#: inc/customizer.php:110
+#: inc/customizer.php:120
 msgid "RSS URL"
 msgstr ""
 
-#: inc/customizer.php:111
+#: inc/customizer.php:121
 msgid "Feedly URL"
 msgstr ""
 
-#: inc/customizer.php:128
+#: inc/customizer.php:138
 msgid "空欄にすると表示されません。"
 msgstr ""
 
-#: inc/customizer.php:137
+#: inc/customizer.php:147
 msgid "レイアウト"
 msgstr ""
 
-#: inc/customizer.php:152
+#: inc/customizer.php:162
 msgid "サイドバーの位置"
 msgstr ""
 
-#: inc/customizer.php:156
+#: inc/customizer.php:166
 msgid "右サイドバー(2カラム)"
 msgstr ""
 
-#: inc/customizer.php:157
+#: inc/customizer.php:167
 msgid "左サイドバー(2カラム)"
 msgstr ""
 
-#: inc/customizer.php:158
+#: inc/customizer.php:168
 msgid "サイドバーなし(1カラム)"
 msgstr ""
 
-#: inc/customizer.php:160
+#: inc/customizer.php:170
 msgid "記事詳細と記事一覧・アーカイブに適用されます。固定ページは常に1カラムです。ウィジェットが未設定の場合も1カラムになります。"
 msgstr ""
 
-#: inc/customizer.php:174
+#: inc/customizer.php:184
+msgid "記事一覧のレイアウト"
+msgstr ""
+
+#: inc/customizer.php:188
+msgid "リスト型(サムネイルは右に小さく)"
+msgstr ""
+
+#: inc/customizer.php:189
+msgid "カード型(2列・サムネイルは上に大きく)"
+msgstr ""
+
+#: inc/customizer.php:191
+msgid "トップ・カテゴリー・タグ・検索結果に適用されます。カード型はアイキャッチを設定した記事が多いブログ向けです。未設定の記事では画像枠を出さないため、混在すると高さが不揃いに見えます。"
+msgstr ""
+
+#: inc/customizer.php:205
 msgid "本文の1行あたり文字数"
 msgstr ""
 
-#: inc/customizer.php:178
+#: inc/customizer.php:209
 msgid "65文字(狭め)"
 msgstr ""
 
-#: inc/customizer.php:179
+#: inc/customizer.php:210
 msgid "70文字(標準)"
 msgstr ""
 
-#: inc/customizer.php:180
+#: inc/customizer.php:211
 msgid "75文字(広め)"
 msgstr ""
 
-#: inc/customizer.php:182
+#: inc/customizer.php:213
 msgid "記事本文の最大行長を切り替えます。"
 msgstr ""
 
-#: inc/customizer.php:190
+#: inc/customizer.php:221
 msgid "トップページ"
 msgstr ""
 
-#: inc/customizer.php:192
+#: inc/customizer.php:223
 msgid "ブログトップの最上部に表示する内容を設定します。"
 msgstr ""
 
-#: inc/customizer.php:206
+#: inc/customizer.php:237
 msgid "ヘッダー下に紹介の帯を表示する"
 msgstr ""
 
-#: inc/customizer.php:209
+#: inc/customizer.php:240
 msgid "見出しもリード文も空のときは、チェックが入っていても表示されません。"
 msgstr ""
 
-#: inc/customizer.php:223
+#: inc/customizer.php:254
 msgid "帯の見出し"
 msgstr ""
 
-#: inc/customizer.php:226
+#: inc/customizer.php:257
 msgid "空欄にするとサイト名が入ります。"
 msgstr ""
 
-#: inc/customizer.php:240
+#: inc/customizer.php:271
 msgid "帯のリード文"
 msgstr ""
 
-#: inc/customizer.php:243
+#: inc/customizer.php:274
 msgid "空欄にすると「設定 > 一般」のキャッチフレーズが入ります。"
 msgstr ""
 
-#: inc/customizer.php:257
+#: inc/customizer.php:288
 msgid "カテゴリー導線を表示する"
 msgstr ""
 
-#: inc/customizer.php:260
+#: inc/customizer.php:291
 msgid "記事の多いカテゴリーを最大8件、上部に並べます。スマホでは横スクロールになります。"
 msgstr ""
 
-#: inc/customizer.php:274
+#: inc/customizer.php:305
 msgid "ピックアップ記事に出す記事"
 msgstr ""
 
-#: inc/customizer.php:278
+#: inc/customizer.php:309
 msgid "「先頭に固定」した記事"
 msgstr ""
 
-#: inc/customizer.php:279
+#: inc/customizer.php:310
 msgid "最新の記事"
 msgstr ""
 
-#: inc/customizer.php:280
+#: inc/customizer.php:311
 msgid "表示しない"
 msgstr ""
 
-#: inc/customizer.php:282
+#: inc/customizer.php:313
 msgid "ピックアップに出した記事は、下の一覧には重複して出ません。"
 msgstr ""
 
-#: inc/customizer.php:296
+#: inc/customizer.php:327
 msgid "ピックアップ記事の件数"
 msgstr ""
 
-#: inc/customizer.php:300
+#: inc/customizer.php:331
 msgid "2件"
 msgstr ""
 
-#: inc/customizer.php:301
+#: inc/customizer.php:332
 msgid "3件"
 msgstr ""
 
-#: inc/customizer.php:302
+#: inc/customizer.php:333
 msgid "4件"
 msgstr ""
 
-#: inc/customizer.php:303
+#: inc/customizer.php:334
 msgid "5件"
 msgstr ""
 
-#: inc/customizer.php:312
+#: inc/customizer.php:343
 msgid "SEO"
 msgstr ""
 
-#: inc/customizer.php:314
+#: inc/customizer.php:345
 msgid "SEOプラグインを入れている場合、テーマ側のメタタグ出力は自動的に止まります(二重に出るのを避けるため)。"
 msgstr ""
 
-#: inc/customizer.php:328
+#: inc/customizer.php:359
 msgid "メタタグ(description / OGP / Twitter Card)を出力する"
 msgstr ""
 
-#: inc/customizer.php:331
+#: inc/customizer.php:362
 msgid "SEOプラグインが検出された場合は、この設定にかかわらず出力しません。"
 msgstr ""
 
-#: inc/customizer.php:345
+#: inc/customizer.php:376
 msgid "構造化データ(BlogPosting / WebSite)を出力する"
 msgstr ""
 
-#: inc/customizer.php:348
+#: inc/customizer.php:379
 msgid "レビュースコアの構造化データ(Review)は、この設定とは別に常に出力されます。"
 msgstr ""
 
-#: inc/customizer.php:364
+#: inc/customizer.php:395
 msgid "SNSシェア用の既定画像"
 msgstr ""
 
-#: inc/customizer.php:367
+#: inc/customizer.php:398
 msgid "アイキャッチが無い記事や一覧ページで使われます。1200x630px 程度を推奨。"
 msgstr ""
 
-#: inc/customizer.php:382
+#: inc/customizer.php:413
 msgid "X(旧Twitter)のユーザー名"
 msgstr ""
 
-#: inc/customizer.php:385
+#: inc/customizer.php:416
 msgid "@ は付けても付けなくても構いません。シェア時のカードに表示されます。"
 msgstr ""
 
-#: inc/customizer.php:399
+#: inc/customizer.php:430
 msgid "タグアーカイブを noindex にする"
 msgstr ""
 
-#: inc/customizer.php:402
+#: inc/customizer.php:433
 msgid "カテゴリーと内容が重なりやすい場合に有効です。"
 msgstr ""
 
-#: inc/customizer.php:416
+#: inc/customizer.php:447
 msgid "日付・著者アーカイブを noindex にする"
 msgstr ""
 
-#: inc/customizer.php:426
+#: inc/customizer.php:457
 msgid "fellow 機能設定"
 msgstr ""
 
-#: inc/customizer.php:441
+#: inc/customizer.php:472
 msgid "ヘッダーに検索ボックスを表示する"
 msgstr ""
 
-#: inc/customizer.php:457
+#: inc/customizer.php:488
 msgid "ヘッダーを画面上部に固定する"
 msgstr ""
 
-#: inc/customizer.php:520
+#: inc/customizer.php:551
 msgid "X"
 msgstr ""
 
-#: inc/customizer.php:521
+#: inc/customizer.php:552
 msgid "RSS"
 msgstr ""
 
-#: inc/customizer.php:522
+#: inc/customizer.php:553
 msgid "Feedly"
 msgstr ""
 

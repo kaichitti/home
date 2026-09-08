@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.9.4
+Stable tag: 0.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -49,6 +49,11 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.10.0 =
+* カスタマイザーに「記事一覧のレイアウト」を追加しました。リスト型(従来どおり・サムネイルは右に小さく)とカード型(2列・サムネイルは上に大きく)から選べます。トップ・カテゴリー・タグ・検索結果に適用されます
+* マークアップは共通のままで、並べ替えはCSSだけで行っています。カード型でもアイキャッチ未設定の記事には画像枠を出しません
+* 記事詳細の関連記事は常にリスト型のままです。本文の途中に置く小さな回遊枠なので、カード型にすると本文より目立ってしまうためです
 
 = 0.9.4 =
 * 「外観 > fellow 設定」に「初期設定の状況」を追加しました。テーマ見本(screenshot.png)は各所を設定し終えた状態を写しているため、未設定のままだと見本と大きく違って見えます。何が残っているのかを一覧で確認できます

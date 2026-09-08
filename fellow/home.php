@@ -40,7 +40,7 @@ $fellow_pickup_ids = fellow_pickup_ids();
 					<?php esc_html_e( '最新記事', 'fellow' ); ?>
 				</<?php echo esc_attr( $fellow_home_heading ); ?>>
 
-				<div class="post-list">
+				<div class="<?php echo esc_attr( fellow_post_list_class() ); ?>">
 					<?php
 					$fellow_shown = 0;
 
