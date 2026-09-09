@@ -1,0 +1,818 @@
+# Copyright (C) 2026 setsna
+# This file is distributed under the GNU General Public License v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: fellow 0.7.0\n"
+"Report-Msgid-Bugs-To: https://setsna.com/fellow/\n"
+"POT-Creation-Date: 2026-08-04 00:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: fellow\n"
+
+#: 404.php:20
+msgid "ページが見つかりませんでした"
+msgstr ""
+
+#: 404.php:22
+msgid "お探しのページは移動または削除された可能性があります。キーワード検索か、カテゴリーからお探しください。"
+msgstr ""
+
+#: 404.php:29
+msgid "人気カテゴリー"
+msgstr ""
+
+#: 404.php:33
+msgid "トップページへ戻る"
+msgstr ""
+
+#: archive.php:42 home.php:70 index.php:34 search.php:51
+msgid "前へ"
+msgstr ""
+
+#: archive.php:43 home.php:71 index.php:35 search.php:52
+msgid "次へ"
+msgstr ""
+
+#: archive.php:48
+msgid "このアーカイブには記事がありません。"
+msgstr ""
+
+#: comments.php:41
+msgid "コメントは締め切られています。"
+msgstr ""
+
+#: comments.php:23
+msgid "%s件のコメント"
+msgid_plural "%s件のコメント"
+msgstr[0] ""
+msgstr[1] ""
+
+#: footer.php:19
+msgid "サイト"
+msgstr ""
+
+#: footer.php:35 inc/setup.php:197
+msgid "カテゴリー"
+msgstr ""
+
+#: footer.php:40 inc/setup.php:203
+msgid "アーカイブ"
+msgstr ""
+
+#: footer.php:55
+msgid "フォロー"
+msgstr ""
+
+#: footer.php:77
+msgid "Theme: %s"
+msgstr ""
+
+#: header.php:22
+msgid "本文へスキップ"
+msgstr ""
+
+#: header.php:39
+msgid "メインメニュー"
+msgstr ""
+
+#: header.php:58
+msgid "検索ボックスを開閉"
+msgstr ""
+
+#: header.php:70
+msgid "メニューを開閉"
+msgstr ""
+
+#: home.php:40
+msgid "最新記事"
+msgstr ""
+
+#: home.php:61
+msgid "ほかに記事がありません。"
+msgstr ""
+
+#: home.php:76
+msgid "まだ記事がありません。"
+msgstr ""
+
+#: inc/block-patterns.php:30
+msgid "fellow の記事パーツ"
+msgstr ""
+
+#: inc/block-patterns.php:58
+msgid "ここに話し言葉が入ります。左のアイコンは画像を差し替えてください。"
+msgstr ""
+
+#: inc/block-patterns.php:59
+msgid "名前"
+msgstr ""
+
+#: inc/block-patterns.php:62
+msgid "ふきだし(左)"
+msgstr ""
+
+#: inc/block-patterns.php:85
+msgid "ふきだし(右)"
+msgstr ""
+
+#: inc/block-patterns.php:108
+msgid "最初の手順"
+msgstr ""
+
+#: inc/block-patterns.php:109
+msgid "次の手順"
+msgstr ""
+
+#: inc/block-patterns.php:110
+msgid "最後の手順"
+msgstr ""
+
+#: inc/block-patterns.php:111
+msgid "ここに説明を書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:114
+msgid "ステップ(手順)"
+msgstr ""
+
+#: inc/block-patterns.php:153
+msgid "よくある質問をここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:154
+msgid "答えをここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:157
+msgid "FAQ(質問と回答)"
+msgstr ""
+
+#: inc/block-patterns.php:186
+msgid "ポイント"
+msgstr ""
+
+#: inc/block-patterns.php:187
+msgid "囲みで強調したい内容をここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:190
+msgid "キャプションボックス"
+msgstr ""
+
+#: inc/block-patterns.php:206 inc/block-styles.php:29
+msgid "注意"
+msgstr ""
+
+#: inc/block-patterns.php:207
+msgid "読者に気をつけてほしいことをここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:210
+msgid "キャプションボックス(注意)"
+msgstr ""
+
+#: inc/block-patterns.php:227
+msgid "リンク先の見出し"
+msgstr ""
+
+#: inc/block-patterns.php:228
+msgid "短い説明"
+msgstr ""
+
+#: inc/block-patterns.php:231
+msgid "ボックスメニュー"
+msgstr ""
+
+#: inc/block-patterns.php:260
+msgid "あわせて読みたい記事のタイトル"
+msgstr ""
+
+#: inc/block-patterns.php:261
+msgid "あわせて読みたい"
+msgstr ""
+
+#: inc/block-patterns.php:264
+msgid "バナーリンク"
+msgstr ""
+
+#: inc/block-patterns.php:281
+msgid "タブ1"
+msgstr ""
+
+#: inc/block-patterns.php:282
+msgid "タブ2"
+msgstr ""
+
+#: inc/block-patterns.php:283
+msgid "タブ3"
+msgstr ""
+
+#: inc/block-patterns.php:284
+msgid "タブの中身をここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:287
+msgid "タブ切り替え"
+msgstr ""
+
+#: inc/block-patterns.php:290
+msgid "見出しがタブの名前になります。JavaScriptが無効な環境では、見出し付きの段組みとして順に表示されます。"
+msgstr ""
+
+#: inc/block-patterns.php:328
+msgid "クリックすると開きます"
+msgstr ""
+
+#: inc/block-patterns.php:329
+msgid "折りたたんでおきたい内容をここに書きます。"
+msgstr ""
+
+#: inc/block-patterns.php:332
+msgid "アコーディオン(開閉)"
+msgstr ""
+
+#: inc/block-patterns.php:335
+msgid "HTMLの details 要素を使うため、JavaScriptが無効でも開閉できます。"
+msgstr ""
+
+#: inc/block-styles.php:25
+msgid "線だけ"
+msgstr ""
+
+#: inc/block-styles.php:28
+msgid "チェック"
+msgstr ""
+
+#: inc/block-styles.php:32
+msgid "枠線つき"
+msgstr ""
+
+#: inc/block-styles.php:35
+msgid "コンパクト"
+msgstr ""
+
+#: inc/block-styles.php:38
+msgid "ドット"
+msgstr ""
+
+#: inc/customizer.php:103
+msgid "アクセントカラー"
+msgstr ""
+
+#: inc/customizer.php:113
+msgid "SNSリンク"
+msgstr ""
+
+#: inc/customizer.php:119
+msgid "X(旧Twitter)URL"
+msgstr ""
+
+#: inc/customizer.php:120
+msgid "RSS URL"
+msgstr ""
+
+#: inc/customizer.php:121
+msgid "Feedly URL"
+msgstr ""
+
+#: inc/customizer.php:138
+msgid "空欄にすると表示されません。"
+msgstr ""
+
+#: inc/customizer.php:147
+msgid "レイアウト"
+msgstr ""
+
+#: inc/customizer.php:162
+msgid "サイドバーの位置"
+msgstr ""
+
+#: inc/customizer.php:166
+msgid "右サイドバー(2カラム)"
+msgstr ""
+
+#: inc/customizer.php:167
+msgid "左サイドバー(2カラム)"
+msgstr ""
+
+#: inc/customizer.php:168
+msgid "サイドバーなし(1カラム)"
+msgstr ""
+
+#: inc/customizer.php:170
+msgid "記事詳細と記事一覧・アーカイブに適用されます。固定ページは常に1カラムです。ウィジェットが未設定の場合も1カラムになります。"
+msgstr ""
+
+#: inc/customizer.php:184
+msgid "記事一覧のレイアウト"
+msgstr ""
+
+#: inc/customizer.php:188
+msgid "リスト型(サムネイルは右に小さく)"
+msgstr ""
+
+#: inc/customizer.php:189
+msgid "カード型(2列・サムネイルは上に大きく)"
+msgstr ""
+
+#: inc/customizer.php:191
+msgid "トップ・カテゴリー・タグ・検索結果に適用されます。カード型はアイキャッチを設定した記事が多いブログ向けです。未設定の記事では画像枠を出さないため、混在すると高さが不揃いに見えます。"
+msgstr ""
+
+#: inc/customizer.php:205
+msgid "本文の1行あたり文字数"
+msgstr ""
+
+#: inc/customizer.php:209
+msgid "65文字(狭め)"
+msgstr ""
+
+#: inc/customizer.php:210
+msgid "70文字(標準)"
+msgstr ""
+
+#: inc/customizer.php:211
+msgid "75文字(広め)"
+msgstr ""
+
+#: inc/customizer.php:213
+msgid "記事本文の最大行長を切り替えます。"
+msgstr ""
+
+#: inc/customizer.php:221
+msgid "トップページ"
+msgstr ""
+
+#: inc/customizer.php:223
+msgid "ブログトップの最上部に表示する内容を設定します。"
+msgstr ""
+
+#: inc/customizer.php:237
+msgid "ヘッダー下に紹介の帯を表示する"
+msgstr ""
+
+#: inc/customizer.php:240
+msgid "見出しもリード文も空のときは、チェックが入っていても表示されません。"
+msgstr ""
+
+#: inc/customizer.php:254
+msgid "帯の見出し"
+msgstr ""
+
+#: inc/customizer.php:257
+msgid "空欄にするとサイト名が入ります。"
+msgstr ""
+
+#: inc/customizer.php:271
+msgid "帯のリード文"
+msgstr ""
+
+#: inc/customizer.php:274
+msgid "空欄にすると「設定 > 一般」のキャッチフレーズが入ります。"
+msgstr ""
+
+#: inc/customizer.php:288
+msgid "カテゴリー導線を表示する"
+msgstr ""
+
+#: inc/customizer.php:291
+msgid "記事の多いカテゴリーを最大8件、上部に並べます。スマホでは横スクロールになります。"
+msgstr ""
+
+#: inc/customizer.php:305
+msgid "ピックアップ記事に出す記事"
+msgstr ""
+
+#: inc/customizer.php:309
+msgid "「先頭に固定」した記事"
+msgstr ""
+
+#: inc/customizer.php:310
+msgid "最新の記事"
+msgstr ""
+
+#: inc/customizer.php:311
+msgid "表示しない"
+msgstr ""
+
+#: inc/customizer.php:313
+msgid "ピックアップに出した記事は、下の一覧には重複して出ません。"
+msgstr ""
+
+#: inc/customizer.php:327
+msgid "ピックアップ記事の件数"
+msgstr ""
+
+#: inc/customizer.php:331
+msgid "2件"
+msgstr ""
+
+#: inc/customizer.php:332
+msgid "3件"
+msgstr ""
+
+#: inc/customizer.php:333
+msgid "4件"
+msgstr ""
+
+#: inc/customizer.php:334
+msgid "5件"
+msgstr ""
+
+#: inc/customizer.php:343
+msgid "SEO"
+msgstr ""
+
+#: inc/customizer.php:345
+msgid "SEOプラグインを入れている場合、テーマ側のメタタグ出力は自動的に止まります(二重に出るのを避けるため)。"
+msgstr ""
+
+#: inc/customizer.php:359
+msgid "メタタグ(description / OGP / Twitter Card)を出力する"
+msgstr ""
+
+#: inc/customizer.php:362
+msgid "SEOプラグインが検出された場合は、この設定にかかわらず出力しません。"
+msgstr ""
+
+#: inc/customizer.php:376
+msgid "構造化データ(BlogPosting / WebSite)を出力する"
+msgstr ""
+
+#: inc/customizer.php:379
+msgid "レビュースコアの構造化データ(Review)は、この設定とは別に常に出力されます。"
+msgstr ""
+
+#: inc/customizer.php:395
+msgid "SNSシェア用の既定画像"
+msgstr ""
+
+#: inc/customizer.php:398
+msgid "アイキャッチが無い記事や一覧ページで使われます。1200x630px 程度を推奨。"
+msgstr ""
+
+#: inc/customizer.php:413
+msgid "X(旧Twitter)のユーザー名"
+msgstr ""
+
+#: inc/customizer.php:416
+msgid "@ は付けても付けなくても構いません。シェア時のカードに表示されます。"
+msgstr ""
+
+#: inc/customizer.php:430
+msgid "タグアーカイブを noindex にする"
+msgstr ""
+
+#: inc/customizer.php:433
+msgid "カテゴリーと内容が重なりやすい場合に有効です。"
+msgstr ""
+
+#: inc/customizer.php:447
+msgid "日付・著者アーカイブを noindex にする"
+msgstr ""
+
+#: inc/customizer.php:457
+msgid "fellow 機能設定"
+msgstr ""
+
+#: inc/customizer.php:472
+msgid "ヘッダーに検索ボックスを表示する"
+msgstr ""
+
+#: inc/customizer.php:488
+msgid "ヘッダーを画面上部に固定する"
+msgstr ""
+
+#: inc/customizer.php:551
+msgid "X"
+msgstr ""
+
+#: inc/customizer.php:552
+msgid "RSS"
+msgstr ""
+
+#: inc/customizer.php:553
+msgid "Feedly"
+msgstr ""
+
+#: inc/review-meta.php:31
+msgid "fellow 記事設定"
+msgstr ""
+
+#: inc/review-meta.php:54
+msgid "スコア(0.0〜10.0)"
+msgstr ""
+
+#: inc/review-meta.php:70
+msgid "未入力にするとこの記事にはスコアダイヤルが表示されません。"
+msgstr ""
+
+#: inc/review-meta.php:77
+msgid "レビュー対象の名前"
+msgstr ""
+
+#: inc/review-meta.php:90
+msgid "構造化データ(Review)で「何をレビューしたか」として使われます。空欄なら記事タイトルが使われます。"
+msgstr ""
+
+#: inc/review-meta.php:104
+msgid "この記事を検索エンジンに登録させない(noindex)"
+msgstr ""
+
+#: inc/setup.php:54 inc/theme-options-page.php:132
+msgid "ヘッダーメニュー"
+msgstr ""
+
+#: inc/setup.php:55
+msgid "フッター「サイト」メニュー"
+msgstr ""
+
+#: inc/setup.php:79 inc/theme-options-page.php:139 sidebar.php:19
+msgid "サイドバー"
+msgstr ""
+
+#: inc/setup.php:81
+msgid "記事詳細と記事一覧・アーカイブの横に表示されます。空のときはサイドバー自体が出ず、本文が全幅になります。"
+msgstr ""
+
+#: inc/setup.php:91
+msgid "サイドバー(スクロール追従)"
+msgstr ""
+
+#: inc/setup.php:93
+msgid "サイドバーの下部に置かれ、スクロールしても画面内に留まります。目次や人気記事の設置に向いています。"
+msgstr ""
+
+#: inc/setup.php:108
+msgid "記事下ウィジェットエリア"
+msgstr ""
+
+#: inc/setup.php:110
+msgid "記事本文のすぐ下に表示されます。広告やお知らせの定位置に。投稿と固定ページの両方に出ます。"
+msgstr ""
+
+#: inc/setup.php:120
+msgid "フッターウィジェットエリア"
+msgstr ""
+
+#: inc/setup.php:122
+msgid "フッターの列として表示されます。空のときは何も出力されません。"
+msgstr ""
+
+#: inc/setup.php:194
+msgid "サイト内検索"
+msgstr ""
+
+#: inc/setup.php:208
+msgid "最近の記事"
+msgstr ""
+
+#: inc/template-tags.php:120
+msgid "ホーム"
+msgstr ""
+
+#: inc/template-tags.php:127
+msgid "ブログ"
+msgstr ""
+
+#: inc/template-tags.php:197
+msgid "%s年"
+msgstr ""
+
+#: inc/template-tags.php:203 search.php:25
+msgid "「%s」の検索結果"
+msgstr ""
+
+#: inc/template-tags.php:208
+msgid "ページが見つかりません"
+msgstr ""
+
+#: inc/template-tags.php:221
+msgid "現在位置"
+msgstr ""
+
+#: inc/template-tags.php:278
+msgid "#%s"
+msgstr ""
+
+#: inc/template-tags.php:283
+msgid "%s年の記事"
+msgstr ""
+
+#: inc/template-tags.php:288
+msgid "%sの記事"
+msgstr ""
+
+#: inc/template-tags.php:293
+msgid "%s の記事"
+msgstr ""
+
+#: inc/template-tags.php:315
+msgid "%s 更新"
+msgstr ""
+
+#: inc/template-tags.php:454
+msgid "タグ"
+msgstr ""
+
+#: inc/template-tags.php:486
+msgid "シェア"
+msgstr ""
+
+#: inc/template-tags.php:490
+msgid "Xでポスト"
+msgstr ""
+
+#: inc/template-tags.php:495
+msgid "はてなブックマーク"
+msgstr ""
+
+#: inc/template-tags.php:500
+msgid "URLをコピー"
+msgstr ""
+
+#: inc/theme-options-page.php:20 inc/theme-options-page.php:21 inc/theme-options-page.php:229
+msgid "fellow 設定"
+msgstr ""
+
+#: inc/theme-options-page.php:45
+msgid "機能のON/OFF"
+msgstr ""
+
+#: inc/theme-options-page.php:52
+msgid "レビュースコア機能"
+msgstr ""
+
+#: inc/theme-options-page.php:58
+msgid "レビュースコアのメタボックスとスコアダイヤルを有効にする"
+msgstr ""
+
+#: inc/theme-options-page.php:59
+msgid "レビュー機能を使わないブログではオフにできます。保存済みのスコアは削除されません。"
+msgstr ""
+
+#: inc/theme-options-page.php:65
+msgid "フッタークレジット"
+msgstr ""
+
+#: inc/theme-options-page.php:71
+msgid "フッターにテーマクレジットを表示する"
+msgstr ""
+
+#: inc/theme-options-page.php:72
+msgid "クレジット表記はいつでも非表示にできます(GPLのため義務ではありません)。"
+msgstr ""
+
+#: inc/theme-options-page.php:134
+msgid "未割り当ての間は、ヘッダーのメニューとスマホのハンバーガーを表示しません。"
+msgstr ""
+
+#: inc/theme-options-page.php:136
+msgid "メニューを設定"
+msgstr ""
+
+#: inc/theme-options-page.php:141
+msgid "ウィジェットが1つも無いとサイドバーは描画されず、本文が全幅になります。"
+msgstr ""
+
+#: inc/theme-options-page.php:143
+msgid "ウィジェットを配置"
+msgstr ""
+
+#: inc/theme-options-page.php:146
+msgid "ホームページの表示"
+msgstr ""
+
+#: inc/theme-options-page.php:153
+msgid "「固定ページ」になっています。この場合トップは固定ページの中身がそのまま出るため、紹介の帯・カテゴリー導線・ピックアップ・リスト型一覧は使われません。見本と同じ構成にするには「最新の投稿」を選んでください。"
+msgstr ""
+
+#: inc/theme-options-page.php:155
+msgid "表示設定を開く"
+msgstr ""
+
+#: inc/theme-options-page.php:158
+msgid "ピックアップ記事"
+msgstr ""
+
+#: inc/theme-options-page.php:160
+msgid "ピックアップの取得元が「先頭に固定した記事」ですが、固定された記事がまだありません。投稿を固定するか、カスタマイザーで「最新の記事」に変えてください。"
+msgstr ""
+
+#: inc/theme-options-page.php:162
+msgid "投稿一覧を開く"
+msgstr ""
+
+#: inc/theme-options-page.php:180
+msgid "初期設定の状況"
+msgstr ""
+
+#: inc/theme-options-page.php:182
+msgid "設定は一通り終わっています。"
+msgstr ""
+
+#: inc/theme-options-page.php:202
+msgid "設定済み"
+msgstr ""
+
+#: inc/theme-options-page.php:204
+msgid "未設定"
+msgstr ""
+
+#: inc/theme-options-page.php:230
+msgid "色やロゴなど見た目の設定は「外観 > カスタマイズ」から行えます。"
+msgstr ""
+
+#: inc/theme-options-page.php:188
+msgid "未設定の項目が %d 件あります。テーマ見本と見た目が違う場合は、まずここを確認してください。"
+msgid_plural "未設定の項目が %d 件あります。テーマ見本と見た目が違う場合は、まずここを確認してください。"
+msgstr[0] ""
+msgstr[1] ""
+
+#: inc/toc.php:151 inc/toc.php:156 inc/widget-toc.php:50 inc/widget-toc.php:70
+msgid "目次"
+msgstr ""
+
+#: inc/walker-nav.php:80
+msgid "%s のサブメニューを開閉"
+msgstr ""
+
+#: inc/widget-toc.php:25
+msgid "fellow 目次"
+msgstr ""
+
+#: inc/widget-toc.php:27
+msgid "記事詳細ページで、本文の見出しから目次を表示します。見出しが2つ未満の記事や、記事以外のページでは何も表示しません。"
+msgstr ""
+
+#: inc/widget-toc.php:74
+msgid "タイトル:"
+msgstr ""
+
+#: inc/widget-toc.php:85
+msgid "「サイドバー(スクロール追従)」に置くと、読みながら目次を参照できます。"
+msgstr ""
+
+#: index.php:40
+msgid "記事が見つかりませんでした。"
+msgstr ""
+
+#: page.php:53 single.php:67
+msgid "ページ:"
+msgstr ""
+
+#: search.php:32
+msgid "%s件見つかりました。"
+msgstr ""
+
+#: search.php:58
+msgid "一致する記事が見つかりませんでした。別のキーワードでお試しください。"
+msgstr ""
+
+#: searchform.php:16
+msgid "検索キーワード"
+msgstr ""
+
+#: searchform.php:20
+msgid "サイト内を検索"
+msgstr ""
+
+#: searchform.php:25
+msgid "検索"
+msgstr ""
+
+#: single.php:91
+msgid "この記事を書いた人:%s"
+msgstr ""
+
+#: single.php:102
+msgid "前の記事"
+msgstr ""
+
+#: single.php:103
+msgid "次の記事"
+msgstr ""
+
+#: single.php:114
+msgid "関連記事"
+msgstr ""
+
+#: template-parts/category-nav.php:26
+msgid "カテゴリーから探す"
+msgstr ""
+
+#: template-parts/pickup.php:37
+msgid "ピックアップ"
+msgstr ""
+
+#: template-parts/score-dial.php:24
+msgid "レビュースコア %s / 10"
+msgstr ""
+
+#: template-parts/score-dial.php:29
+msgid "総合評価"
+msgstr ""

@@ -1,0 +1,2980 @@
+/*
+ * fellow main.css
+ * ビルドツール非依存の手書きCSS。1ファイルのみ読み込む方針。
+ * カスタマイザー由来の値(--accent, --measure)は inline style で :root に注入される。
+ */
+
+/* ==========================================================================
+   1. 変数・リセット
+   ========================================================================== */
+
+:root {
+	/* --accent / --measure はカスタマイザーから上書きされる。以下はフォールバック */
+	--accent: #c2eef2;
+	--measure: 70ch;
+
+	--color-text: #26333b;
+	--color-text-muted: #6b7a85;
+	--color-bg: #ffffff;
+	--color-bg-soft: #f5f8f9;
+	--color-border: #e2e9ec;
+	--color-link: #17697a;
+
+	--font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
+		"Hiragino Kaku Gothic ProN", "BIZ UDPGothic", Meiryo, sans-serif;
+
+	--radius: 10px;
+	--shadow-card: 0 1px 3px rgba(38, 51, 59, 0.08), 0 4px 14px rgba(38, 51, 59, 0.06);
+	--header-height: 64px;
+	/*
+	 * 本文+サイドバーの2カラムを前提とした横幅。
+	 * 1080px だと 1440px 級の画面で本文が 700px ほどしか取れず、
+	 * 左右に余白ばかりが残って狭く見える。日本語ブログ向けテーマの
+	 * 一般的な幅(1200px前後)に合わせ、本文を 820px 前後確保する。
+	 */
+	--container: 1200px;
+	--sidebar-width: 320px;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	font-family: var(--font-body);
+	font-size: 16px;
+	line-height: 1.9;
+	color: var(--color-text);
+	background: var(--color-bg);
+	-webkit-text-size-adjust: 100%;
+}
+
+img {
+	max-width: 100%;
+	height: auto;
+}
+
+a {
+	color: var(--color-link);
+	text-decoration-thickness: 1px;
+	text-underline-offset: 0.2em;
+}
+
+a:hover {
+	text-decoration: none;
+}
+
+button {
+	font: inherit;
+	cursor: pointer;
+}
+
+/* ==========================================================================
+   2. アクセシビリティ・WordPress標準クラス
+   ========================================================================== */
+
+.screen-reader-text {
+	position: absolute !important;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
+	border: 0;
+	white-space: nowrap;
+}
+
+.skip-link:focus {
+	position: fixed !important;
+	top: 8px;
+	left: 8px;
+	z-index: 1000;
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 0.6em 1em;
+	clip: auto;
+	clip-path: none;
+	background: var(--color-text);
+	color: #fff;
+	border-radius: var(--radius);
+	white-space: normal;
+}
+
+.alignleft {
+	float: left;
+	margin: 0 1.5em 1em 0;
+}
+
+.alignright {
+	float: right;
+	margin: 0 0 1em 1.5em;
+}
+
+.aligncenter {
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.alignwide,
+.alignfull {
+	max-width: 100%;
+}
+
+.wp-caption {
+	max-width: 100%;
+	margin-bottom: 1.5em;
+}
+
+.wp-caption-text,
+figcaption {
+	font-size: 0.85em;
+	color: var(--color-text-muted);
+	text-align: center;
+	margin-top: 0.4em;
+}
+
+.sticky,
+.bypostauthor,
+.gallery-caption {
+	/* テーマチェック対応の基本クラス */
+	display: revert;
+}
+
+/* ==========================================================================
+   3. レイアウト共通
+   ========================================================================== */
+
+.container {
+	max-width: var(--container);
+	margin: 0 auto;
+	padding: 1.5rem 1rem 3rem;
+}
+
+.container--narrow {
+	max-width: 780px;
+}
+
+/* --- 本文 + サイドバーの2カラム --- */
+
+.site-layout {
+	display: grid;
+	gap: 2.5rem;
+}
+
+/* 狭い画面では常に1カラム。サイドバーは本文の下へ回る */
+@media (min-width: 900px) {
+	.has-sidebar .site-layout {
+		grid-template-columns: minmax(0, 1fr) var(--sidebar-width, 300px);
+		/*
+		 * align-items は stretch(既定)のままにする。start にすると
+		 * サイドバーが中身の高さまで縮み、position:sticky が動ける余地を
+		 * 失って追従が効かなくなる。
+		 */
+	}
+
+	.sidebar-left .site-layout {
+		grid-template-columns: var(--sidebar-width, 300px) minmax(0, 1fr);
+	}
+
+	/* 左サイドバーはHTMLの順序を変えずCSSだけで入れ替える
+	   (本文が先に読まれる方がスクリーンリーダー・SEOの双方で自然なため) */
+	.sidebar-left .site-layout__main {
+		order: 2;
+	}
+
+	.sidebar-left .site-sidebar {
+		order: 1;
+	}
+}
+
+.site-layout__main {
+	min-width: 0;
+}
+
+/* --- サイドバー --- */
+
+.site-sidebar {
+	min-width: 0;
+}
+
+/*
+ * 追従エリア。sticky は「親の中で」動くため、親(.site-sidebar)が
+ * 行の高さいっぱいに伸びていることが前提になる。
+ */
+.site-sidebar__section--sticky {
+	position: sticky;
+	top: calc(var(--header-height) + 16px);
+}
+
+/* ヘッダー固定が無効なときは、ヘッダー分の余白を空ける必要がない */
+body:not(.has-sticky-header) .site-sidebar__section--sticky {
+	top: 16px;
+}
+
+.site-sidebar .widget + .widget {
+	margin-top: 2rem;
+}
+
+.site-sidebar__section + .site-sidebar__section {
+	margin-top: 2rem;
+}
+
+/*
+ * ウィジェットの見出し。
+ * テーマが before_title で出す .widget__title だけでなく、
+ * ブロックウィジェットが独自に出力する見出し(.wp-block-heading)と
+ * 検索ブロックのラベルにも同じ体裁を当てる。
+ * WordPress 5.8 以降はブロックウィジェットが既定で、しかも本テーマは
+ * 軽量化のため wp-block-library を除去しているため、ここで整えないと
+ * サイドバーが素のHTMLのまま表示されてしまう。
+ */
+.widget__title,
+.site-sidebar .widget h2,
+.site-sidebar .widget h3,
+.site-sidebar .widget .wp-block-search__label {
+	display: block;
+	margin: 0 0 0.75rem;
+	padding-left: 0.6rem;
+	border-left: 4px solid var(--accent);
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1.4;
+}
+
+.site-sidebar .widget ul,
+.site-sidebar .widget ol {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.9rem;
+}
+
+/* 入れ子リスト(カテゴリーの子など)にはUA既定のマーカーが直接当たるため打ち消す */
+.site-sidebar .widget ul ul,
+.site-sidebar .widget ul ol,
+.site-sidebar .widget ol ul,
+.site-sidebar .widget ol ol {
+	margin-top: 0.3em;
+	padding-left: 1em;
+	list-style: none;
+}
+
+.site-sidebar .widget li {
+	margin-bottom: 0.4em;
+}
+
+.site-sidebar .widget a {
+	color: var(--color-text-muted);
+	text-decoration: none;
+}
+
+.site-sidebar .widget a:hover {
+	color: var(--color-link);
+	text-decoration: underline;
+}
+
+/* 検索ブロック:テーマの検索フォームと見た目を揃える */
+.widget .wp-block-search__inside-wrapper {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.widget .wp-block-search__input {
+	flex: 1;
+	min-width: 0;
+	padding: 0.5em 0.75em;
+	font: inherit;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+}
+
+.widget .wp-block-search__input:focus {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+}
+
+.widget .wp-block-search__button {
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 0.5em 1em;
+	white-space: nowrap;
+	background: var(--accent);
+	border: 0;
+	border-radius: var(--radius);
+	font-weight: 700;
+	color: var(--color-text);
+}
+
+/* ブロックウィジェットが挟むラッパーの余計な余白を消す */
+.widget .wp-block-group__inner-container > *:first-child {
+	margin-top: 0;
+}
+
+.widget .wp-block-group__inner-container > *:last-child {
+	margin-bottom: 0;
+}
+
+/* 最近のコメントブロックは既定で番号付きリストになる */
+.site-sidebar .wp-block-latest-comments {
+	padding-left: 0;
+}
+
+.site-sidebar .wp-block-latest-comments__comment {
+	margin-bottom: 0.75em;
+	line-height: 1.7;
+}
+
+.section-title {
+	font-size: 1.25rem;
+	margin: 2.5rem 0 1rem;
+	padding-left: 0.75rem;
+	border-left: 5px solid var(--accent);
+	line-height: 1.4;
+}
+
+/* ==========================================================================
+   4. ヘッダー
+   ========================================================================== */
+
+.site-header {
+	background: var(--color-bg);
+	border-bottom: 1px solid var(--color-border);
+}
+
+.has-sticky-header .site-header {
+	position: sticky;
+	top: 0;
+	z-index: 100;
+}
+
+.site-header__inner {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	max-width: var(--container);
+	min-height: var(--header-height);
+	margin: 0 auto;
+	padding: 0 1rem;
+}
+
+.site-title {
+	margin: 0;
+	font-size: 1.25rem;
+	font-weight: 700;
+	line-height: 1.2;
+}
+
+.site-title a {
+	color: var(--color-text);
+	text-decoration: none;
+}
+
+.custom-logo {
+	display: block;
+	max-height: 48px;
+	width: auto;
+}
+
+/* --- グローバルナビ --- */
+
+.global-nav {
+	margin-left: auto;
+}
+
+.global-nav__list {
+	display: flex;
+	gap: 0.25rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.global-nav__item {
+	position: relative;
+}
+
+.global-nav__link {
+	display: block;
+	padding: 0.5rem 0.75rem;
+	color: var(--color-text);
+	text-decoration: none;
+	border-radius: var(--radius);
+}
+
+.global-nav__link:hover,
+.global-nav__link[aria-current="page"] {
+	background: var(--accent);
+}
+
+.global-nav__toggle {
+	display: none;
+}
+
+.global-nav__sub {
+	list-style: none;
+	margin: 0;
+	padding: 0.25rem;
+}
+
+/* デスクトップ:ホバーで開くドロップダウン */
+@media (min-width: 900px) {
+	.global-nav__sub {
+		position: absolute;
+		top: 100%;
+		left: 0;
+		z-index: 110;
+		min-width: 12rem;
+		background: var(--color-bg);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow-card);
+		visibility: hidden;
+		opacity: 0;
+	}
+
+	.global-nav__item:hover > .global-nav__sub,
+	.global-nav__item:focus-within > .global-nav__sub {
+		visibility: visible;
+		opacity: 1;
+	}
+}
+
+/* --- ヘッダー右側の操作 --- */
+
+.header-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	margin-left: auto;
+}
+
+/*
+ * ナビが本文の流れに乗っているデスクトップでは、ナビ側の margin-left:auto が
+ * 右寄せを担うので、操作ボタン側は auto を解除する。
+ * モバイル(ナビが absolute)側の扱いは下のメディアクエリで戻す。
+ */
+.global-nav + .header-actions {
+	margin-left: 0;
+}
+
+.header-search {
+	position: relative;
+}
+
+.header-search__toggle,
+.nav-toggle {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	background: transparent;
+	border: 0;
+	border-radius: var(--radius);
+}
+
+.header-search__toggle:hover,
+.nav-toggle:hover {
+	background: var(--color-bg-soft);
+}
+
+/* 虫めがねアイコン(CSSのみ) */
+.icon-search {
+	position: relative;
+	display: block;
+	width: 14px;
+	height: 14px;
+	border: 2px solid var(--color-text);
+	border-radius: 50%;
+}
+
+.icon-search::after {
+	content: "";
+	position: absolute;
+	bottom: -6px;
+	right: -5px;
+	width: 8px;
+	height: 2px;
+	background: var(--color-text);
+	transform: rotate(45deg);
+}
+
+/* 検索フォーム:JS無効時は常時表示、JS有効時(.js)はトグルで開閉 */
+.header-search__form {
+	padding: 0.5rem 0;
+}
+
+.js .header-search__form {
+	display: none;
+	position: absolute;
+	top: calc(100% + 8px);
+	right: 0;
+	z-index: 120;
+	width: min(320px, 80vw);
+	padding: 0.75rem;
+	background: var(--color-bg);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow-card);
+}
+
+.js .header-search.open .header-search__form {
+	display: block;
+}
+
+.search-form {
+	display: flex;
+	gap: 0.5rem;
+}
+
+/*
+ * flex の子になるのは入力欄ではなく、それを包む label。
+ * label 側を伸縮させないと入力欄が既定幅(約233px)のまま固まり、
+ * 狭い画面で検索ボタンが枠外へはみ出す。
+ */
+.search-form__label {
+	flex: 1;
+	min-width: 0;
+}
+
+.search-form__field {
+	/*
+	 * iOS/macOS Safari は input[type="search"] を既定で
+	 * -webkit-appearance: searchfield として描く。この状態では border や
+	 * border-radius、padding が無視され、送信ボタンと高さも揃わない。
+	 * ネイティブ外観を切ってテーマ側の見た目に統一する。
+	 */
+	-webkit-appearance: none;
+	appearance: none;
+	width: 100%;
+	min-width: 0;
+	padding: 0.5em 0.75em;
+	font: inherit;
+	color: var(--color-text);
+	background: var(--color-bg);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+}
+
+/* Safari が入力欄の中に描く「×」ボタンも外観を揃える */
+.search-form__field::-webkit-search-cancel-button,
+.search-form__field::-webkit-search-decoration {
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+.search-form__field:focus {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+}
+
+.search-form__submit {
+	/* 幅の狭いサイドバーに置いても文字が折り返さないようにする */
+	flex: 0 0 auto;
+	white-space: nowrap;
+	padding: 0.5em 1em;
+	background: var(--accent);
+	border: 0;
+	border-radius: var(--radius);
+	font-weight: 700;
+	color: var(--color-text);
+}
+
+/* --- ハンバーガー --- */
+
+.nav-toggle__bar,
+.nav-toggle__bar::before,
+.nav-toggle__bar::after {
+	display: block;
+	width: 20px;
+	height: 2px;
+	background: var(--color-text);
+	border-radius: 2px;
+	transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.nav-toggle__bar {
+	position: relative;
+}
+
+.nav-toggle__bar::before,
+.nav-toggle__bar::after {
+	content: "";
+	position: absolute;
+	left: 0;
+}
+
+.nav-toggle__bar::before {
+	top: -6px;
+}
+
+.nav-toggle__bar::after {
+	top: 6px;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar {
+	background: transparent;
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar::before {
+	transform: translateY(6px) rotate(45deg);
+}
+
+.nav-toggle[aria-expanded="true"] .nav-toggle__bar::after {
+	transform: translateY(-6px) rotate(-45deg);
+}
+
+/* デスクトップではハンバーガー非表示 */
+@media (min-width: 900px) {
+	.nav-toggle {
+		display: none;
+	}
+}
+
+/* モバイル:ナビはドロワー化(JS有効時のみ隠す) */
+@media (max-width: 899.98px) {
+	/*
+	 * JS有効時のナビは absolute で流れから外れる。すると
+	 * `.global-nav + .header-actions` の margin-left:0 だけが残り、
+	 * 検索とハンバーガーがサイト名の直後(ヘッダー中央付近)に取り残される。
+	 * ナビが流れにいないこの条件でだけ auto を戻して右端に寄せる。
+	 */
+	.js .global-nav + .header-actions {
+		margin-left: auto;
+	}
+
+	/*
+	 * 検索ドロップダウンを 44px のボタンに right:0 で紐づけると、
+	 * 320px の箱が画面左外へ大きくはみ出す(実測 x=-104)。
+	 * モバイルではヘッダー全体を基準にして左右 1rem の全幅に開く。
+	 */
+	.js .header-search {
+		position: static;
+	}
+
+	.js .header-search__form {
+		left: 1rem;
+		right: 1rem;
+		width: auto;
+		/* タブレット幅で間延びしないよう上限を設け、右端に寄せる */
+		max-width: 420px;
+		margin-left: auto;
+	}
+
+	.js .global-nav {
+		display: none;
+		position: absolute;
+		top: 100%;
+		left: 0;
+		right: 0;
+		z-index: 110;
+		background: var(--color-bg);
+		border-bottom: 1px solid var(--color-border);
+		box-shadow: var(--shadow-card);
+	}
+
+	.js .global-nav.open {
+		display: block;
+	}
+
+	.site-header {
+		position: relative;
+	}
+
+	.global-nav__list {
+		flex-direction: column;
+		gap: 0;
+		padding: 0.5rem;
+	}
+
+	.global-nav__item {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+	}
+
+	.global-nav__link {
+		flex: 1;
+	}
+
+	.js .global-nav__toggle {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		background: transparent;
+		border: 0;
+		border-radius: var(--radius);
+	}
+
+	.js .global-nav__toggle::before {
+		content: "";
+		width: 8px;
+		height: 8px;
+		border-right: 2px solid var(--color-text);
+		border-bottom: 2px solid var(--color-text);
+		transform: rotate(45deg);
+		transition: transform 0.2s ease;
+	}
+
+	.js .global-nav__toggle[aria-expanded="true"]::before {
+		transform: rotate(225deg);
+	}
+
+	.js .global-nav__sub {
+		display: none;
+		width: 100%;
+		padding-left: 1rem;
+	}
+
+	.js .global-nav__item.open > .global-nav__sub {
+		display: block;
+	}
+}
+
+/* ==========================================================================
+   5. パンくず
+   ========================================================================== */
+
+.breadcrumb {
+	margin: 0 0 1.5rem;
+	font-size: 0.85rem;
+	color: var(--color-text-muted);
+}
+
+.breadcrumb__list {
+	display: flex;
+	flex-wrap: wrap;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.breadcrumb__item:not(:last-child)::after {
+	content: "›";
+	margin: 0 0.5em;
+	color: var(--color-border);
+}
+
+.breadcrumb__item a {
+	color: inherit;
+}
+
+/* ==========================================================================
+   5.5 トップ最上部(紹介の帯 / ピックアップ)
+   ========================================================================== */
+
+/*
+ * 画像に依存せず、アクセントカラーと文字組みだけで「顔」を作る。
+ * アイキャッチを設定しない運用でも成立させるための構成。
+ */
+
+.site-hero {
+	background:
+		linear-gradient(
+			135deg,
+			var(--accent) 0%,
+			color-mix(in srgb, var(--accent) 35%, #fff) 100%
+		);
+	border-bottom: 1px solid var(--color-border);
+}
+
+/* color-mix 未対応ブラウザ向けのフォールバック(単色) */
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+	.site-hero {
+		background: var(--accent);
+	}
+}
+
+.site-hero__inner {
+	max-width: var(--container);
+	margin: 0 auto;
+	padding: 2.75rem 1rem;
+	text-align: center;
+}
+
+/* スマホでは帯を詰める。ここが厚いとファーストビューに記事が1件も入らない */
+@media (max-width: 599.98px) {
+	.site-hero__inner {
+		padding: 1.15rem 1rem;
+	}
+
+	.site-hero__lead {
+		margin-top: 0.35rem;
+		font-size: 0.85rem;
+	}
+}
+
+.site-hero__title {
+	margin: 0;
+	font-size: clamp(1.5rem, 4vw, 2.1rem);
+	font-weight: 700;
+	line-height: 1.4;
+	letter-spacing: 0.04em;
+	color: var(--color-text);
+}
+
+.site-hero__lead {
+	margin: 0.6rem 0 0;
+	font-size: 0.95rem;
+	line-height: 1.8;
+	color: var(--color-text);
+	opacity: 0.75;
+}
+
+/* --- カテゴリー導線 --- */
+
+/*
+ * ガジェット系ブログでは分類から探す読者が多い。ヘッダーメニューは
+ * スマホだとハンバーガーの中、サイドバーのカテゴリーは実測で1.6画面目に
+ * 落ちるため、上部に独立した導線を置く。
+ * 画像バナーではなくテキストのチップにして、アイキャッチ未設定でも成立させる。
+ */
+
+.category-nav {
+	margin-bottom: 1.5rem;
+}
+
+.category-nav__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.category-nav__link {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.4em;
+	padding: 0.45em 1em;
+	border: 1px solid var(--color-border);
+	border-radius: 999px;
+	background: var(--color-bg);
+	color: var(--color-text);
+	font-size: 0.85rem;
+	font-weight: 700;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.category-nav__link:hover,
+.category-nav__link:focus-visible {
+	background: var(--accent);
+	border-color: var(--accent);
+}
+
+.category-nav__count {
+	font-size: 0.75em;
+	font-weight: 400;
+	color: var(--color-text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+.category-nav__link:hover .category-nav__count {
+	color: var(--color-text);
+}
+
+/* スマホは横スクロール。折り返して縦を食うとファーストビューが埋まるため */
+@media (max-width: 599.98px) {
+	.category-nav__list {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		padding-bottom: 0.35rem;
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: none;
+	}
+
+	.category-nav__list::-webkit-scrollbar {
+		display: none;
+	}
+
+	.category-nav__item {
+		flex: 0 0 auto;
+	}
+}
+
+/* --- ピックアップ --- */
+
+.pickup {
+	margin-bottom: 2.5rem;
+	padding: 1.25rem 1.5rem 1.5rem;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	background: var(--color-bg-soft);
+}
+
+.pickup__heading {
+	margin: 0 0 0.75rem;
+	padding-left: 0.7rem;
+	border-left: 5px solid var(--accent);
+	font-size: 1.05rem;
+	line-height: 1.4;
+}
+
+.pickup__list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	counter-reset: pickup;
+}
+
+.pickup__item + .pickup__item {
+	border-top: 1px dashed var(--color-border);
+}
+
+.pickup__link {
+	display: flex;
+	align-items: center;
+	gap: 0.9rem;
+	padding: 0.7rem 0.25rem;
+	color: inherit;
+	text-decoration: none;
+}
+
+.pickup__link:hover .pickup__title {
+	text-decoration: underline;
+}
+
+.pickup__num {
+	flex: 0 0 auto;
+	width: 2em;
+	font-size: 1.15rem;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--color-text);
+	opacity: 0.35;
+	font-variant-numeric: tabular-nums;
+}
+
+.pickup__body {
+	flex: 1;
+	min-width: 0;
+}
+
+.pickup__category {
+	display: inline-block;
+	margin-bottom: 0.2rem;
+	padding: 0.05em 0.65em;
+	background: var(--accent);
+	font-size: 0.7rem;
+	font-weight: 700;
+	border-radius: 999px;
+}
+
+.pickup__title {
+	display: block;
+	font-size: 0.98rem;
+	font-weight: 700;
+	line-height: 1.6;
+}
+
+.pickup__score {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.6em;
+	padding: 0.1em 0.5em;
+	background: var(--color-text);
+	color: #fff;
+	font-size: 0.75rem;
+	font-weight: 700;
+	border-radius: 999px;
+}
+
+@media (max-width: 599.98px) {
+	/*
+	 * スマホでは上部のブロックが積み上がってファーストビューを埋めるため、
+	 * 余白と行間を詰める。実測でピックアップ全体が385px→300px前後になる。
+	 */
+	.pickup {
+		margin-bottom: 1.5rem;
+		padding: 0.85rem 0.9rem 0.9rem;
+	}
+
+	.pickup__heading {
+		margin-bottom: 0.4rem;
+		font-size: 1rem;
+	}
+
+	.pickup__link {
+		gap: 0.7rem;
+		padding: 0.5rem 0.15rem;
+	}
+
+	.pickup__title {
+		font-size: 0.92rem;
+		line-height: 1.5;
+	}
+
+	.pickup__num {
+		width: 1.6em;
+		font-size: 1rem;
+	}
+}
+
+/* ==========================================================================
+   6. 記事一覧(リスト型)
+   ========================================================================== */
+
+/*
+ * アイキャッチ未設定の記事が多い前提の一覧。
+ * 画像枠を常に確保せず、画像がある記事だけサムネイルを差し込む。
+ */
+
+.post-list {
+	display: flex;
+	flex-direction: column;
+}
+
+.post-item {
+	border-bottom: 1px solid var(--color-border);
+}
+
+.post-item:first-child {
+	border-top: 1px solid var(--color-border);
+}
+
+.post-item__link {
+	display: flex;
+	gap: 1rem;
+	align-items: flex-start;
+	padding: 1.25rem 0.25rem;
+	color: inherit;
+	text-decoration: none;
+}
+
+.post-item__link:hover {
+	background: var(--color-bg-soft);
+}
+
+/*
+ * サムネイルは画像がある記事にだけ、本文の右側に出る。
+ * 左に置くと、画像のある行だけ本文が右へずれて左端が揃わなくなる。
+ */
+.post-item__thumb {
+	flex: 0 0 auto;
+	width: 160px;
+	aspect-ratio: 4 / 3;
+	overflow: hidden;
+	border-radius: var(--radius);
+	background: var(--color-bg-soft);
+}
+
+.post-item__image {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.post-item__body {
+	flex: 1;
+	min-width: 0;
+}
+
+.post-item__labels {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.4rem;
+}
+
+.post-item__category {
+	display: inline-block;
+	padding: 0.1em 0.7em;
+	background: var(--accent);
+	font-size: 0.75rem;
+	font-weight: 700;
+	border-radius: 999px;
+}
+
+.post-item__score {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.6em;
+	padding: 0.1em 0.5em;
+	background: var(--color-text);
+	color: #fff;
+	font-size: 0.75rem;
+	font-weight: 700;
+	border-radius: 999px;
+}
+
+.post-item__title {
+	margin: 0 0 0.35rem;
+	font-size: 1.05rem;
+	line-height: 1.6;
+}
+
+.post-item__excerpt {
+	margin: 0 0 0.5rem;
+	font-size: 0.85rem;
+	line-height: 1.8;
+	color: var(--color-text-muted);
+}
+
+.post-item__meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.75em;
+	font-size: 0.8rem;
+	color: var(--color-text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   カード型の一覧(カスタマイザーで選択)
+
+   マークアップはリスト型と共通で、並べ替えは CSS だけで行う。
+   サムネイルは HTML 上は本文の後ろにあるが(リスト型で右に置くため)、
+   カード型では order で先頭へ移す。
+   -------------------------------------------------------------------------- */
+
+.post-list--card {
+	display: grid;
+	gap: 1.5rem;
+	grid-template-columns: 1fr;
+}
+
+@media (min-width: 600px) {
+	.post-list--card {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+}
+
+/* 罫線区切りはカード型では使わない(枠が二重になるため) */
+.post-list--card .post-item,
+.post-list--card .post-item:first-child {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	overflow: hidden;
+	transition: box-shadow 0.2s ease;
+}
+
+.post-list--card .post-item:hover {
+	box-shadow: var(--shadow-card);
+}
+
+.post-list--card .post-item__link {
+	flex-direction: column;
+	gap: 0;
+	height: 100%;
+	padding: 0;
+}
+
+.post-list--card .post-item__link:hover {
+	background: transparent;
+}
+
+/* HTML では本文の後ろにあるサムネイルを、カードでは上へ */
+.post-list--card .post-item__thumb {
+	order: -1;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	border-radius: 0;
+}
+
+.post-list--card .post-item__body {
+	width: 100%;
+	padding: 0.9rem 1rem 1rem;
+}
+
+.post-list--card .post-item__title {
+	font-size: 1rem;
+}
+
+/*
+ * アイキャッチ未設定の記事では画像枠を出さない方針は、カード型でも変えない。
+ * グリッドの行は高さが揃うので、画像の無いカードは本文が上に詰まるだけで
+ * レイアウトは崩れない。
+ */
+
+/* 狭い画面ではサムネイルを小さくして、タイトルの行数を稼ぐ */
+@media (max-width: 599.98px) {
+	.post-item__link {
+		gap: 0.8rem;
+		padding: 0.85rem 0.15rem;
+	}
+
+	.post-item__title {
+		font-size: 1rem;
+		line-height: 1.5;
+	}
+
+	.post-item__thumb {
+		width: 96px;
+	}
+
+	/*
+	 * 抜粋はスマホでも残す。テキスト中心の一覧では、抜粋が
+	 * 「読むかどうか」の判断材料そのものになるため。
+	 * 縦を食いすぎないよう2行で打ち切る。
+	 */
+	.post-item__excerpt {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+		margin-bottom: 0.35rem;
+		line-height: 1.65;
+	}
+}
+
+
+/* ==========================================================================
+   7. 記事詳細
+   ========================================================================== */
+
+.entry-header {
+	margin-bottom: 1.5rem;
+}
+
+.entry-category {
+	display: inline-block;
+	margin-bottom: 0.5rem;
+	padding: 0.1em 0.8em;
+	background: var(--accent);
+	color: var(--color-text);
+	font-size: 0.8rem;
+	font-weight: 700;
+	text-decoration: none;
+	border-radius: 999px;
+}
+
+.entry-title {
+	margin: 0 0 0.5rem;
+	font-size: clamp(1.4rem, 3.5vw, 1.9rem);
+	line-height: 1.5;
+}
+
+.entry-eyecatch {
+	margin: 1.25rem 0 0;
+	border-radius: var(--radius);
+	overflow: hidden;
+}
+
+.entry-eyecatch img {
+	display: block;
+	width: 100%;
+}
+
+/* --- 目次(TOC) --- */
+
+.fellow-toc {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	background: var(--color-bg-soft);
+	font-size: 0.9rem;
+}
+
+.fellow-toc__toggle {
+	display: block;
+	width: 100%;
+	padding: 0.7rem 1rem;
+	background: transparent;
+	border: 0;
+	font: inherit;
+	font-weight: 700;
+	text-align: left;
+	color: inherit;
+}
+
+.fellow-toc__toggle::after {
+	content: "";
+	float: right;
+	width: 8px;
+	height: 8px;
+	margin-top: 0.5em;
+	border-right: 2px solid var(--color-text);
+	border-bottom: 2px solid var(--color-text);
+	transform: rotate(45deg);
+	transition: transform 0.2s ease;
+}
+
+.fellow-toc__toggle[aria-expanded="true"]::after {
+	transform: rotate(225deg);
+}
+
+.fellow-toc__body {
+	padding: 0 1rem 0.9rem;
+}
+
+/* 本文内の目次:モバイルでは畳んでおく(JSが aria-expanded を切り替える) */
+.fellow-toc--inline {
+	margin: 2rem 0;
+}
+
+.js .fellow-toc--inline .fellow-toc__toggle[aria-expanded="false"] + .fellow-toc__body {
+	display: none;
+}
+
+/* 広い画面では本文内の目次を最初から開いておく */
+@media (min-width: 900px) {
+	.fellow-toc--inline {
+		max-width: 34rem;
+	}
+}
+
+/* サイドバーの目次はトグル無しで常時展開 */
+.fellow-toc--widget {
+	border: 0;
+	background: transparent;
+}
+
+.fellow-toc--widget .fellow-toc__body {
+	padding: 0;
+	max-height: calc(100vh - var(--header-height) - 8rem);
+	overflow-y: auto;
+}
+
+.fellow-toc__list,
+.fellow-toc__sub {
+	margin: 0;
+	padding-left: 1.3em;
+}
+
+.fellow-toc__sub {
+	margin-top: 0.2em;
+	padding-left: 1.1em;
+	font-size: 0.95em;
+}
+
+.fellow-toc a {
+	display: block;
+	padding: 0.2em 0;
+	color: var(--color-text-muted);
+	text-decoration: none;
+}
+
+.fellow-toc a:hover,
+.fellow-toc a.is-active {
+	color: var(--color-link);
+	font-weight: 700;
+}
+
+
+/* --- 本文タイポグラフィ --- */
+
+.entry-content {
+	max-width: var(--measure);
+}
+
+.entry-content > * + * {
+	margin-top: 1.4em;
+}
+
+.entry-content h2 {
+	margin: 2.5em 0 1em;
+	padding: 0.4em 0.75em;
+	background: var(--color-bg-soft);
+	border-left: 5px solid var(--accent);
+	border-radius: 0 var(--radius) var(--radius) 0;
+	font-size: 1.3rem;
+	line-height: 1.5;
+}
+
+.entry-content h3 {
+	margin: 2em 0 0.75em;
+	padding-bottom: 0.3em;
+	border-bottom: 2px solid var(--accent);
+	font-size: 1.15rem;
+}
+
+.entry-content h4 {
+	margin: 1.75em 0 0.5em;
+	font-size: 1.05rem;
+}
+
+.entry-content hr,
+.wp-block-separator {
+	height: 0;
+	margin: 2.5em 0;
+	border: 0;
+	border-top: 1px solid var(--color-border);
+}
+
+.entry-content blockquote {
+	margin: 1.4em 0;
+	padding: 0.75em 1.25em;
+	border-left: 4px solid var(--color-border);
+	background: var(--color-bg-soft);
+	color: var(--color-text-muted);
+	border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.entry-content code {
+	padding: 0.15em 0.4em;
+	background: var(--color-bg-soft);
+	border-radius: 4px;
+	font-size: 0.9em;
+}
+
+.entry-content pre {
+	padding: 1em 1.25em;
+	background: #22303a;
+	color: #e8eef2;
+	border-radius: var(--radius);
+	overflow-x: auto;
+	line-height: 1.6;
+}
+
+.entry-content pre code {
+	padding: 0;
+	background: transparent;
+	color: inherit;
+}
+
+.entry-content table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 0.95em;
+}
+
+.entry-content th,
+.entry-content td {
+	padding: 0.5em 0.75em;
+	border: 1px solid var(--color-border);
+}
+
+.entry-content th {
+	background: var(--color-bg-soft);
+}
+
+.entry-content img {
+	border-radius: var(--radius);
+}
+
+.entry-content ul,
+.entry-content ol {
+	padding-left: 1.5em;
+}
+
+.page-links {
+	margin-top: 2em;
+	font-size: 0.9rem;
+}
+
+/* ==========================================================================
+   7.2 コアブロックの最低限のレイアウト
+   ==========================================================================
+   軽量化のため wp-block-library と global-styles を除去している。
+   その副作用でカラム・ボタン・メディアとテキスト等がレイアウトを失うため、
+   崩れると困る部分だけ自前で持つ。全部を再実装はしない。
+   ========================================================================== */
+
+/* --- カラム --- */
+
+.wp-block-columns {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: normal;
+	gap: 1.5em;
+	margin: 1.75em 0;
+}
+
+.wp-block-columns.are-vertically-aligned-top {
+	align-items: flex-start;
+}
+
+.wp-block-columns.are-vertically-aligned-center {
+	align-items: center;
+}
+
+.wp-block-columns.are-vertically-aligned-bottom {
+	align-items: flex-end;
+}
+
+.wp-block-column {
+	flex: 1 1 0;
+	min-width: 0;
+	word-break: break-word;
+}
+
+/* 幅を指定した列は伸ばさない */
+.wp-block-column[style*="flex-basis"] {
+	flex-grow: 0;
+}
+
+/* WordPress のカラムは 782px 未満で縦積みになる。その挙動に合わせる */
+@media (max-width: 781.98px) {
+	.wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column {
+		flex-basis: 100% !important;
+	}
+}
+
+/* --- ボタン --- */
+
+.wp-block-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6em;
+	margin: 1.5em 0;
+}
+
+.wp-block-buttons.is-content-justification-center {
+	justify-content: center;
+}
+
+.wp-block-button__link {
+	display: inline-block;
+	/*
+	 * コアの wp-block-library が持つ既定値。公開側では同ファイルを
+	 * 外しているため、明示しないとエディタ(18px)と公開(16px)でずれる。
+	 */
+	font-size: 1.125em;
+	padding: 0.7em 1.7em;
+	background: var(--accent);
+	border: 2px solid var(--accent);
+	border-radius: 999px;
+	color: var(--color-text);
+	font-weight: 700;
+	line-height: 1.5;
+	text-decoration: none;
+}
+
+.wp-block-button__link:hover {
+	opacity: 0.85;
+}
+
+.wp-block-button.is-style-outline .wp-block-button__link {
+	background: transparent;
+}
+
+/* --- メディアとテキスト --- */
+
+.wp-block-media-text {
+	display: flex;
+	gap: 1.5em;
+	align-items: center;
+	margin: 1.75em 0;
+}
+
+.wp-block-media-text.has-media-on-the-right {
+	flex-direction: row-reverse;
+}
+
+.wp-block-media-text__media {
+	flex: 1 1 50%;
+	min-width: 0;
+}
+
+.wp-block-media-text__media img {
+	width: 100%;
+	height: auto;
+	border-radius: var(--radius);
+}
+
+.wp-block-media-text__content {
+	flex: 1 1 50%;
+	min-width: 0;
+}
+
+.wp-block-media-text__content > *:last-child {
+	margin-bottom: 0;
+}
+
+@media (max-width: 599.98px) {
+	.wp-block-media-text,
+	.wp-block-media-text.has-media-on-the-right {
+		flex-direction: column;
+	}
+}
+
+/* --- ギャラリー --- */
+
+.wp-block-gallery {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6em;
+	margin: 1.75em 0;
+	list-style: none;
+	padding: 0;
+}
+
+.wp-block-gallery .wp-block-image {
+	flex: 1 1 calc(50% - 0.3em);
+	margin: 0;
+}
+
+.wp-block-gallery.columns-3 .wp-block-image {
+	flex-basis: calc(33.333% - 0.4em);
+}
+
+.wp-block-gallery.columns-4 .wp-block-image {
+	flex-basis: calc(25% - 0.45em);
+}
+
+.wp-block-gallery .wp-block-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	border-radius: var(--radius);
+}
+
+/* --- 埋め込み(YouTube等)をレスポンシブにする --- */
+
+.wp-block-embed {
+	margin: 1.75em 0;
+}
+
+.wp-block-embed.wp-has-aspect-ratio .wp-block-embed__wrapper {
+	position: relative;
+}
+
+.wp-block-embed.wp-has-aspect-ratio .wp-block-embed__wrapper::before {
+	content: "";
+	display: block;
+	padding-top: 56.25%;
+}
+
+.wp-block-embed.wp-has-aspect-ratio iframe {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+}
+
+.wp-block-embed.wp-embed-aspect-4-3 .wp-block-embed__wrapper::before {
+	padding-top: 75%;
+}
+
+/* --- グループの横並びバリエーション(Row) --- */
+
+.is-layout-flex {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.6em;
+	align-items: center;
+}
+
+.is-layout-flex > * {
+	margin: 0;
+}
+
+.is-content-justification-center {
+	justify-content: center;
+}
+
+.is-content-justification-right {
+	justify-content: flex-end;
+}
+
+.is-content-justification-space-between {
+	justify-content: space-between;
+}
+
+/* --------------------------------------------------------------------------
+   記事一覧系のコアブロック(クエリーループ / 最新の記事)
+
+   トップや固定ページを「クエリーループ」ブロックで組む使い方は多い。
+   ところが wp-block-library を外している都合で、これらのブロックは
+   体裁を一切持たない状態になる。投稿テンプレートは ul なので箇条書きの
+   点が出たまま、タイトルとカテゴリーはブラウザ既定の青い下線リンク、
+   抜粋は本文と同じ大きさ、記事の区切りも無い、という見た目になる。
+
+   テーマ自前のリスト型一覧(.post-item)に寄せて揃える。
+   -------------------------------------------------------------------------- */
+
+.wp-block-query {
+	margin: 1.5em 0;
+}
+
+/* 投稿テンプレートは ul。マーカーと既定の余白を落とす */
+.wp-block-post-template {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* 1件分。テーマの一覧と同じ罫線で区切る */
+.wp-block-post-template > .wp-block-post {
+	margin: 0;
+	padding: 1.25rem 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.wp-block-post-template > .wp-block-post:first-child {
+	border-top: 1px solid var(--color-border);
+}
+
+.wp-block-post-template > .wp-block-post > * + * {
+	margin-top: 0.4rem;
+}
+
+/*
+ * 段組み表示にしたときは、罫線ではなく余白で分ける。
+ * グリッドの列数はコア側の container スタイルが持つが、
+ * global-styles を外している環境でも最低限は並ぶようにしておく。
+ */
+.wp-block-post-template.is-flex-container,
+.wp-block-post-template.is-layout-flex {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1.75rem;
+}
+
+.wp-block-post-template.is-flex-container > .wp-block-post,
+.wp-block-post-template.is-layout-flex > .wp-block-post {
+	flex: 1 1 16rem;
+	padding: 0;
+	border: 0;
+}
+
+.wp-block-post-template.is-layout-grid {
+	display: grid;
+	gap: 1.75rem;
+	grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+}
+
+.wp-block-post-template.is-layout-grid > .wp-block-post {
+	padding: 0;
+	border: 0;
+}
+
+/*
+ * 投稿タイトルは h2 で出ることが多い。本文の h2(帯+左の太線)が
+ * そのまま当たると一覧としては強すぎるので、ここでは打ち消す。
+ */
+.wp-block-post-title,
+.entry-content .wp-block-post-title {
+	margin: 0;
+	padding: 0;
+	background: none;
+	border: 0;
+	border-radius: 0;
+	font-size: 1.05rem;
+	line-height: 1.6;
+}
+
+.wp-block-post-title a {
+	color: var(--color-text);
+	text-decoration: none;
+}
+
+.wp-block-post-title a:hover {
+	text-decoration: underline;
+}
+
+/* カテゴリー/タグはテーマのラベルと同じ丸いピルにする */
+.wp-block-post-terms {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
+	font-size: 0.75rem;
+}
+
+.wp-block-post-terms a {
+	display: inline-block;
+	padding: 0.1em 0.7em;
+	background: var(--accent);
+	border-radius: 999px;
+	color: var(--color-text);
+	font-weight: 700;
+	text-decoration: none;
+}
+
+.wp-block-post-terms a:hover {
+	opacity: 0.85;
+}
+
+/* 区切り文字はピルの間に出ると邪魔なので消す */
+.wp-block-post-terms .wp-block-post-terms__separator {
+	display: none;
+}
+
+.wp-block-post-excerpt {
+	margin: 0;
+}
+
+.wp-block-post-excerpt__excerpt {
+	margin: 0;
+	font-size: 0.85rem;
+	line-height: 1.8;
+	color: var(--color-text-muted);
+}
+
+.wp-block-post-excerpt__more-link {
+	display: inline-block;
+	margin-top: 0.2rem;
+	font-size: 0.8rem;
+}
+
+.wp-block-post-date,
+.wp-block-post-author,
+.wp-block-post-author-name,
+.wp-block-post-comments-count {
+	font-size: 0.8rem;
+	color: var(--color-text-muted);
+}
+
+.wp-block-post-date a,
+.wp-block-post-author a {
+	color: inherit;
+	text-decoration: none;
+}
+
+.wp-block-post-featured-image {
+	margin: 0 0 0.6rem;
+	border-radius: var(--radius);
+	overflow: hidden;
+}
+
+.wp-block-post-featured-image img {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+.wp-block-query-no-results {
+	padding: 2rem 0;
+	color: var(--color-text-muted);
+}
+
+/* ページ送り。テーマの .pagination と同じ見た目に揃える */
+.wp-block-query-pagination {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4rem;
+	margin-top: 2.5rem;
+}
+
+.wp-block-query-pagination .wp-block-query-pagination-numbers,
+.wp-block-query-pagination-numbers {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.wp-block-query-pagination a,
+.wp-block-query-pagination .page-numbers {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.4em;
+	padding: 0.4em 0.7em;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	color: var(--color-text);
+	text-decoration: none;
+}
+
+.wp-block-query-pagination .page-numbers.current {
+	background: var(--accent);
+	font-weight: 700;
+}
+
+.wp-block-query-pagination a:hover {
+	background: var(--color-bg-soft);
+}
+
+/* --- 「最新の記事」ブロック --- */
+
+.wp-block-latest-posts,
+.wp-block-latest-posts__list {
+	margin: 1.5em 0;
+	padding: 0;
+	list-style: none;
+}
+
+.wp-block-latest-posts__list > li {
+	padding: 0.9rem 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.wp-block-latest-posts__list > li:first-child {
+	border-top: 1px solid var(--color-border);
+}
+
+.wp-block-latest-posts__post-title {
+	display: block;
+	color: var(--color-text);
+	font-weight: 700;
+	line-height: 1.6;
+	text-decoration: none;
+}
+
+.wp-block-latest-posts__post-title:hover {
+	text-decoration: underline;
+}
+
+.wp-block-latest-posts__post-date {
+	display: block;
+	margin-top: 0.2rem;
+	font-size: 0.8rem;
+	color: var(--color-text-muted);
+}
+
+.wp-block-latest-posts__post-excerpt,
+.wp-block-latest-posts__post-full-content {
+	margin-top: 0.3rem;
+	font-size: 0.85rem;
+	line-height: 1.8;
+	color: var(--color-text-muted);
+}
+
+.wp-block-latest-posts__featured-image img {
+	border-radius: var(--radius);
+}
+
+/* 段組み指定のとき(is-grid)は罫線をやめて余白で分ける */
+.wp-block-latest-posts.is-grid {
+	display: grid;
+	gap: 1.5rem;
+	grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+}
+
+.wp-block-latest-posts.is-grid > li {
+	padding: 0;
+	border: 0;
+}
+
+/*
+ * ウィジェットの中では詰める。
+ * サイドバーやフッターに置いた「最新の記事」まで罫線つきの行にすると、
+ * 本文の一覧と同じ重さになって主従が逆転するため。
+ */
+.widget .wp-block-latest-posts__list > li,
+.widget .wp-block-post-template > .wp-block-post {
+	padding: 0;
+	border: 0;
+}
+
+.widget .wp-block-latest-posts__post-title {
+	font-weight: inherit;
+}
+
+.widget .wp-block-latest-posts__post-date,
+.widget .wp-block-latest-posts__post-excerpt {
+	font-size: 0.8rem;
+}
+
+/* ==========================================================================
+   7.5 記事内パーツ(ブロックパターン / ブロックスタイル)
+   ========================================================================== */
+
+/*
+ * 独自ブロックではなくコアブロック+クラスで作られている。
+ * 編集画面での見た目も揃えるため、同じ定義を editor.css にも置く。
+ */
+
+/* --- ふきだし --- */
+
+.fellow-balloon {
+	display: flex;
+	gap: 0.9rem;
+	align-items: flex-start;
+	margin: 1.75em 0;
+}
+
+.fellow-balloon--right {
+	flex-direction: row-reverse;
+}
+
+.fellow-balloon__speaker {
+	flex: 0 0 auto;
+	width: 56px;
+	text-align: center;
+}
+
+.fellow-balloon__avatar {
+	margin: 0;
+}
+
+.fellow-balloon__avatar img {
+	width: 56px;
+	height: 56px;
+	border-radius: 50%;
+	object-fit: cover;
+	background: var(--color-bg-soft);
+}
+
+.fellow-balloon__name {
+	margin: 0.3em 0 0;
+	font-size: 0.7rem;
+	line-height: 1.3;
+	color: var(--color-text-muted);
+}
+
+.fellow-balloon__body {
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	margin: 0;
+	padding: 0.9em 1.15em;
+	background: var(--color-bg-soft);
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+}
+
+/* 吹き出しの尻尾。三角形は border で作る */
+.fellow-balloon__body::before,
+.fellow-balloon__body::after {
+	content: "";
+	position: absolute;
+	top: 1.1em;
+	border: 8px solid transparent;
+}
+
+.fellow-balloon--left .fellow-balloon__body::before {
+	left: -17px;
+	border-right-color: var(--color-border);
+}
+
+.fellow-balloon--left .fellow-balloon__body::after {
+	left: -16px;
+	border-right-color: var(--color-bg-soft);
+}
+
+.fellow-balloon--right .fellow-balloon__body::before {
+	right: -17px;
+	border-left-color: var(--color-border);
+}
+
+.fellow-balloon--right .fellow-balloon__body::after {
+	right: -16px;
+	border-left-color: var(--color-bg-soft);
+}
+
+/* --- ステップ --- */
+
+.fellow-steps {
+	counter-reset: fellow-step;
+	margin: 1.75em 0;
+}
+
+.fellow-steps__item {
+	position: relative;
+	counter-increment: fellow-step;
+	padding: 0 0 1.25em 2.6em;
+	border-left: 2px solid var(--color-border);
+	margin-left: 0.9em;
+}
+
+.fellow-steps__item:last-child {
+	border-left-color: transparent;
+	padding-bottom: 0;
+}
+
+.fellow-steps__item::before {
+	content: counter(fellow-step);
+	position: absolute;
+	left: -0.95em;
+	top: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.9em;
+	height: 1.9em;
+	background: var(--accent);
+	border-radius: 50%;
+	font-size: 0.85rem;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--color-text);
+}
+
+/*
+ * パーツの見出しは h2/h3 として出力されるので、本文見出しの装飾
+ * (.entry-content h3 = 詳細度 0,1,1) がそのまま乗ってしまう。
+ * 打ち消し側にも .entry-content を付けて 0,2,0 にし、確実に勝たせる。
+ * ブロックエディタ側は素の h3 (0,0,1) なので元から打ち消せていた。
+ */
+.entry-content .fellow-steps__title,
+.fellow-steps__title {
+	margin: 0 0 0.4em;
+	padding: 0;
+	background: none;
+	border: 0;
+	font-size: 1.02rem;
+	line-height: 1.5;
+}
+
+.fellow-steps__item > p:last-child {
+	margin-bottom: 0;
+}
+
+/* --- FAQ --- */
+
+.fellow-faq {
+	margin: 1.75em 0;
+}
+
+.fellow-faq__item {
+	padding: 1em 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.fellow-faq__item:first-child {
+	border-top: 1px solid var(--color-border);
+}
+
+.fellow-faq__q,
+.fellow-faq__a {
+	position: relative;
+	margin: 0;
+	padding-left: 2em;
+}
+
+.fellow-faq__q {
+	font-weight: 700;
+}
+
+.fellow-faq__a {
+	margin-top: 0.5em;
+	color: var(--color-text-muted);
+}
+
+.fellow-faq__q::before,
+.fellow-faq__a::before {
+	position: absolute;
+	left: 0;
+	top: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 4px;
+	font-size: 0.8em;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.fellow-faq__q::before {
+	content: "Q";
+	background: var(--accent);
+	color: var(--color-text);
+}
+
+.fellow-faq__a::before {
+	content: "A";
+	background: var(--color-bg-soft);
+	border: 1px solid var(--color-border);
+	color: var(--color-text-muted);
+}
+
+/* --- キャプションボックス --- */
+
+.fellow-capbox {
+	position: relative;
+	margin: 2em 0 1.75em;
+	padding: 1.4em 1.25em 1.1em;
+	border: 2px solid var(--accent);
+	border-radius: var(--radius);
+}
+
+.entry-content .fellow-capbox__label,
+.fellow-capbox__label {
+	position: absolute;
+	top: 0;
+	left: 1em;
+	transform: translateY(-50%);
+	margin: 0;
+	padding: 0.15em 0.9em;
+	background: var(--accent);
+	border-radius: 999px;
+	font-size: 0.8rem;
+	font-weight: 700;
+	line-height: 1.5;
+	color: var(--color-text);
+}
+
+.fellow-capbox > p:last-child {
+	margin-bottom: 0;
+}
+
+.fellow-capbox--warning {
+	border-color: #e8b4b8;
+	background: #fdf6f6;
+}
+
+.fellow-capbox--warning .fellow-capbox__label {
+	background: #e8b4b8;
+}
+
+/* --- ボックスメニュー --- */
+
+.fellow-boxmenu {
+	gap: 1rem;
+	margin: 1.75em 0;
+}
+
+.fellow-boxmenu__item {
+	padding: 1.1em 1.25em;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	background: var(--color-bg);
+}
+
+.fellow-boxmenu__item:hover {
+	border-color: var(--accent);
+	background: var(--color-bg-soft);
+}
+
+.entry-content .fellow-boxmenu__title,
+.fellow-boxmenu__title {
+	margin: 0 0 0.3em;
+	font-weight: 700;
+	line-height: 1.5;
+}
+
+.fellow-boxmenu__title a {
+	text-decoration: none;
+	color: var(--color-text);
+}
+
+.fellow-boxmenu__desc {
+	margin: 0;
+	font-size: 0.85rem;
+	color: var(--color-text-muted);
+}
+
+/* --- バナーリンク --- */
+
+.fellow-banner {
+	margin: 1.75em 0;
+	padding: 0.9em 1.25em;
+	border: 1px solid var(--color-border);
+	border-left: 5px solid var(--accent);
+	border-radius: 0 var(--radius) var(--radius) 0;
+	background: var(--color-bg-soft);
+}
+
+.fellow-banner__label {
+	margin: 0 0 0.2em;
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.06em;
+	color: var(--color-text-muted);
+}
+
+.entry-content .fellow-banner__title,
+.fellow-banner__title {
+	margin: 0;
+	font-weight: 700;
+	line-height: 1.6;
+}
+
+/* --- タブ --- */
+
+/*
+ * JSが無ければ「見出し付きの段落が縦に並ぶ」だけになる。
+ * JSが動くと .is-tabbed が付いてタブUIになる(段階的強化)。
+ */
+.fellow-tabs {
+	margin: 1.75em 0;
+}
+
+.fellow-tabs__panel + .fellow-tabs__panel {
+	margin-top: 1.25em;
+}
+
+.entry-content .fellow-tabs__label,
+.fellow-tabs__label {
+	margin: 0 0 0.5em;
+	padding: 0;
+	background: none;
+	border: 0;
+	font-size: 1.02rem;
+}
+
+.fellow-tabs.is-tabbed {
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	overflow: hidden;
+}
+
+.fellow-tabs__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	background: var(--color-bg-soft);
+	border-bottom: 1px solid var(--color-border);
+}
+
+.fellow-tabs__tab {
+	flex: 1 1 auto;
+	padding: 0.7em 1em;
+	background: transparent;
+	border: 0;
+	border-bottom: 3px solid transparent;
+	font-size: 0.9rem;
+	font-weight: 700;
+	color: var(--color-text-muted);
+}
+
+.fellow-tabs__tab[aria-selected="true"] {
+	background: var(--color-bg);
+	border-bottom-color: var(--accent);
+	color: var(--color-text);
+}
+
+.fellow-tabs.is-tabbed .fellow-tabs__panel {
+	margin: 0;
+	padding: 1.25em;
+}
+
+.fellow-tabs.is-tabbed .fellow-tabs__label {
+	/* タブのボタンに出しているので本文側では隠す */
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+}
+
+.fellow-tabs.is-tabbed .fellow-tabs__panel > *:last-child {
+	margin-bottom: 0;
+}
+
+/* --- アコーディオン(コアの details ブロック) --- */
+
+.fellow-accordion {
+	margin: 1.75em 0;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	background: var(--color-bg);
+}
+
+.entry-content .fellow-accordion > summary,
+.fellow-accordion > summary {
+	padding: 0.85em 1.15em;
+	background: var(--color-bg-soft);
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.fellow-accordion[open] > summary {
+	border-bottom: 1px solid var(--color-border);
+}
+
+.fellow-accordion > *:not(summary) {
+	margin: 0;
+	padding: 0 1.15em;
+}
+
+.fellow-accordion > *:not(summary):first-of-type {
+	padding-top: 1em;
+}
+
+.fellow-accordion > *:not(summary):last-child {
+	padding-bottom: 1em;
+}
+
+/* --- ブロックスタイル --- */
+
+.is-style-fellow-quote-plain {
+	background: none;
+	border-left: 3px solid var(--accent);
+	border-radius: 0;
+	color: inherit;
+}
+
+.is-style-fellow-list-check,
+.is-style-fellow-list-note {
+	list-style: none;
+	padding-left: 0;
+}
+
+.is-style-fellow-list-check li,
+.is-style-fellow-list-note li {
+	position: relative;
+	padding-left: 1.6em;
+}
+
+.is-style-fellow-list-check li::before {
+	content: "";
+	position: absolute;
+	left: 0.25em;
+	top: 0.55em;
+	width: 0.5em;
+	height: 0.9em;
+	border-right: 2px solid var(--color-link);
+	border-bottom: 2px solid var(--color-link);
+	transform: rotate(45deg);
+}
+
+.is-style-fellow-list-note li::before {
+	content: "!";
+	position: absolute;
+	left: 0;
+	top: 0.35em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.15em;
+	height: 1.15em;
+	background: #e8b4b8;
+	border-radius: 50%;
+	font-size: 0.75em;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.is-style-fellow-image-bordered img {
+	border: 1px solid var(--color-border);
+	padding: 4px;
+	background: var(--color-bg);
+}
+
+.is-style-fellow-table-compact table,
+.is-style-fellow-table-compact th,
+.is-style-fellow-table-compact td {
+	font-size: 0.88em;
+}
+
+.is-style-fellow-table-compact th,
+.is-style-fellow-table-compact td {
+	padding: 0.35em 0.6em;
+}
+
+.is-style-fellow-separator-dots {
+	border: 0;
+	height: auto;
+	text-align: center;
+	background: none;
+}
+
+.is-style-fellow-separator-dots::before {
+	content: "\2022 \2022 \2022";
+	letter-spacing: 0.7em;
+	color: var(--color-text-muted);
+}
+
+/* --- 記事下ウィジェットエリア --- */
+
+/*
+ * 広告やCTAの定位置。本文とタグ・シェアの間に入るので、
+ * 上下に余白を取って本文の続きに見えないようにする。
+ */
+.after-entry {
+	margin: 2.5rem 0;
+}
+
+.after-entry .widget + .widget {
+	margin-top: 1.5rem;
+}
+
+.after-entry .widget__title {
+	margin: 0 0 0.75rem;
+	padding-left: 0.6rem;
+	border-left: 4px solid var(--accent);
+	font-size: 1rem;
+	line-height: 1.4;
+}
+
+/* 広告など幅の決まった要素がはみ出さないようにする */
+.after-entry img,
+.after-entry iframe,
+.after-entry ins {
+	max-width: 100%;
+}
+
+/* ==========================================================================
+   8. スコアダイヤル
+   ========================================================================== */
+
+.score-dial {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.75rem;
+	margin: 2.5rem 0;
+	padding: 1.5rem;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	background: var(--color-bg-soft);
+}
+
+.score-dial__heading {
+	margin: 0;
+	font-size: 1rem;
+	letter-spacing: 0.1em;
+}
+
+/* --score-pct(0〜100)は score-dial.php の inline style から渡される */
+.score-dial__ring {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	width: 140px;
+	height: 140px;
+	border-radius: 50%;
+	background: conic-gradient(
+		var(--accent) calc(var(--score-pct, 0) * 1%),
+		var(--color-border) 0
+	);
+}
+
+.score-dial__ring::before {
+	content: "";
+	position: absolute;
+	inset: 12px;
+	background: var(--color-bg);
+	border-radius: 50%;
+}
+
+.score-dial__value {
+	position: relative;
+	font-size: 2.2rem;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.score-dial__max {
+	position: relative;
+	font-size: 0.8rem;
+	color: var(--color-text-muted);
+}
+
+/* ==========================================================================
+   9. シェア・著者・前後記事・関連記事
+   ========================================================================== */
+
+.entry-tags {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 0.75rem;
+	margin: 2rem 0;
+}
+
+.entry-tags__label {
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: var(--color-text-muted);
+}
+
+.entry-tags__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.entry-tags__link {
+	display: inline-block;
+	padding: 0.2em 0.9em;
+	background: var(--color-bg-soft);
+	border: 1px solid var(--color-border);
+	border-radius: 999px;
+	color: var(--color-text);
+	font-size: 0.8rem;
+	text-decoration: none;
+}
+
+.entry-tags__link::before {
+	content: "#";
+	margin-right: 0.15em;
+	color: var(--color-text-muted);
+}
+
+.entry-tags__link:hover {
+	background: var(--accent);
+	border-color: var(--accent);
+}
+
+.share {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.75rem;
+	margin: 2rem 0;
+}
+
+.share__label {
+	font-size: 0.85rem;
+	font-weight: 700;
+	color: var(--color-text-muted);
+}
+
+.share__list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.share__link {
+	display: inline-block;
+	padding: 0.4em 1em;
+	background: var(--color-bg-soft);
+	border: 1px solid var(--color-border);
+	border-radius: 999px;
+	color: var(--color-text);
+	font-size: 0.85rem;
+	text-decoration: none;
+}
+
+.share__link:hover {
+	background: var(--accent);
+}
+
+.share__link--copy.is-copied {
+	background: var(--accent);
+}
+
+.author-box {
+	display: flex;
+	gap: 1rem;
+	margin: 2rem 0;
+	padding: 1.25rem;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+}
+
+.author-box__avatar img {
+	border-radius: 50%;
+}
+
+.author-box__name {
+	margin: 0 0 0.4rem;
+	font-size: 1rem;
+}
+
+.author-box__description {
+	margin: 0;
+	font-size: 0.9rem;
+	color: var(--color-text-muted);
+}
+
+.post-navigation .nav-links {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 1rem;
+	margin: 2rem 0;
+}
+
+.post-navigation a {
+	display: block;
+	padding: 0.9rem 1rem;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	color: inherit;
+	text-decoration: none;
+}
+
+.post-navigation a:hover {
+	background: var(--color-bg-soft);
+}
+
+.post-navigation .nav-next {
+	text-align: right;
+}
+
+.post-navigation__label {
+	display: block;
+	font-size: 0.75rem;
+	color: var(--color-text-muted);
+}
+
+.post-navigation__title {
+	font-size: 0.9rem;
+	font-weight: 700;
+}
+
+.related-posts {
+	margin-top: 2.5rem;
+}
+
+/* ==========================================================================
+   10. アーカイブ・検索・404・ページネーション
+   ========================================================================== */
+
+.archive-header {
+	margin-bottom: 1.5rem;
+}
+
+.archive-title {
+	margin: 0 0 0.5rem;
+	font-size: 1.5rem;
+}
+
+.archive-description {
+	font-size: 0.9rem;
+	color: var(--color-text-muted);
+}
+
+.pagination {
+	margin-top: 2.5rem;
+}
+
+.pagination .nav-links {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.4rem;
+}
+
+.pagination .page-numbers {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2.4em;
+	padding: 0.4em 0.7em;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+	color: var(--color-text);
+	text-decoration: none;
+}
+
+.pagination .page-numbers.current {
+	background: var(--accent);
+	font-weight: 700;
+}
+
+.pagination a.page-numbers:hover {
+	background: var(--color-bg-soft);
+}
+
+.no-results {
+	padding: 2rem 0;
+}
+
+.error-404 {
+	text-align: center;
+	padding: 2rem 0;
+}
+
+.error-404__code {
+	margin: 0;
+	font-size: 5rem;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--accent);
+}
+
+.error-404__title {
+	margin: 0.5rem 0 1rem;
+	font-size: 1.4rem;
+}
+
+.error-404__search {
+	max-width: 420px;
+	margin: 1.5rem auto;
+}
+
+.error-404 .footer-list {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 0.5rem 1.25rem;
+}
+
+.error-404__home {
+	margin-top: 2rem;
+}
+
+/* ==========================================================================
+   11. コメント
+   ========================================================================== */
+
+.comments-area {
+	margin-top: 3rem;
+	padding-top: 1.5rem;
+	border-top: 1px solid var(--color-border);
+	max-width: var(--measure);
+}
+
+.comments-title {
+	font-size: 1.2rem;
+}
+
+.comment-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.comment-list .comment {
+	padding: 1rem 0;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.comment-list .children {
+	list-style: none;
+	padding-left: 1.5rem;
+}
+
+.comment-form input[type="text"],
+.comment-form input[type="email"],
+.comment-form input[type="url"],
+.comment-form textarea {
+	width: 100%;
+	padding: 0.5em 0.75em;
+	font: inherit;
+	border: 1px solid var(--color-border);
+	border-radius: var(--radius);
+}
+
+.comment-form .submit {
+	padding: 0.6em 1.6em;
+	background: var(--accent);
+	border: 0;
+	border-radius: var(--radius);
+	font-weight: 700;
+}
+
+/* ==========================================================================
+   12. フッター
+   ========================================================================== */
+
+.site-footer {
+	margin-top: 3rem;
+	background: var(--color-bg-soft);
+	border-top: 1px solid var(--color-border);
+}
+
+.site-footer__inner {
+	max-width: var(--container);
+	margin: 0 auto;
+	padding: 2.5rem 1rem 1.5rem;
+}
+
+.site-footer__columns {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+	gap: 1.5rem 2rem;
+}
+
+.site-footer__heading {
+	margin: 0 0 0.75rem;
+	font-size: 0.9rem;
+	letter-spacing: 0.08em;
+}
+
+.footer-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.9rem;
+}
+
+.footer-list li {
+	margin-bottom: 0.4em;
+}
+
+/*
+ * 入れ子のカテゴリー(ul.children)には、ブラウザ既定の
+ * `ul ul { list-style-type: circle }` が直接当たって継承値に勝つため、
+ * 明示的に打ち消す必要がある。
+ */
+.footer-list ul {
+	margin: 0.4em 0 0;
+	padding-left: 1em;
+	list-style: none;
+}
+
+.footer-list a {
+	color: var(--color-text-muted);
+	text-decoration: none;
+}
+
+.footer-list a:hover {
+	color: var(--color-link);
+	text-decoration: underline;
+}
+
+/* フッターウィジェットエリア:ウィジェット未設定時は列ごと出力されない */
+.site-footer__column--widgets .widget + .widget {
+	margin-top: 1.5rem;
+}
+
+/* ブロックウィジェットの見出しもフッターの見出し体裁に揃える */
+.site-footer__column--widgets h2,
+.site-footer__column--widgets h3,
+.site-footer__column--widgets .wp-block-search__label {
+	display: block;
+	margin: 0 0 0.75rem;
+	font-size: 0.9rem;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+}
+
+.site-footer__column--widgets ul,
+.site-footer__column--widgets ol {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	font-size: 0.9rem;
+}
+
+.site-footer__column--widgets ul ul,
+.site-footer__column--widgets ol ol {
+	margin-top: 0.3em;
+	padding-left: 1em;
+	list-style: none;
+}
+
+.site-footer__column--widgets li {
+	margin-bottom: 0.4em;
+}
+
+.site-footer__column--widgets a {
+	color: var(--color-text-muted);
+	text-decoration: none;
+}
+
+.site-footer__column--widgets a:hover {
+	color: var(--color-link);
+	text-decoration: underline;
+}
+
+.site-footer__bottom {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	gap: 0.5rem;
+	margin-top: 2rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--color-border);
+	font-size: 0.8rem;
+	color: var(--color-text-muted);
+}
+
+.site-footer__bottom p {
+	margin: 0;
+}
+
+.site-footer__bottom a {
+	color: inherit;
+}
+
+/* ==========================================================================
+   13. モーション配慮
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		transition-duration: 0.01ms !important;
+		animation-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
