@@ -525,3 +525,21 @@ function fellow_post_list_class( $follow_setting = true ) {
 
 	return implode( ' ', $classes );
 }
+
+/**
+ * 記事下ウィジェットエリアを描画する。
+ *
+ * 未設定なら何も出力しない(空の枠を作らないため)。
+ *
+ * @return void
+ */
+function fellow_after_entry_widgets() {
+	if ( ! is_active_sidebar( 'after-entry' ) ) {
+		return;
+	}
+	?>
+	<div class="after-entry">
+		<?php dynamic_sidebar( 'after-entry' ); ?>
+	</div>
+	<?php
+}

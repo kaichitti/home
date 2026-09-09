@@ -71,6 +71,8 @@ get_header();
 					?>
 				</div>
 
+				<?php fellow_after_entry_widgets(); ?>
+
 				<?php get_template_part( 'template-parts/score-dial' ); ?>
 
 				<?php fellow_entry_tags(); ?>

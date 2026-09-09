@@ -2460,6 +2460,35 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	color: var(--color-text-muted);
 }
 
+/* --- 記事下ウィジェットエリア --- */
+
+/*
+ * 広告やCTAの定位置。本文とタグ・シェアの間に入るので、
+ * 上下に余白を取って本文の続きに見えないようにする。
+ */
+.after-entry {
+	margin: 2.5rem 0;
+}
+
+.after-entry .widget + .widget {
+	margin-top: 1.5rem;
+}
+
+.after-entry .widget__title {
+	margin: 0 0 0.75rem;
+	padding-left: 0.6rem;
+	border-left: 4px solid var(--accent);
+	font-size: 1rem;
+	line-height: 1.4;
+}
+
+/* 広告など幅の決まった要素がはみ出さないようにする */
+.after-entry img,
+.after-entry iframe,
+.after-entry ins {
+	max-width: 100%;
+}
+
 /* ==========================================================================
    8. スコアダイヤル
    ========================================================================== */

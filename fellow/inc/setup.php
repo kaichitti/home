@@ -98,6 +98,23 @@ function fellow_widgets_init() {
 		)
 	);
 
+	/*
+	 * 本文直後のエリア。広告やCTAの定位置として使う。
+	 * wp_footer に登録された広告コードは </footer> より後にしか出せないため、
+	 * 記事の流れの中に置きたい場合の受け皿として用意する。
+	 */
+	register_sidebar(
+		array(
+			'name'          => __( '記事下ウィジェットエリア', 'fellow' ),
+			'id'            => 'after-entry',
+			'description'   => __( '記事本文のすぐ下に表示されます。広告やお知らせの定位置に。投稿と固定ページの両方に出ます。', 'fellow' ),
+			'before_widget' => '<div id="%1$s" class="widget %2$s">',
+			'after_widget'  => '</div>',
+			'before_title'  => '<h2 class="widget__title">',
+			'after_title'   => '</h2>',
+		)
+	);
+
 	register_sidebar(
 		array(
 			'name'          => __( 'フッターウィジェットエリア', 'fellow' ),

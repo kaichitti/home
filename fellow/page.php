@@ -56,6 +56,8 @@ get_header();
 						);
 						?>
 					</div>
+
+					<?php fellow_after_entry_widgets(); ?>
 				</article>
 
 				<?php

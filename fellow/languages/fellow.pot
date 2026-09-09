@@ -55,11 +55,11 @@ msgstr[1] ""
 msgid "サイト"
 msgstr ""
 
-#: footer.php:35 inc/setup.php:180
+#: footer.php:35 inc/setup.php:197
 msgid "カテゴリー"
 msgstr ""
 
-#: footer.php:40 inc/setup.php:186
+#: footer.php:40 inc/setup.php:203
 msgid "アーカイブ"
 msgstr ""
 
@@ -547,19 +547,27 @@ msgstr ""
 msgid "サイドバーの下部に置かれ、スクロールしても画面内に留まります。目次や人気記事の設置に向いています。"
 msgstr ""
 
-#: inc/setup.php:103
+#: inc/setup.php:108
+msgid "記事下ウィジェットエリア"
+msgstr ""
+
+#: inc/setup.php:110
+msgid "記事本文のすぐ下に表示されます。広告やお知らせの定位置に。投稿と固定ページの両方に出ます。"
+msgstr ""
+
+#: inc/setup.php:120
 msgid "フッターウィジェットエリア"
 msgstr ""
 
-#: inc/setup.php:105
+#: inc/setup.php:122
 msgid "フッターの列として表示されます。空のときは何も出力されません。"
 msgstr ""
 
-#: inc/setup.php:177
+#: inc/setup.php:194
 msgid "サイト内検索"
 msgstr ""
 
-#: inc/setup.php:191
+#: inc/setup.php:208
 msgid "最近の記事"
 msgstr ""
 
@@ -777,19 +785,19 @@ msgstr ""
 msgid "検索"
 msgstr ""
 
-#: single.php:89
+#: single.php:91
 msgid "この記事を書いた人:%s"
 msgstr ""
 
-#: single.php:100
+#: single.php:102
 msgid "前の記事"
 msgstr ""
 
-#: single.php:101
+#: single.php:103
 msgid "次の記事"
 msgstr ""
 
-#: single.php:112
+#: single.php:114
 msgid "関連記事"
 msgstr ""
 

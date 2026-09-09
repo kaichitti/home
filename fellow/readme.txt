@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.10.1
+Stable tag: 0.11.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -49,6 +49,11 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.11.0 =
+* ウィジェットエリア「記事下ウィジェットエリア」を追加しました。記事本文のすぐ下(スコアダイヤルより前)に表示され、投稿と固定ページの両方で使えます
+* 広告コードを wp_footer 経由で出すとフッターより下にしか置けないため、記事の流れの中に置きたい場合の受け皿として用意しています
+* 未設定のときは何も出力しません
 
 = 0.10.1 =
 * ブロックエディタの編集画面と、公開後のページで見た目が食い違う問題を修正しました
