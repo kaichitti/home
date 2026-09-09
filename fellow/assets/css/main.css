@@ -1398,6 +1398,14 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	font-size: 1.05rem;
 }
 
+.entry-content hr,
+.wp-block-separator {
+	height: 0;
+	margin: 2.5em 0;
+	border: 0;
+	border-top: 1px solid var(--color-border);
+}
+
 .entry-content blockquote {
 	margin: 1.4em 0;
 	padding: 0.75em 1.25em;
@@ -1522,6 +1530,11 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 
 .wp-block-button__link {
 	display: inline-block;
+	/*
+	 * コアの wp-block-library が持つ既定値。公開側では同ファイルを
+	 * 外しているため、明示しないとエディタ(18px)と公開(16px)でずれる。
+	 */
+	font-size: 1.125em;
 	padding: 0.7em 1.7em;
 	background: var(--accent);
 	border: 2px solid var(--accent);
@@ -2076,6 +2089,13 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	color: var(--color-text);
 }
 
+/*
+ * パーツの見出しは h2/h3 として出力されるので、本文見出しの装飾
+ * (.entry-content h3 = 詳細度 0,1,1) がそのまま乗ってしまう。
+ * 打ち消し側にも .entry-content を付けて 0,2,0 にし、確実に勝たせる。
+ * ブロックエディタ側は素の h3 (0,0,1) なので元から打ち消せていた。
+ */
+.entry-content .fellow-steps__title,
 .fellow-steps__title {
 	margin: 0 0 0.4em;
 	padding: 0;
@@ -2159,6 +2179,7 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	border-radius: var(--radius);
 }
 
+.entry-content .fellow-capbox__label,
 .fellow-capbox__label {
 	position: absolute;
 	top: 0;
@@ -2206,6 +2227,7 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	background: var(--color-bg-soft);
 }
 
+.entry-content .fellow-boxmenu__title,
 .fellow-boxmenu__title {
 	margin: 0 0 0.3em;
 	font-weight: 700;
@@ -2242,6 +2264,7 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	color: var(--color-text-muted);
 }
 
+.entry-content .fellow-banner__title,
 .fellow-banner__title {
 	margin: 0;
 	font-weight: 700;
@@ -2262,6 +2285,7 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	margin-top: 1.25em;
 }
 
+.entry-content .fellow-tabs__label,
 .fellow-tabs__label {
 	margin: 0 0 0.5em;
 	padding: 0;
@@ -2331,6 +2355,7 @@ body:not(.has-sticky-header) .site-sidebar__section--sticky {
 	background: var(--color-bg);
 }
 
+.entry-content .fellow-accordion > summary,
 .fellow-accordion > summary {
 	padding: 0.85em 1.15em;
 	background: var(--color-bg-soft);

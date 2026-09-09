@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.10.0
+Stable tag: 0.10.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -49,6 +49,13 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.10.1 =
+* ブロックエディタの編集画面と、公開後のページで見た目が食い違う問題を修正しました
+* ステップ・タブ・キャプションボックス・ボックスメニュー・バナーリンク・アコーディオンの見出しに、本文見出し(h2/h3)の装飾が乗ってしまっていました。打ち消し側の指定が本文見出しより弱く、公開側でだけ負けていたためです
+* 引用の見た目がエディタ側でだけコアの既定に上書きされていた問題を修正しました
+* ボタンの文字サイズがエディタ(18px)と公開(16px)でずれていた問題を修正しました。軽量化のため wp-block-library を外している副作用で、コアの既定値が公開側にだけ効いていなかったためです
+* 区切り線の見た目を明示しました。従来はブラウザ既定とコアのリセットの差がそのまま出ていました
 
 = 0.10.0 =
 * カスタマイザーに「記事一覧のレイアウト」を追加しました。リスト型(従来どおり・サムネイルは右に小さく)とカード型(2列・サムネイルは上に大きく)から選べます。トップ・カテゴリー・タグ・検索結果に適用されます

@@ -70,6 +70,23 @@ a {
 	text-underline-offset: 0.2em;
 }
 
+.editor-styles-wrapper hr,
+.editor-styles-wrapper .wp-block-separator,
+hr,
+.wp-block-separator {
+	height: 0;
+	margin: 2.5em 0;
+	border: 0;
+	border-top: 1px solid var(--color-border);
+}
+
+/*
+ * コアの block-library が .wp-block-quote に枠線を指定しており、
+ * 素の blockquote(0,0,1) や .wp-block-quote(0,1,0) では後勝ちで負ける。
+ * キャンバスの .editor-styles-wrapper を付けて確実に勝たせる。
+ */
+.editor-styles-wrapper blockquote,
+.editor-styles-wrapper .wp-block-quote,
 blockquote,
 .wp-block-quote {
 	margin: 1.4em 0;
@@ -205,6 +222,7 @@ ol {
 
 .wp-block-button__link {
 	display: inline-block;
+	font-size: 1.125em;
 	padding: 0.7em 1.7em;
 	background: var(--accent);
 	border: 2px solid var(--accent);
