@@ -29,25 +29,62 @@ function fellow_theme_version() {
 }
 
 /**
+ * 配布物に圧縮版があればそちらのURLを返す。
+ *
+ * ソースは読みやすさのため圧縮しない方針なので、リポジトリには
+ * main.css / main.js しか無い。CI が zip を作るときに .min を生成するため、
+ * 配布された状態では圧縮版が使われる。無ければ元のファイルに落ちる。
+ *
+ * @param string $relative テーマ直下からの相対パス(例: assets/css/main.css)。
+ * @return string
+ */
+function fellow_asset_uri( $relative ) {
+	$min = preg_replace( '/\.(css|js)$/', '.min.$1', $relative );
+
+	if ( $min !== $relative && file_exists( get_theme_file_path( $min ) ) ) {
+		return get_theme_file_uri( $min );
+	}
+
+	return get_theme_file_uri( $relative );
+}
+
+/**
  * CSS / JS の読み込み。
  */
 function fellow_enqueue_assets() {
 	$version = fellow_theme_version();
 
-	wp_enqueue_style( 'fellow-base', get_stylesheet_uri(), array(), $version );
+	/*
+	 * 親テーマの style.css はヘッダー情報しか持たない(実体は main.css)。
+	 * それでも読み込むと、中身の無いCSSのために描画をブロックする往復が
+	 * 1回増える。子テーマが無いときは読み込まない。
+	 */
 	wp_enqueue_style(
 		'fellow-main',
-		get_template_directory_uri() . '/assets/css/main.css',
-		array( 'fellow-base' ),
+		fellow_asset_uri( 'assets/css/main.css' ),
+		array(),
 		$version
 	);
 	wp_add_inline_style( 'fellow-main', fellow_inline_css() );
+
+	/*
+	 * 子テーマの style.css は上書き用のCSSを持つので読み込む。
+	 * main.css より後に出さないと、同じ詳細度の指定で上書きできない。
+	 */
+	if ( is_child_theme() ) {
+		wp_enqueue_style(
+			'fellow-child',
+			get_stylesheet_uri(),
+			array( 'fellow-main' ),
+			(string) wp_get_theme()->get( 'Version' )
+		);
+	}
 
 	// ハンバーガー/検索トグル/TOC追従を1ファイルに集約し defer で読み込む。
 	// TOC等のページ限定機能は main.js 側で対象要素の有無を判定する。
 	wp_enqueue_script(
 		'fellow-main',
-		get_template_directory_uri() . '/assets/js/main.js',
+		fellow_asset_uri( 'assets/js/main.js' ),
 		array(),
 		$version,
 		array(

@@ -26,7 +26,12 @@ function fellow_setup() {
 	// add_editor_style() が立てるのは 'editor-style'(旧エディタ用)のみで、
 	// ブロックエディタは 'editor-styles'(複数形)を見るため両方必要。
 	add_theme_support( 'editor-styles' );
-	add_editor_style( 'assets/css/editor.css' );
+	// 配布物に圧縮版があればそちらを使う(fellow_asset_uri と同じ考え方)。
+	add_editor_style(
+		file_exists( get_theme_file_path( 'assets/css/editor.min.css' ) )
+			? 'assets/css/editor.min.css'
+			: 'assets/css/editor.css'
+	);
 	add_theme_support(
 		'html5',
 		array(

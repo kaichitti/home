@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.11.0
+Stable tag: 0.12.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -49,6 +49,13 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.12.0 =
+* 表示速度を改善しました。ローカル計測(Lighthouse)でスコア93→100、First Contentful Paint 1.4秒→1.1秒
+* 記事一覧のアイキャッチに loading="lazy" を一律で付けていたのをやめました。WordPress 5.9以降は「最初の画像には lazy を付けず fetchpriority=high を付ける」判断を自動で行うため、明示するとその判断を上書きして1件目の表示が遅れていました
+* 中身がヘッダー情報だけの style.css を読み込むのをやめました(実体は main.css)。描画をブロックする往復が1回減ります。子テーマがある場合は従来どおり読み込みます
+* 子テーマの style.css を main.css より後に読み込むよう順序を直しました。従来は先に読み込まれており、同じ詳細度の指定で上書きできませんでした
+* 配布用のzipではCSS/JSを圧縮するようにしました(CSS 39%減、JS 55%減)。ソースは読みやすさのため非圧縮のままで、圧縮版が無い環境では元のファイルを読みます
 
 = 0.11.0 =
 * ウィジェットエリア「記事下ウィジェットエリア」を追加しました。記事本文のすぐ下(スコアダイヤルより前)に表示され、投稿と固定ページの両方で使えます

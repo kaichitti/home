@@ -58,6 +58,38 @@ jobs:
           done < <(find fellow -name '*.php')
           exit $fail
 
+      - name: CSS/JSを圧縮する
+        run: |
+          # ソースは読みやすさのため圧縮しない方針なので、配布物を作るこの場で
+          # .min を生成する。テーマ側は .min があればそちらを読み、無ければ
+          # 元のファイルに落ちるので、手でzipを作った場合も壊れない。
+          npm install --no-save --no-audit --no-fund csso-cli@4.0.2 terser@5.36.0
+          npx csso fellow/assets/css/main.css   -o fellow/assets/css/main.min.css
+          npx csso fellow/assets/css/editor.css -o fellow/assets/css/editor.min.css
+          npx terser fellow/assets/js/main.js -c -m -o fellow/assets/js/main.min.js
+
+      - name: 圧縮結果を検証する
+        run: |
+          # 圧縮で中身が壊れていないか、代表的なセレクタの残存と行数で確かめる。
+          fail=0
+          for pair in "fellow/assets/css/main.css:fellow/assets/css/main.min.css" \
+                      "fellow/assets/css/editor.css:fellow/assets/css/editor.min.css" \
+                      "fellow/assets/js/main.js:fellow/assets/js/main.min.js"; do
+            src=${pair%%:*}; min=${pair##*:}
+            if [ ! -s "$min" ]; then echo "✗ $min が生成されていない"; fail=1; continue; fi
+            s=$(wc -c < "$src"); m=$(wc -c < "$min")
+            echo "$src: $s bytes -> $m bytes"
+            # 半分以下に減っていたら削られ過ぎを疑う。増えていたのも異常。
+            if [ "$m" -ge "$s" ] || [ "$m" -lt $((s / 4)) ]; then
+              echo "✗ $min のサイズが不自然"; fail=1
+            fi
+          done
+          for sel in post-item__link wp-block-post-template post-list--card fellow-steps__title; do
+            grep -q "$sel" fellow/assets/css/main.min.css || { echo "✗ $sel が main.min.css に無い"; fail=1; }
+          done
+          grep -q "fellow-balloon" fellow/assets/css/editor.min.css || { echo "✗ editor.min.css の内容が欠けている"; fail=1; }
+          exit $fail
+
       - name: zipを作る
         run: |
           mkdir -p build

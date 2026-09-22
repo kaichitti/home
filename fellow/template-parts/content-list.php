@@ -60,11 +60,17 @@ $fellow_item_has_thumb  = has_post_thumbnail();
 			?>
 			<div class="post-item__thumb">
 				<?php
+				/*
+				 * loading は指定しない。
+				 * WordPress 5.9 以降は wp_get_loading_optimization_attributes() が
+				 * 「最初の画像には lazy を付けず fetchpriority=high を付ける」判断を
+				 * 自動で行う。ここで loading=lazy を明示するとその判断を上書きして
+				 * しまい、一覧の1件目(LCP要素になりやすい)の表示が遅れる。
+				 */
 				the_post_thumbnail(
 					'medium',
 					array(
-						'loading' => 'lazy',
-						'class'   => 'post-item__image',
+						'class' => 'post-item__image',
 					)
 				);
 				?>
