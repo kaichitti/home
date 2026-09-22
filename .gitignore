@@ -1,0 +1,10 @@
+# ローカルで配布zipを作ったときの出力先(コミットしない)
+/build/
+
+# OSが作る不要ファイル
+.DS_Store
+Thumbs.db
+
+# CIが配布用に生成する圧縮版(ソースは非圧縮のまま管理する)
+fellow/assets/**/*.min.css
+fellow/assets/**/*.min.js

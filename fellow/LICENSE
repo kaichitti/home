@@ -1,0 +1,45 @@
+fellow WordPress Theme
+Copyright (C) 2026 setsna (https://setsna.com/)
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, see <https://www.gnu.org/licenses/gpl-2.0.html>.
+
+同梱のライセンス全文は LICENSE-GPL.txt を参照してください。
+The full license text is included as LICENSE-GPL.txt.
+
+注意: 現在同梱している LICENSE-GPL.txt は GPL v3 の全文ですが、
+style.css のヘッダーは "GPL v2 or later" を宣言しています。
+"v2 or later" は v3 での配布を許容するため矛盾ではありませんが、
+どちらに揃えるかは配布前に確定させてください。
+Note: LICENSE-GPL.txt currently contains the GPL v3 text while style.css
+declares "GPL v2 or later". This is permitted (v2-or-later allows v3) but
+should be made consistent before distribution.
+
+---
+
+同梱素材のライセンス / Bundled assets
+
+- screenshot.png
+  テーマ作者によるオリジナル制作物。テーマ本体と同じ GPL v2 or later で配布します。
+  Original work by the theme author, licensed under GPL v2 or later.
+
+- アイコン類
+  画像ファイルは同梱せず、すべて CSS のみで描画しています(虫めがね・ハンバーガー・シェブロン)。
+  No icon image files are bundled; all icons are drawn with CSS only.
+
+- Webフォント (assets/fonts/)
+  初期状態ではフォントファイルを同梱していません(システムフォントスタックで動作)。
+  フォントを自己ホストする場合は、そのフォントのライセンスが再配布を許可しているか
+  必ず確認してください。詳細は assets/fonts/README.md を参照。
+  No font files are bundled by default. If you self-host webfonts, make sure
+  their license permits redistribution. See assets/fonts/README.md.
