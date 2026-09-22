@@ -24,6 +24,7 @@ require get_template_directory() . '/inc/structured-data.php';
 require get_template_directory() . '/inc/toc.php';
 require get_template_directory() . '/inc/widget-toc.php';
 require get_template_directory() . '/inc/walker-nav.php';
+require get_template_directory() . '/inc/ads.php';
 
 if ( is_admin() ) {
 	require get_template_directory() . '/inc/theme-options-page.php';

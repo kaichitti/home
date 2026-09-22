@@ -3,7 +3,7 @@ Contributors: setsna
 Requires at least: 6.3
 Tested up to: 6.8
 Requires PHP: 8.0
-Stable tag: 0.12.0
+Stable tag: 0.13.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 Tags: blog, news, one-column, two-columns, right-sidebar, left-sidebar, custom-colors, custom-logo, custom-menu, featured-images, footer-widgets, editor-style, threaded-comments, translation-ready
@@ -49,6 +49,14 @@ fellow は共用サーバー(XREA等)でも軽快に動くことを重視した�
 目次は本文中の見出し(h2/h3)が2つ以上ある場合のみ自動表示されます。
 
 == Changelog ==
+
+= 0.13.0 =
+* 記事一覧のサムネイルが、表示サイズ(96〜160px)に対して大きすぎる画像を読み込んでいたのを直しました。画像の sizes 属性に実際の表示幅を渡すようにしたためで、ローカル計測ではトップの画像転送量が 120KB→20KB、Largest Contentful Paint が 1.95秒→1.20秒になりました
+* 記事詳細のアイキャッチに 768px 版(16:9)を追加しました。従来は 16:9 の画像が 1280px しか無く、スマホでも必ず 1280px を読み込んでいました。既存の画像に適用するには「Regenerate Thumbnails」などでサムネイルを再生成してください
+* 使われていなかったカード用画像サイズ(800×600)を廃止しました。画像のアップロード時に作られるファイルの数は変わりません
+* CSS を HTML に埋め込むようにしました(カスタマイザー「fellow 高速化・広告」で切り替え可)。CSS を取りに行く往復が1回減ります
+* AdSense をテーマから読み込めるようにしました(カスタマイザー「fellow 高速化・広告」)。既定は、読者が最初にスクロールやタップをした時点で読み込む遅延読み込みです
+* リンクにマウスを乗せた時点で次のページを先読みするようにしました(WordPress 6.8 以降)
 
 = 0.12.0 =
 * 表示速度を改善しました。ローカル計測(Lighthouse)でスコア93→100、First Contentful Paint 1.4秒→1.1秒

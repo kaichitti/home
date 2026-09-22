@@ -38,6 +38,7 @@ fellow/
 │   ├── toc.php                 # 目次:見出し解析とID付与(サーバーサイド)
 │   ├── widget-toc.php          # サイドバー用の目次ウィジェット
 │   ├── walker-nav.php          # ハンバーガーメニュー用カスタムWalker
+│   ├── ads.php                 # AdSense の読み込み(遅延読み込み対応)
 │   └── theme-options-page.php  # 配布版のみ:テーマ全体設定(検索ON/OFF等)
 ├── template-parts/
 │   ├── content-list.php         # 記事一覧の1件分(全一覧・関連記事共通)
@@ -95,6 +96,7 @@ require get_template_directory() . '/inc/structured-data.php';
 require get_template_directory() . '/inc/toc.php';
 require get_template_directory() . '/inc/widget-toc.php';
 require get_template_directory() . '/inc/walker-nav.php';
+require get_template_directory() . '/inc/ads.php';
 if ( is_admin() ) {
     require get_template_directory() . '/inc/theme-options-page.php';
 }
@@ -103,13 +105,14 @@ if ( is_admin() ) {
 **setup.php で行うこと**
 - `add_theme_support('title-tag')` / `post-thumbnails` / `html5` / `align-wide`
 - ナビゲーションメニュー登録:`primary`(ヘッダー) / `footer-site`(フッター「サイト」列)
-- カスタム画像サイズ:カード用(4:3)、記事詳細アイキャッチ用(16:9)
+- カスタム画像サイズ:記事詳細アイキャッチ用(16:9)を 1280px と 768px の2つ。srcset は同じ縦横比の画像しか候補にしないため、16:9 が1枚だけだとスマホでも 1280px を読むことになる。768px はカード型一覧のサムネイルにも使う(以前あったカード用 4:3 は未使用だったので廃止)
 - ウィジェットエリア登録:`sidebar-main` / `sidebar-sticky` / `footer-widgets` の3つ。**1つも登録しないとWordPressが「外観 > ウィジェット」を `wp_die()` で拒否する**。未設定のエリアは `is_active_sidebar()` 判定で丸ごと出力しない
 - **登録順に意味がある**。テーマ切替時、WordPressは前テーマのウィジェットを**最初に登録されたエリアへ自動的に移す**(`retrieve_widgets()`)。サイドバーを先頭に登録しておくと、有効化直後から2カラムが自然に埋まった状態になる。逆にフッターが先頭だと、テーマが固定表示しているカテゴリー/アーカイブと二重に並ぶ。保険として `after_switch_theme`(優先度20 = `_wp_sidebars_changed` の後)でフッター側だけ `wp_inactive_widgets` へ戻す
 - エディタスタイル:`add_theme_support('editor-styles')` + `add_editor_style()` の**両方**が必要。`add_editor_style()` が立てるのは単数形の `editor-style`(旧エディタ用)で、ブロックエディタは複数形の `editor-styles` を見ている
 
 **enqueue.php で行うこと**
-- `assets/css/main.css` を1本だけ読み込み(WordPress側のブロックライブラリCSS等は`wp_dequeue_style`で除去し軽量化)
+- `assets/css/main.css` を1本だけ読み込み(WordPress側のブロックライブラリCSS等は`wp_dequeue_style`で除去し軽量化)。既定では `wp_style_add_data( ..., 'path', ... )` でコアの `wp_maybe_inline_styles()` に渡し、`<style>` として埋め込む。上限(`styles_inline_size_limit`)は main.css の分だけ上乗せする
+- Speculation Rules(WordPress 6.8〜)を `prefetch` / `moderate` にし、リンクにマウスを乗せた時点で次のページのHTMLを先読みする。prerender は広告・解析が見られていないページを数えるおそれがあるので使わない
 - Webフォントは配布時のライセンス確認の上、自己ホスト(`@font-face`)を基本にし、CDN依存を避ける
 - 絵文字スクリプト(`wp-emoji-release.min.js`)を`remove_action`で無効化
 - 検索/ハンバーガー/TOC追従用のJSは1ファイルにまとめ、`defer`属性で読み込み
@@ -236,7 +239,9 @@ WordPress 5.8以降、ウィジェットは既定でブロックになる。ブ�
 
 ## 9. パフォーマンス方針(XREA共有サーバー前提)
 
-- 画像は`loading="lazy"`をデフォルト付与、アイキャッチのみ`fetchpriority="high"`でLCP対策
+- 画像の `loading` / `fetchpriority` は一覧ではコアの自動判定(`wp_get_loading_optimization_attributes()`)に任せ、記事詳細のアイキャッチのみ明示的に `fetchpriority="high"`
+- 画像の `sizes` は `fellow_image_sizes()` で実際の表示幅を渡す。コアの既定は「画像ファイルの幅」なので、96px で出す一覧サムネイルでも高密度画面では 768px 以上の画像が選ばれてしまう。main.css のレイアウトを変えたら合わせて直すこと
+- AdSense はカスタマイザーにパブリッシャーIDを入れるとテーマが読み込む(`inc/ads.php`)。既定は「最初のスクロール・タップ等で読み込む」遅延読み込み。自動広告の差し込みによるレイアウトのずれと、初回描画の遅れを避けるため
 - CSS/JSは合計でも数十KB以内を目標(Tailwind等のユーティリティ大量出力フレームワークは使わない)
 - クエリ数を絞るため、関連記事の取得は「カテゴリー内からランダムではなく、直近日付順」でシンプルに(ランダム取得はDB負荷が上がりやすいため配布先の低スペック環境を考慮)
 - 4桁の`wp_enqueue`重複を避けるため、`enqueue.php`内で条件分岐(`is_single()`時のみTOC用JSを読み込む、等)

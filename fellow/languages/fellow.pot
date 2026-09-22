@@ -29,15 +29,15 @@ msgstr ""
 msgid "トップページへ戻る"
 msgstr ""
 
-#: archive.php:42 home.php:70 index.php:34 search.php:51
+#: archive.php:46 home.php:74 index.php:38 search.php:55
 msgid "前へ"
 msgstr ""
 
-#: archive.php:43 home.php:71 index.php:35 search.php:52
+#: archive.php:47 home.php:75 index.php:39 search.php:56
 msgid "次へ"
 msgstr ""
 
-#: archive.php:48
+#: archive.php:52
 msgid "このアーカイブには記事がありません。"
 msgstr ""
 
@@ -55,11 +55,11 @@ msgstr[1] ""
 msgid "サイト"
 msgstr ""
 
-#: footer.php:35 inc/setup.php:197
+#: footer.php:35 inc/setup.php:209
 msgid "カテゴリー"
 msgstr ""
 
-#: footer.php:40 inc/setup.php:203
+#: footer.php:40 inc/setup.php:215
 msgid "アーカイブ"
 msgstr ""
 
@@ -91,11 +91,11 @@ msgstr ""
 msgid "最新記事"
 msgstr ""
 
-#: home.php:61
+#: home.php:65
 msgid "ほかに記事がありません。"
 msgstr ""
 
-#: home.php:76
+#: home.php:80
 msgid "まだ記事がありません。"
 msgstr ""
 
@@ -487,15 +487,47 @@ msgstr ""
 msgid "ヘッダーを画面上部に固定する"
 msgstr ""
 
+#: inc/customizer.php:498
+msgid "fellow 高速化・広告"
+msgstr ""
+
+#: inc/customizer.php:500
+msgid "表示速度に関わる設定です。通常は初期値のままで構いません。"
+msgstr ""
+
+#: inc/customizer.php:514
+msgid "CSSをHTMLに埋め込む"
+msgstr ""
+
+#: inc/customizer.php:515
+msgid "CSSの読み込み待ちが無くなり、最初の表示が速くなります。CSSを別ファイルで配信したい場合(CDNを使う等)だけ外してください。"
+msgstr ""
+
+#: inc/customizer.php:531
+msgid "AdSense パブリッシャーID"
+msgstr ""
+
+#: inc/customizer.php:532
+msgid "AdSense の「アカウント情報」にある「ca-pub-」から始まる番号です。入力するとテーマが AdSense のコードを読み込みます(自動広告もこれで動きます)。Site Kit などのプラグインでもコードを入れている場合は、二重にならないようプラグイン側のコード挿入を止めてください。"
+msgstr ""
+
 #: inc/customizer.php:551
-msgid "X"
+msgid "AdSense を遅延読み込みする"
 msgstr ""
 
 #: inc/customizer.php:552
+msgid "読者が最初にスクロールやタップをした時点で広告を読み込みます。本文の表示が広告を待たなくなり、表示中のレイアウトのずれも減ります。"
+msgstr ""
+
+#: inc/customizer.php:615
+msgid "X"
+msgstr ""
+
+#: inc/customizer.php:616
 msgid "RSS"
 msgstr ""
 
-#: inc/customizer.php:553
+#: inc/customizer.php:617
 msgid "Feedly"
 msgstr ""
 
@@ -523,51 +555,51 @@ msgstr ""
 msgid "この記事を検索エンジンに登録させない(noindex)"
 msgstr ""
 
-#: inc/setup.php:54 inc/theme-options-page.php:132
+#: inc/setup.php:59 inc/theme-options-page.php:132
 msgid "ヘッダーメニュー"
 msgstr ""
 
-#: inc/setup.php:55
+#: inc/setup.php:60
 msgid "フッター「サイト」メニュー"
 msgstr ""
 
-#: inc/setup.php:79 inc/theme-options-page.php:139 sidebar.php:19
+#: inc/setup.php:91 inc/theme-options-page.php:139 sidebar.php:19
 msgid "サイドバー"
 msgstr ""
 
-#: inc/setup.php:81
+#: inc/setup.php:93
 msgid "記事詳細と記事一覧・アーカイブの横に表示されます。空のときはサイドバー自体が出ず、本文が全幅になります。"
 msgstr ""
 
-#: inc/setup.php:91
+#: inc/setup.php:103
 msgid "サイドバー(スクロール追従)"
 msgstr ""
 
-#: inc/setup.php:93
+#: inc/setup.php:105
 msgid "サイドバーの下部に置かれ、スクロールしても画面内に留まります。目次や人気記事の設置に向いています。"
 msgstr ""
 
-#: inc/setup.php:108
+#: inc/setup.php:120
 msgid "記事下ウィジェットエリア"
 msgstr ""
 
-#: inc/setup.php:110
+#: inc/setup.php:122
 msgid "記事本文のすぐ下に表示されます。広告やお知らせの定位置に。投稿と固定ページの両方に出ます。"
 msgstr ""
 
-#: inc/setup.php:120
+#: inc/setup.php:132
 msgid "フッターウィジェットエリア"
 msgstr ""
 
-#: inc/setup.php:122
+#: inc/setup.php:134
 msgid "フッターの列として表示されます。空のときは何も出力されません。"
 msgstr ""
 
-#: inc/setup.php:194
+#: inc/setup.php:206
 msgid "サイト内検索"
 msgstr ""
 
-#: inc/setup.php:208
+#: inc/setup.php:220
 msgid "最近の記事"
 msgstr ""
 
@@ -757,11 +789,11 @@ msgstr ""
 msgid "「サイドバー(スクロール追従)」に置くと、読みながら目次を参照できます。"
 msgstr ""
 
-#: index.php:40
+#: index.php:44
 msgid "記事が見つかりませんでした。"
 msgstr ""
 
-#: page.php:53 single.php:67
+#: page.php:54 single.php:68
 msgid "ページ:"
 msgstr ""
 
@@ -769,7 +801,7 @@ msgstr ""
 msgid "%s件見つかりました。"
 msgstr ""
 
-#: search.php:58
+#: search.php:62
 msgid "一致する記事が見つかりませんでした。別のキーワードでお試しください。"
 msgstr ""
 
@@ -785,19 +817,19 @@ msgstr ""
 msgid "検索"
 msgstr ""
 
-#: single.php:91
+#: single.php:92
 msgid "この記事を書いた人:%s"
 msgstr ""
 
-#: single.php:102
+#: single.php:103
 msgid "前の記事"
 msgstr ""
 
-#: single.php:103
+#: single.php:104
 msgid "次の記事"
 msgstr ""
 
-#: single.php:114
+#: single.php:115
 msgid "関連記事"
 msgstr ""
 

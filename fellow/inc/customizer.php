@@ -490,6 +490,70 @@ function fellow_customize_register( $wp_customize ) {
 			'type'    => 'checkbox',
 		)
 	);
+
+	// --- 高速化・広告 ---------------------------------------------------.
+	$wp_customize->add_section(
+		'fellow_performance',
+		array(
+			'title'       => __( 'fellow 高速化・広告', 'fellow' ),
+			'priority'    => 97,
+			'description' => __( '表示速度に関わる設定です。通常は初期値のままで構いません。', 'fellow' ),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_inline_css',
+		array(
+			'default'           => true,
+			'sanitize_callback' => 'fellow_sanitize_checkbox',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_inline_css',
+		array(
+			'label'       => __( 'CSSをHTMLに埋め込む', 'fellow' ),
+			'description' => __( 'CSSの読み込み待ちが無くなり、最初の表示が速くなります。CSSを別ファイルで配信したい場合(CDNを使う等)だけ外してください。', 'fellow' ),
+			'section'     => 'fellow_performance',
+			'type'        => 'checkbox',
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_adsense_client',
+		array(
+			'default'           => '',
+			'sanitize_callback' => 'fellow_sanitize_adsense_client',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_adsense_client',
+		array(
+			'label'       => __( 'AdSense パブリッシャーID', 'fellow' ),
+			'description' => __( 'AdSense の「アカウント情報」にある「ca-pub-」から始まる番号です。入力するとテーマが AdSense のコードを読み込みます(自動広告もこれで動きます)。Site Kit などのプラグインでもコードを入れている場合は、二重にならないようプラグイン側のコード挿入を止めてください。', 'fellow' ),
+			'section'     => 'fellow_performance',
+			'type'        => 'text',
+			'input_attrs' => array(
+				'placeholder' => 'ca-pub-',
+			),
+		)
+	);
+
+	$wp_customize->add_setting(
+		'fellow_adsense_delay',
+		array(
+			'default'           => true,
+			'sanitize_callback' => 'fellow_sanitize_checkbox',
+		)
+	);
+	$wp_customize->add_control(
+		'fellow_adsense_delay',
+		array(
+			'label'       => __( 'AdSense を遅延読み込みする', 'fellow' ),
+			'description' => __( '読者が最初にスクロールやタップをした時点で広告を読み込みます。本文の表示が広告を待たなくなり、表示中のレイアウトのずれも減ります。', 'fellow' ),
+			'section'     => 'fellow_performance',
+			'type'        => 'checkbox',
+		)
+	);
 }
 add_action( 'customize_register', 'fellow_customize_register' );
 

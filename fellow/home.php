@@ -53,7 +53,11 @@ $fellow_pickup_ids = fellow_pickup_ids();
 						}
 
 						++$fellow_shown;
-						get_template_part( 'template-parts/content', 'list' );
+						get_template_part(
+							'template-parts/content',
+							'list',
+							array( 'layout' => fellow_list_is_card() ? 'card' : 'list' )
+						);
 					endwhile;
 
 					if ( 0 === $fellow_shown ) :

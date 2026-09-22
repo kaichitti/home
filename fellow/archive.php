@@ -31,7 +31,11 @@ get_header();
 				<?php
 				while ( have_posts() ) :
 					the_post();
-					get_template_part( 'template-parts/content', 'list' );
+					get_template_part(
+						'template-parts/content',
+						'list',
+						array( 'layout' => fellow_list_is_card() ? 'card' : 'list' )
+					);
 				endwhile;
 				?>
 			</div>

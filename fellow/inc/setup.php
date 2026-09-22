@@ -61,9 +61,16 @@ function fellow_setup() {
 		)
 	);
 
-	// カード用(4:3)と記事詳細アイキャッチ用(16:9)。
-	add_image_size( 'fellow-card', 800, 600, true );
+	/*
+	 * 記事詳細アイキャッチ用(16:9)。大小2つ用意する。
+	 *
+	 * srcset は「同じ縦横比の画像」しか候補に入れない。16:9 が 1280px の
+	 * 1枚だけだと、スマホでも必ず 1280px をダウンロードすることになる。
+	 * 768px があればスマホ(表示幅 約360px × 画素密度2前後)はそちらで足りる。
+	 * 小さい方はカード型一覧のサムネイルにも使う。
+	 */
 	add_image_size( 'fellow-eyecatch', 1280, 720, true );
+	add_image_size( 'fellow-eyecatch-small', 768, 432, true );
 }
 add_action( 'after_setup_theme', 'fellow_setup' );
 

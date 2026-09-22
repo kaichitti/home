@@ -506,6 +506,65 @@ function fellow_share_links() {
 }
 
 /**
+ * 記事一覧をカード型で出す設定か。
+ *
+ * @return bool
+ */
+function fellow_list_is_card() {
+	return 'card' === get_theme_mod( 'fellow_list_layout', 'list' );
+}
+
+/**
+ * サムネイル画像の sizes 属性を返す。
+ *
+ * sizes は「この画像が画面上で何px幅になるか」をブラウザに教える値で、
+ * srcset のどの画像をダウンロードするかはこれで決まる。WordPress の既定は
+ * 「画像ファイルの幅」(medium なら 300px)を返すため、実際は 96px で
+ * 表示する一覧のサムネイルでも、画素密度の高いスマホでは 768px や
+ * 1024px の画像が選ばれてしまう。
+ *
+ * 値は main.css のレイアウトから逆算している(本文の root font-size は
+ * 16px のまま)。レイアウトを変えたらここも合わせること。
+ * - コンテナ: 最大 1200px、左右 padding 16px
+ * - 2カラム(900px以上): サイドバー 320px + 間隔 40px
+ * - 固定ページのサイドバー無し: 最大 780px
+ * - 一覧サムネイル: 160px(600px未満は 96px)
+ * - カード: 1列(600px未満)/2列、列間 24px
+ *
+ * 遅延読み込みの画像には WordPress 6.7 以降が「auto,」を前置するため、
+ * 対応ブラウザでは実寸が優先され、ここの値は予備として使われる。
+ *
+ * @param string $context 'list' | 'card' | 'eyecatch'。
+ * @return string
+ */
+function fellow_image_sizes( $context ) {
+	$sidebar = fellow_has_sidebar();
+
+	if ( 'card' === $context ) {
+		if ( $sidebar ) {
+			return '(max-width: 599px) calc(100vw - 32px), (max-width: 899px) calc(50vw - 28px), (max-width: 1199px) calc(50vw - 208px), 392px';
+		}
+
+		return '(max-width: 599px) calc(100vw - 32px), (max-width: 1199px) calc(50vw - 28px), 572px';
+	}
+
+	if ( 'eyecatch' === $context ) {
+		if ( $sidebar ) {
+			return '(max-width: 899px) calc(100vw - 32px), (max-width: 1199px) calc(100vw - 392px), 808px';
+		}
+
+		// 固定ページはサイドバーが無いと読みやすい幅(780px)に絞られる(fellow_container_class)。
+		if ( is_page() ) {
+			return '(max-width: 779px) calc(100vw - 32px), 748px';
+		}
+
+		return '(max-width: 1199px) calc(100vw - 32px), 1168px';
+	}
+
+	return '(max-width: 599px) 96px, 160px';
+}
+
+/**
  * 記事一覧コンテナのクラスを返す。
  *
  * カスタマイザーの「記事一覧のレイアウト」に追従する。
@@ -519,7 +578,7 @@ function fellow_share_links() {
 function fellow_post_list_class( $follow_setting = true ) {
 	$classes = array( 'post-list' );
 
-	if ( $follow_setting && 'card' === get_theme_mod( 'fellow_list_layout', 'list' ) ) {
+	if ( $follow_setting && fellow_list_is_card() ) {
 		$classes[] = 'post-list--card';
 	}
 

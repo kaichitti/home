@@ -38,6 +38,7 @@ get_header();
 								array(
 									'loading'       => 'eager',
 									'fetchpriority' => 'high',
+									'sizes'         => fellow_image_sizes( 'eyecatch' ),
 								)
 							);
 							?>
