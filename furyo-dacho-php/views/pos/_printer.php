@@ -1,0 +1,454 @@
+<?php
+/**
+ * レシートプリンタ制御（端末ごとの設定・接続確認・印刷）
+ *
+ * window.FuryoPrinter を定義する。設定はこの端末のブラウザ（localStorage）に保存する。
+ *
+ * 接続方式:
+ *  - none    : プリンタなし（会計時に「未接続」ダイアログを表示）
+ *  - browser : ブラウザ印刷（OS にインストールしたプリンタ。接続状態はブラウザから確認できないため「接続あり」とみなす）
+ *  - usb     : USB 直結（WebUSB・ESC/POS 対応機。Chrome / Edge・HTTPS が必要）
+ *  - serial  : シリアル / Bluetooth（Web Serial・ESC/POS 対応機。Chrome / Edge・HTTPS が必要）
+ *
+ * 直結方式では、サーバーが返すレイアウト（ReceiptLayout）を Canvas に描画して
+ * ESC/POS のラスター画像（GS v 0）として送る。日本語もフォント描画のため文字コード設定は不要。
+ */
+?>
+<script>
+(function () {
+    'use strict';
+    if (window.FuryoPrinter) { return; }
+
+    var KEY = 'furyo_pos_printer_v1';
+    // registerNo: この端末のレジ番号（1〜99。レシートに「レジ01」と印字し、取引・精算をレジ別に集計する）
+    var DEFAULTS = { mode: 'none', paper: 80, autoCut: true, drawer: false, usb: null, serial: null, baudRate: 38400, flowControl: 'none', registerNo: 1 };
+    var MODES = {
+        none: 'プリンタなし',
+        browser: 'ブラウザ印刷（OSのプリンタ）',
+        usb: 'USB直結（ESC/POS）',
+        serial: 'シリアル / Bluetooth（ESC/POS）'
+    };
+    var FONT = "'Noto Sans JP','Hiragino Kaku Gothic ProN','Hiragino Sans','Yu Gothic','Meiryo',sans-serif";
+
+    function load() {
+        var cfg = {};
+        try { cfg = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { cfg = {}; }
+        var out = {};
+        for (var k in DEFAULTS) { out[k] = Object.prototype.hasOwnProperty.call(cfg, k) ? cfg[k] : DEFAULTS[k]; }
+        if (!MODES[out.mode]) { out.mode = 'none'; }
+        out.paper = Number(out.paper) === 58 ? 58 : 80;
+        var reg = parseInt(out.registerNo, 10);
+        out.registerNo = (reg >= 1 && reg <= 99) ? reg : 1;
+        return out;
+    }
+    function save(cfg) {
+        try { localStorage.setItem(KEY, JSON.stringify(cfg)); return true; } catch (e) { return false; }
+    }
+    function support() {
+        return { usb: !!navigator.usb, serial: !!navigator.serial, secure: !!window.isSecureContext };
+    }
+
+    /* ---------------- 機器の検出 ---------------- */
+    function findUsb(cfg) {
+        if (!navigator.usb || !cfg.usb) { return Promise.resolve(null); }
+        return navigator.usb.getDevices().then(function (devs) {
+            for (var i = 0; i < devs.length; i++) {
+                var d = devs[i];
+                if (d.vendorId === cfg.usb.vendorId && d.productId === cfg.usb.productId
+                    && (!cfg.usb.serialNumber || d.serialNumber === cfg.usb.serialNumber)) {
+                    return d;
+                }
+            }
+            return null;
+        });
+    }
+    function findSerial(cfg) {
+        if (!navigator.serial) { return Promise.resolve(null); }
+        return navigator.serial.getPorts().then(function (ports) {
+            if (!ports.length) { return null; }
+            var want = cfg.serial || {};
+            if (want.usbVendorId || want.usbProductId) {
+                for (var i = 0; i < ports.length; i++) {
+                    var info = ports[i].getInfo ? ports[i].getInfo() : {};
+                    if (info.usbVendorId === want.usbVendorId && info.usbProductId === want.usbProductId) { return ports[i]; }
+                }
+                return null;
+            }
+            // Bluetooth 等で識別情報が無い場合は、許可済みの最初のポートを使う
+            return ports[0];
+        });
+    }
+
+    /** USB: 開いて印刷用インターフェース（bulk OUT）を確保する */
+    function usbPrepare(dev) {
+        var p = dev.opened ? Promise.resolve() : dev.open();
+        return p.then(function () {
+            if (dev.configuration === null) { return dev.selectConfiguration(1); }
+        }).then(function () {
+            var best = null;
+            dev.configuration.interfaces.forEach(function (iface) {
+                iface.alternates.forEach(function (alt) {
+                    alt.endpoints.forEach(function (ep) {
+                        if (ep.direction === 'out' && ep.type === 'bulk') {
+                            var score = alt.interfaceClass === 7 ? 2 : 1; // 7 = プリンタクラス
+                            if (!best || score > best.score) {
+                                best = { iface: iface, ep: ep.endpointNumber, score: score };
+                            }
+                        }
+                    });
+                });
+            });
+            if (!best) { throw new Error('この機器には印刷用の出力ポートがありません（レシートプリンタを選択してください）。'); }
+            if (best.iface.claimed) { return best; }
+            return dev.claimInterface(best.iface.interfaceNumber).then(function () { return best; });
+        });
+    }
+
+    /**
+     * 接続確認
+     * @return Promise<{connected:boolean, label?:string, reason?:string, verified?:boolean}>
+     */
+    function check(cfg) {
+        cfg = cfg || load();
+        if (cfg.mode === 'browser') {
+            return Promise.resolve({ connected: true, verified: false, label: MODES.browser });
+        }
+        if (cfg.mode === 'usb') {
+            if (!navigator.usb) {
+                return Promise.resolve({ connected: false, reason: 'このブラウザ（または http 接続）ではUSB直結印刷を使えません。Chrome / Edge で https のURLから開いてください。' });
+            }
+            if (!cfg.usb) {
+                return Promise.resolve({ connected: false, reason: 'USBプリンタが選択されていません。POS設定で選択してください。' });
+            }
+            var name = cfg.usb.name || 'USBプリンタ';
+            return findUsb(cfg).then(function (dev) {
+                if (!dev) {
+                    return { connected: false, reason: name + ' が見つかりません。電源とUSBケーブルを確認してください。' };
+                }
+                return usbPrepare(dev).then(function () {
+                    return { connected: true, verified: true, label: dev.productName || name };
+                }, function (e) {
+                    return { connected: false, reason: name + ' に接続できません（他のアプリやプリンタドライバが使用中の可能性があります）。' + (e && e.message ? '\n詳細: ' + e.message : '') };
+                });
+            }, function (e) {
+                return { connected: false, reason: 'USB機器の確認に失敗しました。' + (e && e.message ? e.message : '') };
+            });
+        }
+        if (cfg.mode === 'serial') {
+            if (!navigator.serial) {
+                return Promise.resolve({ connected: false, reason: 'このブラウザ（または http 接続）ではシリアル / Bluetooth 印刷を使えません。Chrome / Edge で https のURLから開いてください。' });
+            }
+            return findSerial(cfg).then(function (port) {
+                var name = (cfg.serial && cfg.serial.name) || 'シリアルプリンタ';
+                if (!port) {
+                    return { connected: false, reason: name + ' が見つかりません。電源・ケーブル・ペアリングを確認し、POS設定で選択し直してください。' };
+                }
+                return { connected: true, verified: true, label: name };
+            }, function () {
+                return { connected: false, reason: 'シリアルポートの確認に失敗しました。' };
+            });
+        }
+        return Promise.resolve({ connected: false, reason: 'この端末にはレシートプリンタが設定されていません。' });
+    }
+
+    /** 機器の選択（ユーザー操作から呼ぶこと） */
+    function pairUsb() {
+        if (!navigator.usb) { return Promise.reject(new Error('このブラウザはWebUSBに対応していません（Chrome / Edge・https が必要です）。')); }
+        return navigator.usb.requestDevice({ filters: [] }).then(function (d) {
+            var cfg = load();
+            cfg.usb = {
+                vendorId: d.vendorId, productId: d.productId, serialNumber: d.serialNumber || '',
+                name: d.productName || ('USB ' + d.vendorId.toString(16) + ':' + d.productId.toString(16))
+            };
+            save(cfg);
+            return cfg.usb;
+        });
+    }
+    function pairSerial() {
+        if (!navigator.serial) { return Promise.reject(new Error('このブラウザはWeb Serialに対応していません（Chrome / Edge・https が必要です）。')); }
+        return navigator.serial.requestPort({}).then(function (port) {
+            var info = port.getInfo ? port.getInfo() : {};
+            var cfg = load();
+            cfg.serial = {
+                usbVendorId: info.usbVendorId || null, usbProductId: info.usbProductId || null,
+                name: info.usbVendorId ? ('シリアル ' + info.usbVendorId.toString(16) + ':' + (info.usbProductId || 0).toString(16)) : 'シリアル / Bluetooth ポート'
+            };
+            save(cfg);
+            return cfg.serial;
+        });
+    }
+
+    /* ---------------- 描画（レイアウト → Canvas） ---------------- */
+    function renderCanvas(layout, dots) {
+        var W = dots, margin = dots >= 576 ? 10 : 6;
+        var base = dots >= 576 ? 24 : 20;
+        function sizeOf(it) { return it.s === 2 ? Math.round(base * 1.6) : base; }
+        function fontOf(it) { return (it.b ? 'bold ' : '') + sizeOf(it) + 'px ' + FONT; }
+        function wrap(ctx, text, maxW) {
+            var chars = Array.from(String(text == null ? '' : text));
+            var out = [], cur = '';
+            for (var i = 0; i < chars.length; i++) {
+                if (cur !== '' && ctx.measureText(cur + chars[i]).width > maxW) { out.push(cur); cur = chars[i]; }
+                else { cur += chars[i]; }
+            }
+            out.push(cur);
+            return out;
+        }
+        function pass(ctx, draw) {
+            var y = 6;
+            layout.forEach(function (it) {
+                var t = it.t || 'text', size = sizeOf(it), lh = Math.round(size * 1.38);
+                if (t === 'text') {
+                    ctx.font = fontOf(it);
+                    wrap(ctx, it.v, W - margin * 2).forEach(function (line) {
+                        if (draw) {
+                            var x = margin;
+                            if (it.a === 'c') { ctx.textAlign = 'center'; x = W / 2; }
+                            else if (it.a === 'r') { ctx.textAlign = 'right'; x = W - margin; }
+                            else { ctx.textAlign = 'left'; }
+                            ctx.fillText(line, x, y + size);
+                        }
+                        y += lh;
+                    });
+                } else if (t === 'row') {
+                    ctx.font = fontOf(it);
+                    var right = String(it.r || ''), rw = ctx.measureText(right).width;
+                    var lines = wrap(ctx, it.l, Math.max(40, W - margin * 2 - rw - 12));
+                    lines.forEach(function (line, i) {
+                        if (draw) {
+                            ctx.textAlign = 'left';
+                            ctx.fillText(line, margin, y + size);
+                            if (i === 0) { ctx.textAlign = 'right'; ctx.fillText(right, W - margin, y + size); }
+                        }
+                        y += lh;
+                    });
+                } else if (t === 'hr' || t === 'hr2') {
+                    var mid = y + Math.round(base * 0.45);
+                    if (draw) {
+                        if (t === 'hr') {
+                            for (var x = margin; x < W - margin; x += 10) { ctx.fillRect(x, mid, 6, 2); }
+                        } else {
+                            ctx.fillRect(margin, mid - 3, W - margin * 2, 2);
+                            ctx.fillRect(margin, mid + 2, W - margin * 2, 2);
+                        }
+                    }
+                    y += Math.round(base * 0.9);
+                } else if (t === 'feed') {
+                    y += Math.round(base * 1.38) * Math.max(1, it.n || 1);
+                } else if (t === 'barcode') {
+                    // CODE128: 前後10モジュールの余白込みで幅に収まる整数倍の太さで描く
+                    var mods = it.m || [], total = 20;
+                    mods.forEach(function (w) { total += w; });
+                    var unit = Math.max(1, Math.min(4, Math.floor((W - margin * 2) / total)));
+                    var bh = Math.round(base * 3);
+                    if (draw) {
+                        var x0 = Math.round((W - total * unit) / 2) + 10 * unit;
+                        mods.forEach(function (w, i) {
+                            if (i % 2 === 0) { ctx.fillRect(x0, y, w * unit, bh); }
+                            x0 += w * unit;
+                        });
+                    }
+                    y += bh + 4;
+                } else if (t === 'box') {
+                    var bs = Math.round(dots * 176 / 576); // 約22mm
+                    if (draw) {
+                        ctx.lineWidth = 2;
+                        ctx.strokeRect(W - margin - bs, y, bs, bs);
+                        ctx.font = Math.round(base * 0.85) + 'px ' + FONT;
+                        ctx.textAlign = 'center';
+                        ctx.fillText(String(it.v || ''), W - margin - bs / 2, y + bs / 2 + base * 0.3);
+                    }
+                    y += bs + 8;
+                }
+            });
+            return y + 6;
+        }
+        var tmp = document.createElement('canvas');
+        tmp.width = W; tmp.height = 16;
+        var height = Math.ceil(pass(tmp.getContext('2d'), false));
+        var c = document.createElement('canvas');
+        c.width = W; c.height = height;
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, height);
+        ctx.fillStyle = '#000'; ctx.strokeStyle = '#000'; ctx.textBaseline = 'alphabetic';
+        pass(ctx, true);
+        return c;
+    }
+
+    /** Canvas → ESC/POS（GS v 0 ラスター。256行ずつの帯に分けて送る） */
+    function escposJob(canvas, cfg, drawer) {
+        var w = canvas.width, h = canvas.height, bpr = Math.ceil(w / 8);
+        var px = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+        var parts = [new Uint8Array([0x1B, 0x40])]; // 初期化
+        for (var y0 = 0; y0 < h; y0 += 256) {
+            var bh = Math.min(256, h - y0);
+            var buf = new Uint8Array(8 + bpr * bh);
+            buf.set([0x1D, 0x76, 0x30, 0x00, bpr & 0xFF, (bpr >> 8) & 0xFF, bh & 0xFF, (bh >> 8) & 0xFF], 0);
+            for (var y = 0; y < bh; y++) {
+                for (var x = 0; x < w; x++) {
+                    var i = ((y0 + y) * w + x) * 4;
+                    var lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+                    if (lum < 150) { buf[8 + y * bpr + (x >> 3)] |= (0x80 >> (x & 7)); }
+                }
+            }
+            parts.push(buf);
+        }
+        parts.push(new Uint8Array([0x1B, 0x64, 0x04])); // 4行送り
+        if (cfg.autoCut) { parts.push(new Uint8Array([0x1D, 0x56, 0x42, 0x00])); } // 紙送りしてパーシャルカット
+        if (drawer) { parts.push(new Uint8Array([0x1B, 0x70, 0x00, 0x19, 0xFA])); } // ドロワー開放
+        var len = 0; parts.forEach(function (p) { len += p.length; });
+        var out = new Uint8Array(len), off = 0;
+        parts.forEach(function (p) { out.set(p, off); off += p.length; });
+        return out;
+    }
+
+    /* ---------------- 送信 ---------------- */
+    function sendUsb(cfg, bytes) {
+        return findUsb(cfg).then(function (dev) {
+            if (!dev) { throw new Error('USBプリンタが見つかりません。電源とケーブルを確認してください。'); }
+            return usbPrepare(dev).then(function (t) {
+                var off = 0;
+                function next() {
+                    if (off >= bytes.length) { return Promise.resolve(); }
+                    var chunk = bytes.subarray(off, Math.min(off + 4096, bytes.length));
+                    off += chunk.length;
+                    return dev.transferOut(t.ep, chunk).then(function (r) {
+                        if (r.status !== 'ok') { throw new Error('USB転送エラー（' + r.status + '）'); }
+                        return next();
+                    });
+                }
+                return next();
+            });
+        });
+    }
+    function sendSerial(cfg, bytes) {
+        return findSerial(cfg).then(function (port) {
+            if (!port) { throw new Error('シリアルプリンタが見つかりません。'); }
+            var opened = port.writable ? Promise.resolve() : port.open({
+                baudRate: Number(cfg.baudRate) || 38400,
+                flowControl: cfg.flowControl === 'hardware' ? 'hardware' : 'none'
+            });
+            return opened.then(function () {
+                var writer = port.writable.getWriter();
+                var off = 0;
+                function next() {
+                    if (off >= bytes.length) { return Promise.resolve(); }
+                    var chunk = bytes.slice(off, Math.min(off + 1024, bytes.length));
+                    off += chunk.length;
+                    return writer.write(chunk).then(next);
+                }
+                return next().then(function () { writer.releaseLock(); }, function (e) { writer.releaseLock(); throw e; });
+            });
+        });
+    }
+    function sendRaw(cfg, bytes) {
+        if (cfg.mode === 'usb') { return sendUsb(cfg, bytes); }
+        if (cfg.mode === 'serial') { return sendSerial(cfg, bytes); }
+        return Promise.reject(new Error('直結プリンタが設定されていません。'));
+    }
+
+    /** レイアウトを直結プリンタで印刷 */
+    function printLayout(layout, opts) {
+        opts = opts || {};
+        var cfg = opts.cfg || load();
+        var dots = cfg.paper === 58 ? 384 : 576;
+        var canvas = renderCanvas(layout, dots);
+        return sendRaw(cfg, escposJob(canvas, cfg, !!opts.drawer));
+    }
+
+    /** ブラウザ印刷（非表示フレームで印刷ダイアログを開く） */
+    function browserPrint(url) {
+        return new Promise(function (resolve, reject) {
+            var f = document.createElement('iframe');
+            f.setAttribute('aria-hidden', 'true');
+            f.style.cssText = 'position:fixed;left:-10000px;top:0;width:80mm;height:200px;border:0;';
+            var settled = false;
+            function cleanup() { setTimeout(function () { if (f.parentNode) { f.parentNode.removeChild(f); } }, 2000); }
+            var timer = setTimeout(function () {
+                if (!settled) { settled = true; cleanup(); reject(new Error('レシートの読み込みがタイムアウトしました。')); }
+            }, 20000);
+            f.onload = function () {
+                if (settled) { return; }
+                settled = true;
+                clearTimeout(timer);
+                try {
+                    var w = f.contentWindow;
+                    if (!w.document.querySelector('.paper')) {
+                        cleanup();
+                        reject(new Error('レシートを読み込めませんでした（ログインの有効期限が切れた可能性があります）。'));
+                        return;
+                    }
+                    w.focus();
+                    w.print(); // Chrome 等では印刷ダイアログを閉じるまで戻らない
+                    cleanup();
+                    resolve();
+                } catch (e) {
+                    cleanup();
+                    reject(e);
+                }
+            };
+            f.src = url;
+            document.body.appendChild(f);
+        });
+    }
+
+    function withParam(url, params) {
+        var q = [];
+        for (var k in params) { q.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k])); }
+        return url + (url.indexOf('?') >= 0 ? '&' : '?') + q.join('&');
+    }
+
+    /**
+     * サーバーの印刷用URL（pos.receipt 等）を、この端末の設定どおりに印刷する
+     * @param {string} url
+     * @param {{drawer?: boolean}} opts
+     */
+    function printUrl(url, opts) {
+        opts = opts || {};
+        var cfg = load();
+        if (cfg.mode === 'browser') {
+            return browserPrint(withParam(url, { embed: 1, w: cfg.paper }));
+        }
+        if (cfg.mode !== 'usb' && cfg.mode !== 'serial') {
+            return Promise.reject(new Error('この端末にはレシートプリンタが設定されていません。'));
+        }
+        return fetch(withParam(url, { format: 'json' }), { credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+            .then(function (res) {
+                if (res.redirected && /page=login/.test(res.url)) { throw new Error('ログインの有効期限が切れました。再ログインしてください。'); }
+                return res.json().catch(function () { throw new Error('印刷データの取得に失敗しました。'); });
+            })
+            .then(function (data) {
+                if (!data || !data.ok || !data.layout) { throw new Error((data && data.error) || '印刷データの取得に失敗しました。'); }
+                return printLayout(data.layout, { cfg: cfg, drawer: !!opts.drawer });
+            });
+    }
+
+    function openDrawer() {
+        var cfg = load();
+        return sendRaw(cfg, new Uint8Array([0x1B, 0x40, 0x1B, 0x70, 0x00, 0x19, 0xFA]));
+    }
+
+    function onChange(fn) {
+        if (navigator.usb && navigator.usb.addEventListener) {
+            navigator.usb.addEventListener('connect', fn);
+            navigator.usb.addEventListener('disconnect', fn);
+        }
+        if (navigator.serial && navigator.serial.addEventListener) {
+            navigator.serial.addEventListener('connect', fn);
+            navigator.serial.addEventListener('disconnect', fn);
+        }
+        window.addEventListener('focus', fn);
+    }
+
+    function registerLabel(n) {
+        n = n || load().registerNo;
+        return 'レジ' + (n < 10 ? '0' : '') + n;
+    }
+
+    window.FuryoPrinter = {
+        MODES: MODES, load: load, save: save, registerLabel: registerLabel, support: support, check: check,
+        pairUsb: pairUsb, pairSerial: pairSerial, printUrl: printUrl, printLayout: printLayout,
+        renderCanvas: renderCanvas, openDrawer: openDrawer, onChange: onChange, withParam: withParam
+    };
+}());
+</script>

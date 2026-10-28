@@ -1,0 +1,20 @@
+<?php
+/**
+ * レシート番号で取引を呼び出す入力欄（取引履歴・レジ明細検索で共用）
+ *
+ * レシート下部のバーコードをスキャナで読み取るか、番号を入力して Enter で取引詳細
+ * （明細・再印刷・領収書・取消）を開く。本日分は連番だけ（例：12）でも呼び出せる。
+ */
+?>
+<div class="card">
+    <div class="card__body" style="padding:14px 20px;">
+        <form method="GET" action="/index.php" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            <input type="hidden" name="page" value="pos.lookup">
+            <label for="lookup_no" style="font-weight:600; white-space:nowrap;">レシート番号で呼出</label>
+            <input type="text" id="lookup_no" name="no" class="form-control" style="max-width:260px;" maxlength="30"
+                   placeholder="例：20261023-0001 ／ 本日分は 12" autocomplete="off" required>
+            <button type="submit" class="btn btn-primary">明細を表示</button>
+            <span class="text-muted" style="font-size:.78rem;">レシート下部のバーコードを読み取っても呼び出せます（明細・再印刷・領収書・取消）。</span>
+        </form>
+    </div>
+</div>

@@ -1,0 +1,41 @@
+RewriteEngine On
+RewriteBase /
+
+# src/ config/ views/ database/ への直接アクセスを全拒否
+RewriteRule ^(src|config|views|database)(/|$) - [F,L]
+
+# storage/uploads/ への直接アクセスを全拒否
+RewriteRule ^storage/uploads/ - [F,L]
+
+# setup.php は本番環境では削除すること
+
+# 存在するファイル・ディレクトリはそのまま通す
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# admin/ 配下は admin/index.php に集約
+RewriteRule ^admin/(.*)$ admin/index.php?page=$1 [QSA,L]
+
+# それ以外はすべて index.php へ
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# セキュリティヘッダー
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    # 旧ブラウザのXSSフィルタは誤検知や情報漏えいの原因になるため無効化し、
+    # XSS対策は出力エスケープと下記CSPで行う（OWASP推奨値）
+    Header always set X-XSS-Protection "0"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Content-Security-Policy（多層防御）
+    # 本アプリはインラインの <script> / style 属性を多用するため
+    # script-src / style-src に 'unsafe-inline' を許可する。外部オリジンからの
+    # スクリプト読み込み・フレーム埋め込み・プラグインは禁止し、
+    # フォーム送信先と base URI を自サイトに限定する。
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+
+    # HTTPS 運用時はコメントを解除して HSTS を有効化すること
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>

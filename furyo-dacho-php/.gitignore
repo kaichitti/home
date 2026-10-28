@@ -1,0 +1,18 @@
+# 環境設定
+config/.env
+.env
+
+# アップロードファイル（サーバーごとに異なる）
+storage/uploads/*
+!storage/uploads/.htaccess
+
+# セットアップ完了後に削除するファイル
+setup.php
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
