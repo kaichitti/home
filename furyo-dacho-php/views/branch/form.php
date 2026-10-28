@@ -34,7 +34,7 @@ ob_start();
                 </label>
                 <input type="text" id="name" name="name"
                        class="form-control <?= !empty($errors['name']) ? 'is-invalid' : '' ?>"
-                       value="<?= htmlspecialchars($branch['name'] ?? '') ?>"
+                       value="<?= htmlspecialchars($input['name'] ?? $branch['name'] ?? '') ?>"
                        placeholder="例：東京本店" required>
                 <?php if (!empty($errors['name'])): ?>
                     <div class="form-error"><?= htmlspecialchars($errors['name']) ?></div>
@@ -46,7 +46,7 @@ ob_start();
                 <label class="form-label" for="address">住所</label>
                 <input type="text" id="address" name="address"
                        class="form-control <?= !empty($errors['address']) ? 'is-invalid' : '' ?>"
-                       value="<?= htmlspecialchars($branch['address'] ?? '') ?>"
+                       value="<?= htmlspecialchars($input['address'] ?? $branch['address'] ?? '') ?>"
                        placeholder="例：東京都新宿区西新宿1-1-1">
                 <?php if (!empty($errors['address'])): ?>
                     <div class="form-error"><?= htmlspecialchars($errors['address']) ?></div>

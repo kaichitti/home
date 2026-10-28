@@ -115,6 +115,11 @@ class AdminAuthController extends BaseController
             $renderForm('新しいパスワードと確認用パスワードが一致しません。');
             return;
         }
+        // bcrypt は72バイトを超える部分を無視するため、長すぎるパスワードは受け付けない
+        if (strlen($new) > 72) {
+            $renderForm('パスワードは72バイト（半角72文字）以内で入力してください。');
+            return;
+        }
         if (mb_strlen($new) < self::ADMIN_PASSWORD_MIN_LENGTH
             || !preg_match('/[A-Za-z]/', $new)
             || !preg_match('/[0-9]/', $new)) {
@@ -166,8 +171,10 @@ class AdminAuthController extends BaseController
     {
         $this->verifyCsrf();
 
-        $username = trim((string)$this->request->post('username'));
-        $password = (string)($_POST['password'] ?? ''); // htmlspecialchars を回避
+        // 配列が送られた場合は空として扱う（以前は文字列 "Array" として照合していた）
+        $username = $this->request->post('username');
+        $username = is_string($username) ? trim($username) : '';
+        $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : ''; // htmlspecialchars を回避
 
         if (empty($username) || empty($password)) {
             $this->render('admin/login', [

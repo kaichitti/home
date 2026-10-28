@@ -175,7 +175,10 @@ class Alert extends BaseModel
              SET `status` = 'confirmed', `confirmed_by` = ?, `confirmed_at` = NOW()
              WHERE `id` = ? AND `tenant_id` = ? AND `status` = 'unconfirmed'"
         );
-        return $stmt->execute([$confirmedBy, $id, $tenantId]);
+        // 実際に更新できた場合のみ成功とする（以前は確認済み・他テナントのIDでも成功扱いになり、
+        // 存在しない「確認」操作が監査ログに記録されていた）
+        $stmt->execute([$confirmedBy, $id, $tenantId]);
+        return $stmt->rowCount() > 0;
     }
 
     /**

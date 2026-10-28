@@ -36,7 +36,9 @@ class CategoryController extends BaseController
         $this->verifyCsrf();
 
         $tenantId = $this->auth->getTenantId();
-        $name     = trim((string)$this->request->post('name', ''));
+        // 配列が送られた場合は空欄として扱う（以前は区分名「Array」が登録されていた）
+        $name     = $this->request->post('name', '');
+        $name     = is_string($name) ? trim($name) : '';
         $session  = new Session();
 
         try {

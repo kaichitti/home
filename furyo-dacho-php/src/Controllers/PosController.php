@@ -357,10 +357,12 @@ class PosController extends BaseController
                 ['type' => $dType, 'value' => $dValue],
                 ['rate' => $settings['tax_rate'], 'mode' => $settings['tax_mode'], 'rounding' => $settings['tax_rounding']]
             );
-            $pay = PosCalculator::payment($method, $calc['total'], $tendered);
         } catch (\InvalidArgumentException $e) {
             $this->jsonError($e->getMessage(), 'validation');
         }
+        // 画面の合計との一致確認は、お預り金額の検証より先に行う。
+        // （以前は後だったため、消費税の設定変更で合計が増えた場合に「ちょうど」で預かった会計では
+        //   「お預り金額が足りません」と表示され、本来の「再読み込みしてください」の案内が出なかった）
         if ($expectedTotal === null || $expectedTotal !== $calc['total']) {
             $this->jsonError(
                 '画面の合計金額（¥' . number_format((int)$expectedTotal) . '）と計算結果（¥' . number_format($calc['total'])
@@ -369,6 +371,11 @@ class PosController extends BaseController
                 409,
                 ['server_total' => $calc['total']]
             );
+        }
+        try {
+            $pay = PosCalculator::payment($method, $calc['total'], $tendered);
+        } catch (\InvalidArgumentException $e) {
+            $this->jsonError($e->getMessage(), 'validation');
         }
 
         $requestedQty = [];
@@ -1099,7 +1106,8 @@ class PosController extends BaseController
         }
 
         $num = static function ($v): ?int {
-            $v = is_string($v) ? str_replace([',', '¥', ' '], '', mb_convert_kana($v, 'n', 'UTF-8')) : '';
+            // 全角のカンマ・円記号・空白も取り除く（画面の計算は受け付けるのに、保存時だけエラーになっていた）
+            $v = is_string($v) ? str_replace([',', '，', '¥', '￥', '\\', ' ', '　'], '', mb_convert_kana($v, 'n', 'UTF-8')) : '';
             if ($v === '') {
                 return 0;
             }

@@ -87,7 +87,7 @@ class AlertController extends BaseController
 
             $_SESSION['_flash_success'] = 'アラートを確認済みにしました。';
         } else {
-            $_SESSION['_flash_error'] = 'アラートの確認処理に失敗しました。';
+            $_SESSION['_flash_error'] = 'アラートの確認処理に失敗しました（既に確認済みか、見つかりません）。';
         }
 
         $this->response->redirect('/index.php?page=alert');

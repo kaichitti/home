@@ -19,7 +19,7 @@ ob_start();
 </div>
 
 <div class="alert alert-info" style="margin-bottom: 20px;">
-    添付ファイルは出力対象外です。PDFはA4縦・古物台帳フォーマットで出力されます。
+    添付ファイルは出力対象外です。PDFはA4横・古物台帳フォーマットで出力されます（印刷用HTMLをブラウザで開き「PDFに保存」）。
 </div>
 
 <div class="card">
@@ -49,8 +49,12 @@ ob_start();
                     <select id="fiscal_year" name="fiscal_year" class="form-control">
                         <option value="">-- すべて --</option>
                         <?php
-                        $currentYear = (int)date('Y');
-                        for ($y = $currentYear; $y >= $currentYear - 10; $y--):
+                        // 年度は4月始まり。台帳に存在する年度が10年より前でも選べるようにする
+                        // （以前は暦年基準・直近10年固定で、1〜3月は存在しない翌年度が先頭に出ていた）
+                        $currentYear = (int)date('n') >= 4 ? (int)date('Y') : (int)date('Y') - 1;
+                        $oldestYear  = $currentYear - 10;
+                        foreach (($fiscalYears ?? []) as $fy) { $oldestYear = min($oldestYear, (int)$fy); }
+                        for ($y = $currentYear; $y >= $oldestYear; $y--):
                         ?>
                         <option value="<?= $y ?>"
                             <?= ($search['fiscal_year'] ?? '') == $y ? 'selected' : '' ?>>
@@ -148,7 +152,7 @@ ob_start();
                     </button>
                 </div>
                 <p class="form-hint" style="margin-top: 10px;">
-                    CSV: 全カラムを出力します。PDF: A4縦・古物台帳フォーマット（添付ファイルは含みません）。
+                    CSV: 全カラムを出力します。PDF: A4横・古物台帳フォーマット（添付ファイルは含みません）。
                 </p>
             </div>
 

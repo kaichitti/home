@@ -242,6 +242,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errors[] = 'アップロードディレクトリは必須です。';
             } elseif (preg_match('/[\x00-\x1F\x7F]/', $uploadDir)) {
                 $errors[] = 'アップロードディレクトリに使用できない文字が含まれています。';
+            } elseif (!is_dir($uploadDir) && !@mkdir($uploadDir, 0700, true)) {
+                // 存在しないディレクトリを設定すると、後でファイル添付が必ず失敗していた
+                $errors[] = 'アップロードディレクトリを作成できませんでした。パスと書き込み権限を確認してください: ' . $uploadDir;
+            } elseif (!is_writable($uploadDir)) {
+                $errors[] = 'アップロードディレクトリに書き込めません。権限を確認してください: ' . $uploadDir;
             } else {
                 $host = sessionGet('db_host');
                 $name = sessionGet('db_name');
@@ -352,7 +357,15 @@ if ($step === 1) {
     }
 
     // storage/uploads/ 書き込み権限
+    // 配布ZIPには storage/ が含まれないため、以前はここが必ず NG になり先へ進めなかった。
+    // 無ければ作成し（外部から読めないよう .htaccess も置く）、そのうえで書き込み可否を確認する。
     $uploadsDir = SETUP_BASE . '/storage/uploads';
+    if (!is_dir($uploadsDir)) {
+        @mkdir($uploadsDir, 0700, true);
+    }
+    if (is_dir($uploadsDir) && !is_file($uploadsDir . '/.htaccess')) {
+        @file_put_contents($uploadsDir . '/.htaccess', "Require all denied\n");
+    }
     $writable = is_dir($uploadsDir) && is_writable($uploadsDir);
     $envChecks[] = [
         'label' => 'storage/uploads/ 書き込み権限',

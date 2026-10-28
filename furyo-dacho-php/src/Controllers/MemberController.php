@@ -23,7 +23,8 @@ class MemberController extends BaseController
         $this->auth->requireAuth();
 
         $tenantId = $this->auth->getTenantId();
-        $keyword  = trim((string)$this->request->get('keyword', ''));
+        $keyword  = $this->request->get('keyword', '');
+        $keyword  = is_string($keyword) ? trim($keyword) : '';
         $page     = max(1, (int)$this->request->get('p', 1));
         $perPage  = 50;
 
@@ -260,7 +261,8 @@ class MemberController extends BaseController
         $this->auth->requireAuth();
 
         $tenantId = $this->auth->getTenantId();
-        $code     = trim((string)$this->request->get('code', ''));
+        $code     = $this->request->get('code', '');
+        $code     = is_string($code) ? trim($code) : '';
 
         header('Content-Type: application/json; charset=UTF-8');
 

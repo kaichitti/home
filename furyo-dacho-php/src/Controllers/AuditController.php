@@ -20,11 +20,16 @@ class AuditController extends BaseController
         $perPage  = 50;
         $page     = max(1, (int)$this->request->get('p', 1));
 
+        // 絞り込み条件は文字列のみ受け付ける（配列が送られた場合は条件なしとして扱う）
+        $g = function (string $key): ?string {
+            $v = $this->request->get($key);
+            return (is_string($v) && $v !== '') ? $v : null;
+        };
         $filters = [
-            'action_type' => $this->request->get('action_type') ?: null,
-            'user_id'     => $this->request->get('user_id')     ?: null,
-            'date_from'   => $this->request->get('date_from')   ?: null,
-            'date_to'     => $this->request->get('date_to')     ?: null,
+            'action_type' => $g('action_type'),
+            'user_id'     => $g('user_id'),
+            'date_from'   => $g('date_from'),
+            'date_to'     => $g('date_to'),
         ];
 
         $auditModel = new AuditLog($this->pdo);

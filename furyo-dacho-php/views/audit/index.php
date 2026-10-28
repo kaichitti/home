@@ -40,7 +40,7 @@ ob_start();
                 <td><?= htmlspecialchars($log['branch_name'] ?? '-') ?></td>
                 <td>
                     <?php
-                    $label  = $actionLabels[$action] ?? htmlspecialchars($action);
+                    $label  = $actionLabels[$action] ?? $action; // 出力時にエスケープする（二重エスケープしない）
                     $badgeClass = 'badge-secondary';
                     if ($action === 'delete')       $badgeClass = 'badge-danger';
                     elseif ($action === 'create')   $badgeClass = 'badge-success';
@@ -109,7 +109,8 @@ ob_start();
 <?php
 $cp      = (int)($pagination['current_page'] ?? 1);
 $tp      = (int)$pagination['total_pages'];
-$baseUrl = '/index.php?page=audit';
+// 絞り込み条件（操作種別・操作者・期間）を引き継ぐ（以前はページを送ると条件が外れていた）
+$baseUrl = '/index.php?page=audit' . (!empty($filters) && array_filter($filters) ? '&' . http_build_query(array_filter($filters)) : '');
 ?>
 <div class="pagination">
     <a href="<?= htmlspecialchars($baseUrl . '&p=' . max(1, $cp - 1)) ?>"

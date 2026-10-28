@@ -102,9 +102,10 @@ session_start();
 $_SESSION['_test'] = 'ok';
 echo 'Session: ' . ($_SESSION['_test'] === 'ok' ? 'OK' : 'NG') . "\n";
 
-// ストレージ書き込みテスト
-$uploadDir = BASE_PATH . '/storage/uploads';
-echo 'storage/uploads: ' . (is_writable($uploadDir) ? 'writable' : 'NOT writable') . "\n";
+// ストレージ書き込みテスト（config/.env の UPLOAD_DIR を確認する。
+// 以前は常に storage/uploads を見ており、推奨どおり webroot 外に置いた場合に誤判定していた）
+$uploadDir = isset($config['upload_dir']) ? (string)$config['upload_dir'] : BASE_PATH . '/storage/uploads';
+echo 'UPLOAD_DIR (' . $uploadDir . '): ' . (is_dir($uploadDir) && is_writable($uploadDir) ? 'writable' : 'NOT writable') . "\n";
 
 echo '</pre>';
 echo '<b style="color:green">診断完了。このファイルは確認後すぐに削除してください。</b>';

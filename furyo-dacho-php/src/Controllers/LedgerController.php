@@ -212,28 +212,34 @@ class LedgerController extends BaseController
                     $code = $memberModel->generateCode($tenantId);
                 }
 
-                $memberModel->create($tenantId, [
-                    'member_code'        => $code,
-                    'counterpart_type'   => $input['counterpart_type'] ?? 'individual',
-                    'name'               => $input['counterpart_name'] ?? '',
-                    'address'            => $input['counterpart_address'] ?? '',
-                    'occupation'         => $input['counterpart_occupation'] ?? '',
-                    'age'                => $input['counterpart_age'] ?? '',
-                    'phone'              => $input['counterpart_phone'] ?? '',
-                    'contact_name'       => $input['counterpart_contact_name'] ?? '',
-                    'account'            => $input['counterpart_account'] ?? '',
-                    'id_document_type'   => $input['id_document_type'] ?? '',
-                    'id_document_number' => $input['id_document_number'] ?? '',
-                    'note'               => $input['counterpart_note'] ?? '',
-                ]);
+                try {
+                    $memberModel->create($tenantId, [
+                        'member_code'        => $code,
+                        'counterpart_type'   => $input['counterpart_type'] ?? 'individual',
+                        'name'               => $input['counterpart_name'] ?? '',
+                        'address'            => $input['counterpart_address'] ?? '',
+                        'occupation'         => $input['counterpart_occupation'] ?? '',
+                        'age'                => $input['counterpart_age'] ?? '',
+                        'phone'              => $input['counterpart_phone'] ?? '',
+                        'contact_name'       => $input['counterpart_contact_name'] ?? '',
+                        'account'            => $input['counterpart_account'] ?? '',
+                        'id_document_type'   => $input['id_document_type'] ?? '',
+                        'id_document_number' => $input['id_document_number'] ?? '',
+                        'note'               => $input['counterpart_note'] ?? '',
+                    ]);
 
-                // 台帳にも会員番号を反映（承認判定・引用に利用できるように）
-                $this->pdo->prepare(
-                    "UPDATE `ledgers` SET `member_code` = ? WHERE `id` = ? AND `tenant_id` = ?"
-                )->execute([$code, $newId, $tenantId]);
-                $input['member_code'] = $code;
+                    // 台帳にも会員番号を反映（承認判定・引用に利用できるように）
+                    $this->pdo->prepare(
+                        "UPDATE `ledgers` SET `member_code` = ? WHERE `id` = ? AND `tenant_id` = ?"
+                    )->execute([$code, $newId, $tenantId]);
+                    $input['member_code'] = $code;
 
-                $successMessages[] = '相手方情報から会員「' . $code . '」を新規登録しました。';
+                    $successMessages[] = '相手方情報から会員「' . $code . '」を新規登録しました。';
+                } catch (\PDOException $e) {
+                    // 同時に同じ番号が登録された場合など。台帳は登録済みのため 500 にせず案内する
+                    error_log('LedgerController::store member create failed: ' . $e->getMessage());
+                    $successMessages[] = '会員の新規登録はできませんでした（会員番号「' . $code . '」が既に使われている可能性があります）。会員管理から登録してください。';
+                }
             }
         }
 
@@ -374,11 +380,11 @@ class LedgerController extends BaseController
             return;
         }
 
-        $quantity   = (int)$this->request->post('quantity', 1);
-        $saleAmount = trim((string)$this->request->post('sale_amount', ''));
-        $soldAt     = trim((string)$this->request->post('sold_at', ''));
-        $note       = trim((string)$this->request->post('note', ''));
-        $memberCode = trim((string)$this->request->post('member_code', ''));
+        $quantity   = (int)$this->postStr('quantity', '1');
+        $saleAmount = $this->postStr('sale_amount');
+        $soldAt     = $this->postStr('sold_at');
+        $note       = $this->postStr('note');
+        $memberCode = $this->postStr('member_code');
 
         $redirect = '/index.php?page=ledger.show&id=' . $ledgerId;
 
@@ -548,11 +554,11 @@ class LedgerController extends BaseController
         $record   = (new Ledger($this->pdo))->findById($ledgerId, $tenantId);
         $redirect = '/index.php?page=ledger.show&id=' . $ledgerId;
 
-        $quantity   = (int)$this->request->post('quantity', 1);
-        $saleAmount = trim((string)$this->request->post('sale_amount', ''));
-        $soldAt     = trim((string)$this->request->post('sold_at', ''));
-        $note       = trim((string)$this->request->post('note', ''));
-        $memberCode = trim((string)$this->request->post('member_code', ''));
+        $quantity   = (int)$this->postStr('quantity', '1');
+        $saleAmount = $this->postStr('sale_amount');
+        $soldAt     = $this->postStr('sold_at');
+        $note       = $this->postStr('note');
+        $memberCode = $this->postStr('member_code');
 
         if ($quantity < 1) {
             $session->setFlash('error', '販売個数は1以上で入力してください。');
@@ -687,6 +693,16 @@ class LedgerController extends BaseController
 
         $session->setFlash('success', '販売記録を削除しました。（在庫数に反映されます）');
         $this->response->redirect('/index.php?page=ledger.show&id=' . (int)$sale['ledger_id']);
+    }
+
+    /**
+     * POST の文字列項目（配列等が送られた場合は既定値）
+     * （以前は (string) で変換しており、配列を送ると文字列 "Array" として扱われていた）
+     */
+    private function postStr(string $key, string $default = ''): string
+    {
+        $v = $this->request->post($key, $default);
+        return is_string($v) ? trim($v) : $default;
     }
 
     /**
@@ -827,6 +843,12 @@ class LedgerController extends BaseController
         if (!empty($errors)) {
             $ledgerModel = new Ledger($this->pdo);
             $record      = $ledgerModel->findById($id, $tenantId);
+            if ($record === null) {
+                // 対象が無いまま再表示すると新規登録フォームとして表示され、
+                // 「保存」で別の台帳が新規登録されてしまうため 404 にする
+                $this->response->notFound('台帳が見つかりません。');
+                return;
+            }
             $branches    = (new Branch($this->pdo))->findAllByTenant($tenantId);
             $this->render('ledger/form', [
                 'ledger'          => $record,
@@ -1018,6 +1040,13 @@ class LedgerController extends BaseController
             if (!isset($input[$field]) || $input[$field] === '') {
                 $errors[$field] = $this->fieldLabel($field) . ' は必須です。';
             }
+        }
+
+        // 取引種別は定義済みの値のみ（以前は検証が無く、不正な値でDBエラー
+        // 「台帳を登録できませんでした」になるか、厳格モードでないDBでは空の種別が保存されていた）
+        if (empty($errors['transaction_type']) && isset($input['transaction_type'])
+            && !in_array($input['transaction_type'], ['buy', 'exchange', 'consignment', 'other'], true)) {
+            $errors['transaction_type'] = '取引種別の値が無効です。';
         }
 
         // 型チェック（エラーがない場合のみ実施）

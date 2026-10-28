@@ -42,14 +42,14 @@ ob_start();
                 <tr><th>会員番号</th><td><?= $h($member['member_code']) ?></td></tr>
                 <tr><th>区分</th><td><?= $member['counterpart_type'] === 'corporate' ? '法人' : '個人' ?></td></tr>
                 <tr><th><?= $member['counterpart_type'] === 'corporate' ? '名称' : '氏名' ?></th><td><?= $h($member['name']) ?></td></tr>
-                <?php if (!empty($member['contact_name'])): ?><tr><th>担当者</th><td><?= $h($member['contact_name']) ?></td></tr><?php endif; ?>
+                <?php if ((string)($member['contact_name'] ?? '') !== ''): ?><tr><th>担当者</th><td><?= $h($member['contact_name']) ?></td></tr><?php endif; ?>
                 <?php if ($member['counterpart_type'] !== 'corporate'): ?>
                 <tr><th>職業</th><td><?= $h($member['occupation'] ?? '') ?: '-' ?></td></tr>
                 <tr><th>年齢</th><td><?= ($member['age'] ?? null) !== null && $member['age'] !== '' ? (int)$member['age'] . ' 歳' : '-' ?></td></tr>
                 <?php endif; ?>
                 <tr><th>電話番号</th><td><?= $h($member['phone'] ?? '') ?: '-' ?></td></tr>
                 <tr><th>住所</th><td><?= $h($member['address'] ?? '') ?: '-' ?></td></tr>
-                <?php if (!empty($member['account'])): ?><tr><th>取引アカウント</th><td><?= $h($member['account']) ?></td></tr><?php endif; ?>
+                <?php if ((string)($member['account'] ?? '') !== ''): ?><tr><th>取引アカウント</th><td><?= $h($member['account']) ?></td></tr><?php endif; ?>
                 <?php
                 $memberDocLabels = [
                     'driver_license' => '運転免許証', 'my_number' => 'マイナンバーカード', 'passport' => 'パスポート',
@@ -60,7 +60,7 @@ ob_start();
                 <tr><th>本人確認</th><td><?= !empty($member['id_document_type'])
                     ? '<span class="badge badge-success">確認済み</span> ' . $h($memberDocLabels[$member['id_document_type']] ?? (string)$member['id_document_type'])
                     : '<span class="badge badge-warning">未登録</span>' ?></td></tr>
-                <?php if (!empty($member['note'])): ?><tr><th>備考</th><td style="white-space:pre-wrap;"><?= $h($member['note']) ?></td></tr><?php endif; ?>
+                <?php if ((string)($member['note'] ?? '') !== ''): ?><tr><th>備考</th><td style="white-space:pre-wrap;"><?= $h($member['note']) ?></td></tr><?php endif; ?>
                 <tr><th>登録日</th><td><?= $h(substr((string)$member['created_at'], 0, 10)) ?></td></tr>
             </table>
         </div>

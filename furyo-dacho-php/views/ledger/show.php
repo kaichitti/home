@@ -132,7 +132,7 @@ ob_start();
                     <?php
                     $txType = $ledger['transaction_type'] ?? '';
                     echo htmlspecialchars($transactionTypeLabels[$txType] ?? $txType);
-                    if ($txType === 'other' && !empty($ledger['transaction_type_note'])):
+                    if ($txType === 'other' && (string)($ledger['transaction_type_note'] ?? '') !== ''):
                     ?>
                         <span class="text-muted">（<?= htmlspecialchars($ledger['transaction_type_note']) ?>）</span>
                     <?php endif; ?>
@@ -151,7 +151,7 @@ ob_start();
                 <th>品目</th>
                 <td><?= htmlspecialchars($ledger['item_name'] ?? '') ?></td>
             </tr>
-            <?php if (!empty($ledger['serial_number'])): ?>
+            <?php if ((string)($ledger['serial_number'] ?? '') !== ''): ?>
             <tr>
                 <th>シリアル番号</th>
                 <td><?= htmlspecialchars($ledger['serial_number']) ?></td>
@@ -201,7 +201,7 @@ ob_start();
                     </span>
                 </td>
             </tr>
-            <?php if (!empty($ledger['member_code'])): ?>
+            <?php if ((string)($ledger['member_code'] ?? '') !== ''): ?>
             <tr>
                 <th>会員番号</th>
                 <td><?= htmlspecialchars($ledger['member_code']) ?></td>
@@ -235,13 +235,13 @@ ob_start();
                 <th>電話番号</th>
                 <td><?= htmlspecialchars($ledger['counterpart_phone'] ?? '-') ?></td>
             </tr>
-            <?php if (!empty($ledger['counterpart_account'])): ?>
+            <?php if ((string)($ledger['counterpart_account'] ?? '') !== ''): ?>
             <tr>
                 <th>取引アカウント</th>
                 <td><?= htmlspecialchars($ledger['counterpart_account']) ?></td>
             </tr>
             <?php endif; ?>
-            <?php if (!empty($ledger['counterpart_note'])): ?>
+            <?php if ((string)($ledger['counterpart_note'] ?? '') !== ''): ?>
             <tr>
                 <th>備考</th>
                 <td style="white-space: pre-wrap;"><?= htmlspecialchars($ledger['counterpart_note']) ?></td>
@@ -268,7 +268,7 @@ ob_start();
                     } else {
                         echo htmlspecialchars($idDocumentTypeLabels[$docType] ?? (string)$docType);
                     }
-                    if ($docType === 'other' && !empty($ledger['id_document_type_note'])):
+                    if ($docType === 'other' && (string)($ledger['id_document_type_note'] ?? '') !== ''):
                     ?>
                         <span class="text-muted">（<?= htmlspecialchars($ledger['id_document_type_note']) ?>）</span>
                     <?php endif; ?>

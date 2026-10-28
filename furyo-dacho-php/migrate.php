@@ -100,6 +100,16 @@ $errors  = [];
 $pending = [];
 $pdo     = null;
 
+// CSRF 対策: 実行ボタンのフォームにセッションのトークンを埋め込み、POST 時に照合する
+// （以前はトークンが無く、ログイン中の管理者が細工されたページを開くと実行され得た）
+if (session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
+if (empty($_SESSION['_csrf_token'])) {
+    $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = (string)$_SESSION['_csrf_token'];
+
 // ------------------------------------------------------------
 // DB接続
 // ------------------------------------------------------------
@@ -611,7 +621,11 @@ if ($pdo !== null) {
 // POST: 実行
 // ------------------------------------------------------------
 $done = false;
-if ($pdo !== null && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run'])) {
+$csrfOk = is_string($_POST['_csrf_token'] ?? null) && hash_equals($csrfToken, $_POST['_csrf_token']);
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run']) && !$csrfOk) {
+    $errors[] = 'セッションの有効期限が切れたか、不正なリクエストです。ページを再読み込みしてもう一度実行してください。';
+}
+if ($pdo !== null && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run']) && $csrfOk) {
     foreach ($migrations as $m) {
         try {
             if ($m['check']()) {
@@ -724,6 +738,7 @@ button:hover { background: #2a4e7f; }
             <ul><?php foreach ($pending as $p): ?><li><?= h($p) ?></li><?php endforeach; ?></ul>
             <div class="warn">実行前にXREAコントロールパネル等でDBのバックアップを取得することを推奨します。</div>
             <form method="POST">
+                <input type="hidden" name="_csrf_token" value="<?= h($csrfToken) ?>">
                 <button type="submit" name="run" value="1">マイグレーションを実行</button>
             </form>
         <?php endif; ?>

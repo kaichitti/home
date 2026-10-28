@@ -124,6 +124,16 @@ class AuthController extends BaseController
             return;
         }
 
+        // bcrypt は72バイトを超える部分を無視するため、長すぎるパスワードは受け付けない
+        // （以前は受け付けており、73バイト目以降が違っても同じパスワードとして通っていた）
+        if (strlen($newPassword) > 72) {
+            $this->render('auth/change_password', [
+                'csrf_token' => $this->generateCsrfToken(),
+                'error'      => 'パスワードは72バイト（半角72文字）以内で入力してください。',
+            ]);
+            return;
+        }
+
         // パスワードポリシー検証（8文字以上・英字と数字を含む）
         if (!$this->isValidPasswordPolicy($newPassword)) {
             $this->render('auth/change_password', [
@@ -291,6 +301,13 @@ class AuthController extends BaseController
         $data      = $this->request->all();
         $validator = new Validator($data, ['tenant_code' => 'テナントコード', 'email' => 'メールアドレス', 'password' => 'パスワード']);
 
+        // ログインに失敗した場合も、入力したテナントコード・メールアドレスは残す
+        // （以前はビューが $old を参照しているのに渡しておらず、毎回空欄に戻っていた）
+        $old = [
+            'tenant_code' => is_string($data['tenant_code'] ?? null) ? $data['tenant_code'] : '',
+            'email'       => is_string($data['email'] ?? null) ? $data['email'] : '',
+        ];
+
         if (!$validator->validate([
             'tenant_code' => 'required|min:1|max:50',
             'email'       => 'required|email',
@@ -300,6 +317,7 @@ class AuthController extends BaseController
                 'csrf_token' => $this->generateCsrfToken(),
                 'error'      => '入力内容を確認してください。',
                 'errors'     => $validator->firstErrors(),
+                'old'        => $old,
             ]);
             return;
         }
@@ -316,6 +334,7 @@ class AuthController extends BaseController
             $this->render('auth/login', [
                 'csrf_token' => $this->generateCsrfToken(),
                 'error'      => 'テナントコード、メールアドレス、またはパスワードが正しくありません。',
+                'old'        => $old,
             ]);
             return;
         }
