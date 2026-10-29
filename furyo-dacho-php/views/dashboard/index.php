@@ -132,7 +132,7 @@ ob_start();
                     <td style="text-align:right;">
                         <?= isset($rec['transaction_amount']) && $rec['transaction_amount'] !== '' ? '¥' . number_format((float)$rec['transaction_amount']) : '-' ?>
                     </td>
-                    <td><?= htmlspecialchars($rec['registered_by_name'] ?? '') ?: '-' ?></td>
+                    <td><?= (($_v = htmlspecialchars($rec['registered_by_name'] ?? '')) !== '' ? $_v : '-') ?></td>
                     <td><?= htmlspecialchars($rec['branch_name'] ?? '') ?></td>
                     <td>
                         <a href="/index.php?page=ledger.show&id=<?= (int)$rec['id'] ?>" class="btn btn-accent btn-sm">詳細</a>

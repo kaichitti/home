@@ -212,6 +212,7 @@ class ExportController(BaseController):
         self.verify_csrf()
         tenant_id = self.auth.tenant_id()
         fmt = self.request.post('format', 'csv')
+        fmt = fmt if isinstance(fmt, str) else 'csv'
 
         def p(key):
             v = self.request.post(key)

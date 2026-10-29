@@ -292,7 +292,7 @@ def json_dumps(value):
 def json_for_script(value):
     """<script> 内に埋め込める JSON（PHP の json_encode(…, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|
     JSON_UNESCAPED_UNICODE) と同じ書式。< > & ' " を \\u 形式に、/ を \\/ にする）"""
-    s = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
+    s = json.dumps(php_jsonable(value), ensure_ascii=False, separators=(',', ':'))
     # 文字列の中の \" を \u0022 に（\\ などの他の書き方はそのまま）
     s = re.sub(r'\\(.)', lambda m: '\\u0022' if m.group(1) == '"' else m.group(0), s)
     return (s.replace('/', '\\/').replace('<', '\\u003C').replace('>', '\\u003E').replace('&', '\\u0026')
@@ -304,9 +304,32 @@ def trim(value):
     return value.strip(' \t\n\r\0\x0b')
 
 
+def _php_key(k):
+    """PHP の配列のキー（"10" のような整数の文字列は整数として扱われる）"""
+    if isinstance(k, bool):
+        return int(k)
+    if isinstance(k, int):
+        return k
+    if isinstance(k, str) and re.fullmatch(r'0|-?[1-9][0-9]*', k) and INT64_MIN <= int(k) <= INT64_MAX:
+        return int(k)
+    return k
+
+
+def php_jsonable(value):
+    """PHP の json_encode と同じ形にする（空の辞書・0 からの連番キーの辞書は配列 [] として出力される）"""
+    if isinstance(value, dict):
+        keys = list(value.keys())
+        if [_php_key(k) for k in keys] == list(range(len(keys))):
+            return [php_jsonable(value[k]) for k in keys]
+        return {str(_php_key(k)) if not isinstance(_php_key(k), str) else k: php_jsonable(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [php_jsonable(v) for v in value]
+    return value
+
+
 def php_json_encode(value):
     """PHP の json_encode(…, JSON_UNESCAPED_UNICODE) と同じ書式（/ は \\/ にする）"""
-    return json.dumps(value, ensure_ascii=False, separators=(',', ':')).replace('/', '\\/')
+    return json.dumps(php_jsonable(value), ensure_ascii=False, separators=(',', ':')).replace('/', '\\/')
 
 
 def strtotime(value):

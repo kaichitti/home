@@ -44,11 +44,11 @@ ob_start();
                 <tr><th><?= $member['counterpart_type'] === 'corporate' ? '名称' : '氏名' ?></th><td><?= $h($member['name']) ?></td></tr>
                 <?php if ((string)($member['contact_name'] ?? '') !== ''): ?><tr><th>担当者</th><td><?= $h($member['contact_name']) ?></td></tr><?php endif; ?>
                 <?php if ($member['counterpart_type'] !== 'corporate'): ?>
-                <tr><th>職業</th><td><?= $h($member['occupation'] ?? '') ?: '-' ?></td></tr>
+                <tr><th>職業</th><td><?= (($_v = $h($member['occupation'] ?? '')) !== '' ? $_v : '-') ?></td></tr>
                 <tr><th>年齢</th><td><?= ($member['age'] ?? null) !== null && $member['age'] !== '' ? (int)$member['age'] . ' 歳' : '-' ?></td></tr>
                 <?php endif; ?>
-                <tr><th>電話番号</th><td><?= $h($member['phone'] ?? '') ?: '-' ?></td></tr>
-                <tr><th>住所</th><td><?= $h($member['address'] ?? '') ?: '-' ?></td></tr>
+                <tr><th>電話番号</th><td><?= (($_v = $h($member['phone'] ?? '')) !== '' ? $_v : '-') ?></td></tr>
+                <tr><th>住所</th><td><?= (($_v = $h($member['address'] ?? '')) !== '' ? $_v : '-') ?></td></tr>
                 <?php if ((string)($member['account'] ?? '') !== ''): ?><tr><th>取引アカウント</th><td><?= $h($member['account']) ?></td></tr><?php endif; ?>
                 <?php
                 $memberDocLabels = [

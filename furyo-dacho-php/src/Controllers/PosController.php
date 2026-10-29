@@ -937,7 +937,8 @@ class PosController extends BaseController
         $tenantId = $this->auth->getTenantId();
         $session  = new Session();
         $id       = (int)$this->request->post('id', 0);
-        $reason   = trim((string)$this->request->post('reason', ''));
+        $reasonIn = $this->request->post('reason', '');
+        $reason   = is_string($reasonIn) ? trim($reasonIn) : '';
         $back     = '/index.php?page=pos.show&id=' . $id;
 
         if ($reason === '' || mb_strlen($reason) > 255) {
@@ -1116,7 +1117,8 @@ class PosController extends BaseController
 
         $opening = $num($this->request->post('opening_float', ''));
         $counted = $num($this->request->post('counted_cash', ''));
-        $note    = trim((string)$this->request->post('note', ''));
+        $noteIn  = $this->request->post('note', '');
+        $note    = is_string($noteIn) ? trim($noteIn) : '';
         if ($opening === null || $counted === null || $opening > PosCalculator::MAX_AMOUNT || $counted > PosCalculator::MAX_AMOUNT) {
             $session->setFlash('error', '釣銭準備金・現金実査額は0以上の数値（円）で入力してください。');
             $this->response->redirect($back);

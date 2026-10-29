@@ -130,18 +130,23 @@ class ExportController extends BaseController
 
         // format は $_POST から直接取得（sanitize 済みの $this->request->post() を使用）
         $format = $this->request->post('format', 'csv');
+        $format = is_string($format) ? $format : 'csv';
 
-        // 絞り込み条件を取得
+        // 絞り込み条件を取得（文字列以外＝配列などが送られた項目は条件なしとして扱う）
+        $p = function (string $key): ?string {
+            $v = $this->request->post($key);
+            return is_string($v) && $v !== '' && $v !== '0' ? $v : null;
+        };
         $filters = [
-            'date_from'          => $this->request->post('date_from')          ?: null,
-            'date_to'            => $this->request->post('date_to')            ?: null,
-            'fiscal_year'        => $this->request->post('fiscal_year')        ?: null,
-            'item_category'      => $this->request->post('item_type')          ?: null,
-            'transaction_type'   => $this->request->post('transaction_type')   ?: null,
-            'item_name'          => $this->request->post('item_name')          ?: null,
-            'counterpart_name'   => $this->request->post('counterpart_name')   ?: null,
-            'registered_by_id'   => $this->request->post('registered_by')      ?: null,
-            'branch_id'          => $this->request->post('branch_id')          ?: null,
+            'date_from'          => $p('date_from'),
+            'date_to'            => $p('date_to'),
+            'fiscal_year'        => $p('fiscal_year'),
+            'item_category'      => $p('item_type'),
+            'transaction_type'   => $p('transaction_type'),
+            'item_name'          => $p('item_name'),
+            'counterpart_name'   => $p('counterpart_name'),
+            'registered_by_id'   => $p('registered_by'),
+            'branch_id'          => $p('branch_id'),
         ];
 
         // ページネーションなしで全件取得（perPage を十分大きな値に設定）

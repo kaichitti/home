@@ -7,6 +7,7 @@ ResponseDone 例外を投げる（PHP 版の exit と同じ使い方）。最上
 import json
 import re
 
+from ..util import php_json_encode
 from .template import escape
 
 STATUS_TEXT = {
@@ -68,7 +69,7 @@ def redirect(url):
 
 def json_response(data, status=200, no_store=False):
     # PHP版の json_encode(…, JSON_UNESCAPED_UNICODE) と同じ書式
-    body = json.dumps(data, ensure_ascii=False, separators=(',', ':')).replace('/', '\\/')
+    body = php_json_encode(data)
     r = Response(body.encode('utf-8'), status, 'application/json; charset=UTF-8')
     if no_store:
         r.add_header('Cache-Control', 'no-store')

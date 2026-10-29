@@ -97,7 +97,7 @@ ob_start();
             </tr>
             <tr>
                 <th>登録者</th>
-                <td><?= htmlspecialchars($ledger['registered_by_name'] ?? '') ?: '-' ?></td>
+                <td><?= (($_v = htmlspecialchars($ledger['registered_by_name'] ?? '')) !== '' ? $_v : '-') ?></td>
             </tr>
             <tr>
                 <th>所属拠点</th>
@@ -105,7 +105,7 @@ ob_start();
             </tr>
             <tr>
                 <th>最終更新者</th>
-                <td><?= htmlspecialchars($ledger['updated_by_name'] ?? '') ?: '-' ?></td>
+                <td><?= (($_v = htmlspecialchars($ledger['updated_by_name'] ?? '')) !== '' ? $_v : '-') ?></td>
             </tr>
             <tr>
                 <th>最終更新日時</th>
@@ -340,7 +340,7 @@ foreach (($sales ?? []) as $sr) { $saleTotal += (int)($sr['sale_amount'] ?? 0); 
                         <td><?= htmlspecialchars($sr['sold_at'] ?? '') ?></td>
                         <td style="text-align:right;"><?= (int)$sr['quantity'] ?></td>
                         <td style="text-align:right;"><?= $sr['sale_amount'] !== null ? '¥' . number_format((float)$sr['sale_amount']) : '-' ?></td>
-                        <td style="font-size:.8rem;"><?= htmlspecialchars($sr['member_code'] ?? '') ?: '-' ?></td>
+                        <td style="font-size:.8rem;"><?= (($_v = htmlspecialchars($sr['member_code'] ?? '')) !== '' ? $_v : '-') ?></td>
                         <td style="font-size:.8rem;"><?= htmlspecialchars($sr['note'] ?? '') ?>
                             <?php if (!empty($sr['transaction_id'])): ?>
                                 <br><a href="/index.php?page=pos.show&id=<?= (int)$sr['transaction_id'] ?>">POSレシート <?= htmlspecialchars($sr['pos_receipt_no'] ?? ('#' . $sr['transaction_id'])) ?></a>
