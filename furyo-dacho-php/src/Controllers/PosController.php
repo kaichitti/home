@@ -143,15 +143,15 @@ class PosController extends BaseController
      */
     private function outputPrint(array $layout, string $title): void
     {
-        if ((string)$this->request->get('format', '') === 'json') {
+        if ($this->request->get('format', '') === 'json') {
             $this->json(['ok' => true, 'title' => $title, 'layout' => $layout]);
         }
-        $paper = (string)$this->request->get('w', '80') === '58' ? 58 : 80;
+        $paper = $this->request->get('w', '80') === '58' ? 58 : 80;
         $this->render('pos/print', [
             'printLayout' => $layout,
             'title'  => $title,
             'paper'  => $paper,
-            'embed'  => (string)$this->request->get('embed', '') === '1',
+            'embed'  => $this->request->get('embed', '') === '1',
         ]);
     }
 
@@ -626,14 +626,14 @@ class PosController extends BaseController
         $txModel  = new PosTransaction($this->pdo);
         $tx       = $txModel->findById((int)$this->request->get('id', 0), $tenantId);
         if ($tx === null) {
-            if ((string)$this->request->get('format', '') === 'json') {
+            if ($this->request->get('format', '') === 'json') {
                 $this->jsonError('取引が見つかりません。', 'not_found', 404);
             }
             $this->response->notFound('取引が見つかりません。');
             return;
         }
 
-        if ((string)$this->request->get('doc', '') === 'ryoshu') {
+        if ($this->request->get('doc', '') === 'ryoshu') {
             $to      = $this->request->get('to', '');
             $tadashi = $this->request->get('tadashi', '');
             $to      = is_string($to) ? mb_substr($to, 0, 40) : '';
@@ -757,7 +757,7 @@ class PosController extends BaseController
      */
     public function lookup(): void
     {
-        $json = (string)$this->request->get('format', '') === 'json';
+        $json = $this->request->get('format', '') === 'json';
         if ($json) {
             $this->requireAuthJson();
         } else {
@@ -989,7 +989,7 @@ class PosController extends BaseController
         $tenantId = $this->auth->getTenantId();
         $filters  = $this->historyFilters();
         // mode=items: レジ明細検索の条件（品名・シリアル・台帳IDで明細を絞る）で出力
-        $lineMode = (string)$this->request->get('mode', '') === 'items';
+        $lineMode = $this->request->get('mode', '') === 'items';
         $rows     = (new PosTransaction($this->pdo))->exportRows($tenantId, $filters, 20000, $lineMode);
 
         $this->audit('export', null, null, ['kind' => 'pos_csv', 'count' => count($rows), 'filters' => $filters]);
@@ -1197,7 +1197,7 @@ class PosController extends BaseController
         $tenantId = $this->auth->getTenantId();
         $closing  = (new PosClosing($this->pdo))->findById((int)$this->request->get('id', 0), $tenantId);
         if ($closing === null) {
-            if ((string)$this->request->get('format', '') === 'json') {
+            if ($this->request->get('format', '') === 'json') {
                 $this->jsonError('精算記録が見つかりません。', 'not_found', 404);
             }
             $this->response->notFound('精算記録が見つかりません。');

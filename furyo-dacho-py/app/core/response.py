@@ -62,7 +62,7 @@ def html(text, status=200):
 
 
 def redirect(url):
-    r = Response(b'', 302, content_type=None)
+    r = Response(b'', 302)  # PHP と同じく Content-Type: text/html を付ける
     r.add_header('Location', url)
     return r
 
