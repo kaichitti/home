@@ -102,13 +102,13 @@ def normalize_receipt_no(value, today):
     for a, b in (('ー', '-'), ('－', '-'), ('―', '-'), ('‐', '-'), (' ', ''), ('No.', ''), ('NO.', ''),
                  ('no.', ''), ('#', '')):
         v = v.replace(a, b)
-    m = re.fullmatch(r'(\d{8})-?(\d{4,6})', v)
+    m = re.fullmatch(r'([0-9]{8})-?([0-9]{4,6})', v)
     if m:
         y = int(m.group(1)[:4])
         if 2000 <= y <= 2100 and parse_date('%s-%s-%s' % (m.group(1)[:4], m.group(1)[4:6], m.group(1)[6:])):
             return m.group(1) + '-' + m.group(2)
         return None
-    if re.fullmatch(r'\d{1,6}', v) and int(v) > 0:
+    if re.fullmatch(r'[0-9]{1,6}', v) and int(v) > 0:
         return today.replace('-', '') + '-%04d' % int(v)
     return None
 

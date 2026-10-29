@@ -9,6 +9,7 @@ import os
 from . import paths
 
 _ENV = None
+_TRIM = ' \t\n\r\0\x0b'  # PHP の trim() が取り除く文字
 
 
 def load_env(path):
@@ -20,13 +21,13 @@ def load_env(path):
     except OSError:
         return values
     for line in lines:
-        line = line.strip()
+        line = line.strip(_TRIM)
         if line == '' or line.startswith('#') or '=' not in line:
             continue
         if line.startswith('export '):
-            line = line[7:].strip()
+            line = line[7:].strip(_TRIM)
         key, value = line.split('=', 1)
-        key, value = key.strip(), value.strip()
+        key, value = key.strip(_TRIM), value.strip(_TRIM)
         if key == '':
             continue
         if len(value) >= 2 and value[0] in ('"', "'") and value[-1] == value[0]:

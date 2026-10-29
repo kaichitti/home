@@ -6,7 +6,18 @@
 """
 import re
 
-from ..util import is_numeric, parse_date
+from ..util import INT64_MAX, INT64_MIN, is_numeric, parse_date
+
+
+def _filter_int(value):
+    """PHP の filter_var($v, FILTER_VALIDATE_INT) と同じ判定
+    （前後の半角空白は可・先頭の 0 は不可・64 ビット整数の範囲内）"""
+    if not isinstance(value, str):
+        value = str(value)
+    t = value.strip(' \t\n\r\x0b')
+    if not re.fullmatch(r'[+-]?(0|[1-9][0-9]*)', t):
+        return False
+    return INT64_MIN <= int(t) <= INT64_MAX
 
 # PHP の filter_var(FILTER_VALIDATE_EMAIL) と同じ正規表現（PHP 本体から取り出したもの）
 _EMAIL_RE = re.compile(
@@ -78,7 +89,7 @@ class Validator:
             if has and not is_numeric(value):
                 self._add(key, '%s は数値で入力してください。' % label)
         elif rule == 'integer':
-            if has and not re.fullmatch(r'\s*[+-]?(0|[1-9][0-9]*)\s*', str(value)):
+            if has and not _filter_int(value):
                 self._add(key, '%s は整数で入力してください。' % label)
         elif rule == 'date':
             if has and not is_valid_date(value):

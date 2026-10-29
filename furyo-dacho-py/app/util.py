@@ -34,7 +34,7 @@ def now_str():
 
 def parse_date(value):
     """'YYYY-MM-DD' 形式の実在する日付なら date、それ以外は None"""
-    if not isinstance(value, str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}', value):
+    if not isinstance(value, str) or not re.fullmatch(r'[0-9]{4}-[0-9]{2}-[0-9]{2}', value):
         return None
     try:
         return datetime.datetime.strptime(value, '%Y-%m-%d').date()
@@ -46,7 +46,7 @@ def parse_datetime(value):
     """'YYYY-MM-DD HH:MM[:SS]'（区切りは空白または T）を datetime に。解釈できなければ None"""
     if not isinstance(value, str):
         return None
-    value = value.strip().replace('T', ' ')
+    value = trim(value).replace('T', ' ')
     for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M', '%Y-%m-%d'):
         try:
             return datetime.datetime.strptime(value, fmt)
@@ -89,20 +89,52 @@ def jp_datetime(value, with_time=True):
 INT64_MAX = 9223372036854775807
 
 
+# PHP が数値の前後に許す空白（半角のみ。全角スペースなどは含まない）
+_PHP_NUM_SPACE = ' \t\n\r\x0b\x0c'
+# 文字列の先頭の数値部分（PHP と同じく半角数字だけ。小数・指数表記を含む）
+_PHP_NUM_PREFIX = re.compile(r'[ \t\n\r\x0b\x0c]*([+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?)')
+INT64_MIN = -INT64_MAX - 1
+
+
+def _clamp_int64(n):
+    return max(INT64_MIN, min(INT64_MAX, n))
+
+
+def _float_to_int(f):
+    """PHP の (int)浮動小数点数 と同じ（範囲外は 64 ビットで折り返す。無限大・NaN は 0）"""
+    if f != f or f in (float('inf'), float('-inf')):
+        return 0
+    n = int(f)
+    if INT64_MIN <= n <= INT64_MAX:
+        return n
+    n %= 1 << 64
+    return n - (1 << 64) if n > INT64_MAX else n
+
+
 def to_int(value, default=0):
-    """PHP の (int) キャストと同じ考え方で整数にする（解釈できない値は 0）"""
-    if value is None or isinstance(value, bool):
-        return int(bool(value)) if isinstance(value, bool) else default
+    """PHP の (int) キャストと同じ結果にする（解釈できない値は 0）
+    - 文字列は先頭の数値部分だけを使う（"12abc" → 12、"1e3" → 1000、"１２"（全角）→ 0）
+    - 配列は空なら 0、そうでなければ 1"""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return int(value)
     if isinstance(value, int):
         return value
     if isinstance(value, float):
-        return int(value) if value == value and abs(value) < 9.3e18 else 0
-    s = str(value).strip()
-    m = re.match(r'[+-]?\d+', s)
+        return _float_to_int(value)
+    if isinstance(value, (list, tuple, dict)):
+        return 1 if value else 0
+    m = _PHP_NUM_PREFIX.match(str(value))
     if not m:
         return 0
-    n = int(m.group(0))
-    return max(-INT64_MAX - 1, min(INT64_MAX, n))
+    num = m.group(1)
+    if re.fullmatch(r'[+-]?[0-9]+', num):
+        return _clamp_int64(int(num))
+    f = float(num)
+    if f in (float('inf'), float('-inf')):
+        return 0
+    return _clamp_int64(int(f))
 
 
 def is_digits(value):
@@ -110,7 +142,7 @@ def is_digits(value):
     return isinstance(value, str) and re.fullmatch(r'[0-9]+', value) is not None
 
 
-_NUMERIC_RE = re.compile(r'[ \t\n\r\v\f]*[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?[ \t\n\r\v\f]*')
+_NUMERIC_RE = re.compile(r'[ \t\n\r\v\f]*[+-]?([0-9]+(\.[0-9]*)?|\.[0-9]+)([eE][+-]?[0-9]+)?[ \t\n\r\v\f]*')
 
 
 def is_numeric(value):
@@ -284,10 +316,10 @@ def strtotime(value):
     """
     if not isinstance(value, str):
         return None
-    s = value.strip()
+    s = trim(value)
     if s.lower() == 'now':
         return now()
-    m = re.fullmatch(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?', s)
+    m = re.fullmatch(r'([0-9]{4})[-/]([0-9]{1,2})[-/]([0-9]{1,2})(?:[ T]([0-9]{1,2}):([0-9]{2})(?::([0-9]{2}))?)?', s)
     if not m:
         return None
     y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))

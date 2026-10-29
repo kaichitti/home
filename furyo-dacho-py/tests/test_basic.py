@@ -53,6 +53,29 @@ class UtilTest(unittest.TestCase):
         self.assertEqual(util.mb_convert_kana_a('ＡＢＣ１２３'), 'ABC123')
         self.assertEqual(util.mb_convert_kana_n('１２３ＡＢ'), '123ＡＢ')
 
+    def test_to_int_like_php(self):
+        # PHP の (int) と同じ結果（PHP 8.3 で確認した値）
+        cases = {'12abc': 12, ' 12': 12, '\u3000 12': 0, '１２': 0, '1e3': 1000, '1.5e2': 150, '1e-3': 0,
+                 '0x1A': 0, '1.9': 1, '-1.9': -1, '9999999999999999999999': 9223372036854775807,
+                 '1e30': 9223372036854775807, '1e999': 0, '': 0, 'abc': 0}
+        for s, expected in cases.items():
+            self.assertEqual(util.to_int(s), expected, repr(s))
+        self.assertEqual(util.to_int({0: 'a'}), 1)   # 空でない配列は 1
+        self.assertEqual(util.to_int({}), 0)
+        self.assertEqual(util.to_int(1e19), -8446744073709551616)  # 範囲外の小数は 64 ビットで折り返す
+
+    def test_numeric_ascii_only(self):
+        self.assertTrue(util.is_numeric(' 1e3 '))
+        self.assertFalse(util.is_numeric('１２３'))
+        self.assertIsNone(util.parse_date('２０２６-１０-２９'))
+
+    def test_filter_int(self):
+        from app.helpers.validator import _filter_int
+        for s in ('0', '-0', '+5', ' 1', '1 ', '\n1\n', '9223372036854775807'):
+            self.assertTrue(_filter_int(s), repr(s))
+        for s in ('00', '012', '1.0', '\f1', '9223372036854775808', '', ' ', '１', '\u30001'):
+            self.assertFalse(_filter_int(s), repr(s))
+
     def test_is_empty(self):
         for v in (None, '', '0', 0, 0.0, [], {}, False):
             self.assertTrue(util.is_empty(v), repr(v))

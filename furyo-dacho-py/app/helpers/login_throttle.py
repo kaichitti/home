@@ -15,6 +15,7 @@ import sys
 
 from ..db import DBError, ER_NO_SUCH_TABLE
 from . import client_ip
+from ..util import trim
 
 IP_MAX_FAILURES = 30
 IP_WINDOW_MIN = 15
@@ -40,7 +41,7 @@ CREATE_TABLE_SQL = """CREATE TABLE IF NOT EXISTS `login_attempts` (
 
 def account_key(scope, *parts):
     """アカウント識別キー（例: tenant|uid:12, admin|id:1）"""
-    return scope + '|' + '|'.join(p.strip().lower() for p in parts)
+    return scope + '|' + '|'.join(trim(p).lower() for p in parts)  # PHP: mb_strtolower(trim($p))
 
 
 def _hash(key):
