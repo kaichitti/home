@@ -27,7 +27,8 @@ class FileController extends BaseController
         $tenantId = $this->auth->getTenantId();
         $userId   = $this->auth->getUserId();
         $id       = (int)$this->request->get('id', 0);
-        $type     = (string)$this->request->get('type', '');
+        $typeIn   = $this->request->get('type', '');
+        $type     = is_string($typeIn) ? $typeIn : '';
 
         if ($id <= 0) {
             $this->response->notFound('ファイル ID が不正です。');

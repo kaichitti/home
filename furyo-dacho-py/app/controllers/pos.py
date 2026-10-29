@@ -249,6 +249,8 @@ class PosController(BaseController):
             payload = json.loads(self.request.raw_post('payload'))
         except ValueError:
             payload = None
+        if isinstance(payload, list):
+            payload = dict(enumerate(payload))  # PHP では JSON の配列も連想配列として読まれる
         if not isinstance(payload, dict):
             self._json_error('会計データが不正です。ページを再読み込みしてください。')
 

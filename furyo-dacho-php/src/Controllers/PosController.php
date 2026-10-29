@@ -192,7 +192,7 @@ class PosController extends BaseController
 
         $keyword = $this->request->get('q', '');
         $keyword = is_string($keyword) ? mb_substr(trim($keyword), 0, 100) : '';
-        $exact   = (string)$this->request->get('exact', '') === '1';
+        $exact   = $this->request->get('exact', '') === '1';
 
         $items = (new Sale($this->pdo))->searchInStock($this->auth->getTenantId(), $keyword, 30, $exact);
 
