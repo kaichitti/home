@@ -19,7 +19,8 @@ class Page:
         self.environ = environ
         self.cfg = config.get()
         self.request = Request(environ, self.cfg, os.path.join(paths.APP_DIR, 'storage', 'tmp'))
-        self.session = Session(self.cfg['session_dir'], cookie_name, self.request.is_https())
+        self.session = Session(self.cfg['session_dir'], cookie_name, self.request.is_https(),
+                               self.cfg['session_timeout'])
         self.session.start(self.request.cookies.get(cookie_name))
 
     def render(self, view, data, status=200):

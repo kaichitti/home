@@ -85,6 +85,12 @@ def migrations(db, name):
             db.execute_raw("ALTER TABLE `ledgers` ADD INDEX `idx_ledgers_serial_number` (`serial_number`)")
     m.append(('ledgers に会員番号・シリアル番号・相手方区分等のカラムを追加（2026-07-09）', ledger_cols_needed, ledger_cols_apply))
 
+    # 旧バージョンから更新した DB では会員番号の索引が作られていなかった（新規導入の schema.sql にはある）
+    m.append(('ledgers に会員番号の索引を追加（会員の取引履歴の表示を速くする・2026-10-29）',
+              lambda: _has_column(db, name, 'ledgers', 'member_code')
+              and not _has_index(db, name, 'ledgers', 'idx_ledgers_member_code'),
+              lambda: db.execute_raw("ALTER TABLE `ledgers` ADD INDEX `idx_ledgers_member_code` (`member_code`)")))
+
     m.append(('ledgers.id_document_type を任意（NULL許可）に変更（マイナンバー等の記載省略対応）',
               lambda: str(db.value("""SELECT IS_NULLABLE FROM information_schema.COLUMNS
                      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'ledgers' AND COLUMN_NAME = 'id_document_type'""",

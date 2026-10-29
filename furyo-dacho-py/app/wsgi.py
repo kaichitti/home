@@ -34,7 +34,7 @@ class Context:
         tmp_dir = os.path.join(self.cfg['session_dir'], '..', 'tmp')
         self.request = Request(environ, self.cfg, os.path.normpath(tmp_dir))
         name = self.cfg['admin_session_name'] if area == 'admin' else self.cfg['session_name']
-        self.session = Session(self.cfg['session_dir'], name, self.request.is_https())
+        self.session = Session(self.cfg['session_dir'], name, self.request.is_https(), self.cfg['session_timeout'])
         self._db = None
         self.auth = Auth(self)
 

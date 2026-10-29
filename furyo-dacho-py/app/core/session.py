@@ -24,8 +24,10 @@ GC_PROBABILITY = 100  # 100回に1回、古いファイルを掃除する
 
 
 class Session:
-    def __init__(self, directory, cookie_name, secure):
+    def __init__(self, directory, cookie_name, secure, timeout=0):
         self.directory = directory
+        # 自動ログアウトの時間（SESSION_TIMEOUT）より先に掃除で消さない
+        self.gc_lifetime = max(GC_MAX_LIFETIME, int(timeout or 0))
         self.cookie_name = cookie_name
         self.secure = secure
         self.id = None
@@ -90,7 +92,7 @@ class Session:
                 fh.close()
 
     def _gc(self):
-        limit = time.time() - GC_MAX_LIFETIME
+        limit = time.time() - self.gc_lifetime
         try:
             names = os.listdir(self.directory)
         except OSError:

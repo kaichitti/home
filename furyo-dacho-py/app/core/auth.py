@@ -164,10 +164,13 @@ class Auth:
         if not self._revalidated:
             self._revalidated = True
             try:
-                row = self.db.query_one("SELECT `is_active`, `role` FROM `users` WHERE `id` = ? AND `tenant_id` = ?",
-                                        (int(self.session.get('user_id')), int(self.session.get('tenant_id') or 0)))
-                if row is None or int(row['is_active']) != 1:
-                    # 削除・無効化されたアカウント → セッションを破棄
+                row = self.db.query_one(
+                    """SELECT u.`is_active`, u.`role`, t.`status` AS tenant_status
+                     FROM `users` u JOIN `tenants` t ON t.`id` = u.`tenant_id`
+                     WHERE u.`id` = ? AND u.`tenant_id` = ?""",
+                    (int(self.session.get('user_id')), int(self.session.get('tenant_id') or 0)))
+                if row is None or int(row['is_active']) != 1 or row.get('tenant_status') != 'active':
+                    # 削除・無効化されたアカウント、停止・削除されたテナント → セッションを破棄
                     self.session.destroy()
                     return False
                 if row.get('role') is not None:

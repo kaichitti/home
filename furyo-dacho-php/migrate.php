@@ -236,6 +236,29 @@ if ($pdo !== null) {
             },
         ],
         [
+            // 旧バージョンから更新した DB では会員番号の索引が作られていなかった（新規導入の schema.sql にはある）
+            'label' => 'ledgers に会員番号の索引を追加（会員の取引履歴の表示を速くする・2026-10-29）',
+            'check' => function () use ($pdo, $dbName): bool {
+                $stmt = $pdo->prepare(
+                    "SELECT COUNT(*) FROM information_schema.COLUMNS
+                     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'ledgers' AND COLUMN_NAME = 'member_code'"
+                );
+                $stmt->execute([$dbName]);
+                if ((int)$stmt->fetchColumn() === 0) {
+                    return false;
+                }
+                $stmt = $pdo->prepare(
+                    "SELECT COUNT(*) FROM information_schema.STATISTICS
+                     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'ledgers' AND INDEX_NAME = 'idx_ledgers_member_code'"
+                );
+                $stmt->execute([$dbName]);
+                return (int)$stmt->fetchColumn() === 0;
+            },
+            'apply' => function () use ($pdo): void {
+                $pdo->exec("ALTER TABLE `ledgers` ADD INDEX `idx_ledgers_member_code` (`member_code`)");
+            },
+        ],
+        [
             'label' => 'ledgers.id_document_type を任意（NULL許可）に変更（マイナンバー等の記載省略対応）',
             'check' => function () use ($pdo, $dbName): bool {
                 $stmt = $pdo->prepare(

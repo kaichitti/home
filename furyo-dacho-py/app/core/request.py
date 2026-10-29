@@ -9,8 +9,10 @@ HTTP リクエスト（URLのパラメータ・フォーム・アップロード
   大きさの上限を超えたファイル・送信全体が大きすぎる場合は受け取らない。
 """
 import os
+import random
 import re
 import tempfile
+import time
 from http.cookies import SimpleCookie
 from urllib.parse import parse_qsl
 
@@ -20,7 +22,10 @@ from ..util import strip_controls
 MAX_INPUT_VARS = 1000     # 項目数の上限（PHP の max_input_vars と同じ）
 MAX_FILE_UPLOADS = 25     # 1回の送信で受け取るファイル数の上限
 MAX_FIELD_BYTES = 8 * 1024 * 1024
+MAX_FORM_BYTES = 16 * 1024 * 1024  # ファイルを含まない送信（通常のフォーム）全体の上限
+MAX_NESTING = 64          # 「名前[a][b]…」の深さの上限（PHP の max_input_nesting_level と同じ）
 MAX_HEADER_BYTES = 16 * 1024
+TMP_MAX_AGE = 3600        # 処理の途中で止まって残った一時ファイルを消すまでの秒数
 
 UPLOAD_ERR_OK = 0
 UPLOAD_ERR_INI_SIZE = 1
@@ -49,6 +54,8 @@ def _assign(result, key, value):
         result[key] = value
         return
     base, subs = m.group(1), _SUB_RE.findall(m.group(2))
+    if len(subs) > MAX_NESTING:
+        return  # 深すぎる項目は受け取らない（PHP と同じ）
     cur = result.get(base)
     if not isinstance(cur, dict):
         cur = {}
@@ -119,8 +126,15 @@ class _Stream:
 
 def parse_multipart(stream, length, boundary, tmp_dir, max_file_size):
     """multipart/form-data を読み、(項目のリスト, ファイルのリスト) を返す"""
-    fields, files = [], []
     s = _Stream(stream, length)
+    try:
+        return _parse_multipart(s, boundary, tmp_dir, max_file_size)
+    finally:
+        _drain(stream, s.remaining)  # 終端の後ろ・形式が不正な場合の残りを読み捨てる
+
+
+def _parse_multipart(s, boundary, tmp_dir, max_file_size):
+    fields, files = [], []
     delim = b'--' + boundary
     sep = b'\r\n' + delim
     # 最初の区切りまで読み飛ばす
@@ -228,6 +242,36 @@ def parse_multipart(stream, length, boundary, tmp_dir, max_file_size):
     return fields, files
 
 
+def _drain(stream, length):
+    """受け取らない送信内容を読み捨てる。
+    CGI では Web サーバーが送信内容をすべてプログラムへ渡し終えるまで応答を返せないため、
+    読まずに終えると利用者の画面にエラー画面が届かない（接続が切れる）"""
+    remaining = length
+    while remaining > 0:
+        chunk = stream.read(min(1048576, remaining))
+        if not chunk:
+            break
+        remaining -= len(chunk)
+
+
+def _gc_tmp(tmp_dir):
+    """処理の途中で止まって残ったアップロードの一時ファイルを削除する"""
+    limit = time.time() - TMP_MAX_AGE
+    try:
+        names = os.listdir(tmp_dir)
+    except OSError:
+        return
+    for name in names:
+        if not name.startswith('up_'):
+            continue
+        p = os.path.join(tmp_dir, name)
+        try:
+            if os.path.getmtime(p) < limit:
+                os.unlink(p)
+        except OSError:
+            pass
+
+
 class Request:
     def __init__(self, environ, cfg, tmp_dir):
         self.environ = environ
@@ -257,15 +301,19 @@ class Request:
             return
         stream = self.environ['wsgi.input']
         if length > self.cfg['max_post_size']:
-            # PHP の post_max_size 超過と同じく、送信内容は受け取らない
+            # PHP の post_max_size 超過と同じく、送信内容は受け取らない（読み捨てる）
             self.too_large = True
+            _drain(stream, length)
             return
         ctype = self.environ.get('CONTENT_TYPE', '')
         if ctype.lower().startswith('multipart/form-data'):
             boundary = _header_params(ctype).get('boundary', '')
             if not boundary or len(boundary) > 200:
+                _drain(stream, length)
                 return
             os.makedirs(tmp_dir, mode=0o700, exist_ok=True)
+            if random.randrange(100) == 0:
+                _gc_tmp(tmp_dir)
             fields, files = parse_multipart(stream, length, boundary.encode('latin-1', 'replace'),
                                             tmp_dir, self.cfg['max_file_size'])
             self.form = _parse_pairs(fields)
@@ -274,9 +322,15 @@ class Request:
                     self._temp_paths.append(f.path)
                 _assign(self.files, name, f)
         elif ctype.lower().startswith('application/x-www-form-urlencoded') or ctype == '':
+            if length > MAX_FORM_BYTES:
+                self.too_large = True
+                _drain(stream, length)
+                return
             body = stream.read(length)
             self.form = _parse_pairs(parse_qsl(body.decode('latin-1'), keep_blank_values=True,
                                                encoding='utf-8', errors='replace'))
+        else:
+            _drain(stream, length)  # 画面のフォームでは使わない形式（JSON 等）は受け取らない
 
     def cleanup(self):
         """受け取った一時ファイルを削除する（保存済みのものは移動・暗号化済み）"""

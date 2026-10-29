@@ -151,6 +151,61 @@ class PosTest(unittest.TestCase):
         self.assertEqual(pos_calculator.payment('cash', 1000, 5000)['change'], 4000)
 
 
+class RequestTest(unittest.TestCase):
+    def _req(self, body, ctype='application/x-www-form-urlencoded', query=''):
+        import io
+        from app.core.request import Request
+        environ = {'REQUEST_METHOD': 'POST', 'QUERY_STRING': query, 'CONTENT_TYPE': ctype,
+                   'CONTENT_LENGTH': str(len(body)), 'wsgi.input': io.BytesIO(body)}
+        cfg = {'max_post_size': 134217728, 'max_file_size': 52428800}
+        return Request(environ, cfg, tempfile.gettempdir())
+
+    def test_php_style_arrays(self):
+        r = self._req(b'a=1&b[]=x&b[]=y&c[k]=v&d=%20t%0D%0A')
+        self.assertEqual(r.post('a'), '1')
+        self.assertEqual(r.post('b'), {0: 'x', 1: 'y'})
+        self.assertEqual(r.post('c'), {'k': 'v'})
+        self.assertEqual(r.post('d'), 't')
+        self.assertEqual(r.post_str('b'), '')  # 配列は文字列として扱わない
+
+    def test_too_large_is_drained(self):
+        # CGI では送信内容を読み切らないと応答が届かないため、受け取らない場合も最後まで読む
+        import io
+        from app.core import request as rq
+        body = b'a=' + b'x' * (rq.MAX_FORM_BYTES + 10)
+        stream = io.BytesIO(body)
+        environ = {'REQUEST_METHOD': 'POST', 'CONTENT_TYPE': 'application/x-www-form-urlencoded',
+                   'CONTENT_LENGTH': str(len(body)), 'wsgi.input': stream}
+        r = rq.Request(environ, {'max_post_size': 134217728, 'max_file_size': 52428800}, tempfile.gettempdir())
+        self.assertTrue(r.too_large)
+        self.assertEqual(stream.tell(), len(body))
+
+    def test_nesting_limit(self):
+        r = self._req(b'x' + b'[]' * 65 + b'=1&ok' + b'[]' * 64 + b'=1')
+        self.assertIsNone(r.post('x'))
+        self.assertIsNotNone(r.post('ok'))
+
+    def test_multipart(self):
+        body = (b'--BND\r\nContent-Disposition: form-data; name="t"\r\n\r\n\xe5\x80\xa4\r\n'
+                b'--BND\r\nContent-Disposition: form-data; name="f"; filename="..\\\\a.png"\r\n'
+                b'Content-Type: image/png\r\n\r\n\x89PNG\r\n\x1a\nxx\r\n--BND--\r\n')
+        r = self._req(body, 'multipart/form-data; boundary=BND')
+        try:
+            self.assertEqual(r.post('t'), '値')
+            f = r.file('f')
+            self.assertEqual(f.filename, 'a.png')  # パスは取り除く
+            self.assertEqual(f.size, 10)
+        finally:
+            r.cleanup()
+
+
+class ResponseTest(unittest.TestCase):
+    def test_header_injection(self):
+        from app.core.response import redirect
+        r = redirect('/index.cgi?page=x\r\nSet-Cookie: a=b')
+        self.assertEqual(dict(r.headers)['Location'], '/index.cgi?page=xSet-Cookie: a=b')
+
+
 class MiscTest(unittest.TestCase):
     def test_csv_formula_injection(self):
         self.assertEqual(csv_writer.safe('=SUM(A1)'), "'=SUM(A1)")

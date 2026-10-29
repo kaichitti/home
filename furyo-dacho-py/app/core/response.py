@@ -5,6 +5,7 @@ HTTP レスポンス
 ResponseDone 例外を投げる（PHP 版の exit と同じ使い方）。最上位（wsgi.py）が受け取って送信する。
 """
 import json
+import re
 
 from .template import escape
 
@@ -26,17 +27,22 @@ SECURITY_HEADERS = [
 ]
 
 
+def _header_value(value):
+    """ヘッダの値から改行などの制御文字を取り除く（ヘッダインジェクションの多層防御）"""
+    return re.sub(r'[\x00-\x1f\x7f]', '', str(value))
+
+
 class Response:
     def __init__(self, body=b'', status=200, content_type='text/html; charset=UTF-8', headers=None):
         self.status = status
         self.headers = [('Content-Type', content_type)] if content_type else []
-        if headers:
-            self.headers.extend(headers)
+        for name, value in headers or ():
+            self.add_header(name, value)
         self.body = body          # bytes または bytes を返すイテレータ（ファイル送信）
         self.cleanup = []         # 送信後に呼ぶ関数（一時ファイルの削除など）
 
     def add_header(self, name, value):
-        self.headers.append((name, value))
+        self.headers.append((_header_value(name), _header_value(value)))
 
     def status_line(self):
         return '%d %s' % (self.status, STATUS_TEXT.get(self.status, 'OK'))
