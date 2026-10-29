@@ -1,0 +1,149 @@
+{% set pageTitle = 'アラート管理 - 古物台帳管理システム' %}
+{% set activePage = 'alert' %}
+{% extends 'layouts/main' %}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">重複検知アラート</h1>
+</div>
+
+{% if has(var('flashSuccess')) %}
+<div class="alert alert-success">{{ flashSuccess }}</div>
+{% endif %}
+
+{% if has(var('alerts')) %}
+{% for alert in alerts %}
+{% set isPending = g(alert, 'status', d='') != 'confirmed' %}
+<div class="card" style="border-left: 4px solid {{ 'var(--color-danger)' if isPending else 'var(--color-border)' }};">
+    <div class="card__header">
+        <div class="d-flex align-center gap-8">
+            {% if isPending %}
+                <span class="badge badge-danger">未確認</span>
+            {% else %}
+                <span class="badge badge-secondary">確認済み</span>
+            {% endif %}
+            <span style="font-size: 0.85rem; font-weight: 400; color: #6c757d;">
+                アラートID #{{ to_int(alert['id']) }}
+                &nbsp;／&nbsp;検知日時: {{ g(alert, 'created_at', d='') }}
+            </span>
+        </div>
+        {% if has(var('isAdmin')) and isPending %}
+        <form method="POST" action="/index.cgi?page=alert.confirm&id={{ to_int(alert['id']) }}" style="margin: 0;">
+            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+            <button type="submit" class="btn btn-success btn-sm">確認処理</button>
+        </form>
+        {% endif %}
+    </div>
+    <div class="card__body">
+        <div class="alert-compare">
+
+            <!-- レコードA -->
+            <div style="background: #f8f9ff; border-radius: 4px; padding: 14px;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">
+                    レコード A
+                    &nbsp;
+                    <a href="/index.cgi?page=ledger.show&id={{ to_int(g(alert, 'record_a_id', d=0)) }}"
+                       style="font-weight: 400; font-size: 0.75rem;">#{{ to_int(g(alert, 'record_a_id', d=0)) }}</a>
+                </div>
+                <table style="width:100%; font-size: 0.85rem; border-collapse: collapse;">
+                    <tr>
+                        <td style="color: #6c757d; padding: 3px 0; width: 40%;">品目</td>
+                        <td style="padding: 3px 0; font-weight: 600;">{{ g(alert, 'record_a_item_name', d='-') }}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #6c757d; padding: 3px 0;">取引金額</td>
+                        <td style="padding: 3px 0;">
+                            {% if alert.get('record_a_price') is not None %}
+                                &#165;{{ number_format(to_int(alert['record_a_price'])) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color: #6c757d; padding: 3px 0;">登録日</td>
+                        <td style="padding: 3px 0;">{{ g(alert, 'record_a_created_at', d='-') }}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #6c757d; padding: 3px 0;">登録者</td>
+                        <td style="padding: 3px 0;">{{ g(alert, 'record_a_created_by', d='-') }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- レコードB -->
+            <div style="background: #fff8f8; border-radius: 4px; padding: 14px;">
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--color-danger); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px;">
+                    レコード B
+                    &nbsp;
+                    <a href="/index.cgi?page=ledger.show&id={{ to_int(g(alert, 'record_b_id', d=0)) }}"
+                       style="font-weight: 400; font-size: 0.75rem;">#{{ to_int(g(alert, 'record_b_id', d=0)) }}</a>
+                </div>
+                <table style="width:100%; font-size: 0.85rem; border-collapse: collapse;">
+                    <tr>
+                        <td style="color: #6c757d; padding: 3px 0; width: 40%;">品目</td>
+                        <td style="padding: 3px 0; font-weight: 600;">{{ g(alert, 'record_b_item_name', d='-') }}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #6c757d; padding: 3px 0;">取引金額</td>
+                        <td style="padding: 3px 0;">
+                            {% if alert.get('record_b_price') is not None %}
+                                &#165;{{ number_format(to_int(alert['record_b_price'])) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="color: #6c757d; padding: 3px 0;">登録日</td>
+                        <td style="padding: 3px 0;">{{ g(alert, 'record_b_created_at', d='-') }}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #6c757d; padding: 3px 0;">登録者</td>
+                        <td style="padding: 3px 0;">{{ g(alert, 'record_b_created_by', d='-') }}</td>
+                    </tr>
+                </table>
+            </div>
+
+        </div>
+
+        {% if has(g(alert, 'confirmed_by_name')) %}
+        <div class="mt-8" style="font-size: 0.8rem; color: #6c757d;">
+            確認処理者: {{ alert['confirmed_by_name'] }}
+            &nbsp;／&nbsp;
+            確認日時: {{ g(alert, 'confirmed_at', d='') }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endfor %}
+
+{% if has(var('pagination')) and to_int(g(pagination, 'total_pages', d=0)) > 1 %}
+{% set cp = to_int(g(pagination, 'current_page', d=1)) %}
+{% set tp = to_int(pagination['total_pages']) %}
+{% set baseUrl = '/index.cgi?page=alert' + (('&status=' + urlencode(status)) if has(var('status')) else '') %}
+<div class="pagination">
+    <a href="{{ baseUrl + '&p=%d' % max(1, cp - 1) }}"
+       class="pagination__item {{ 'disabled' if cp <= 1 else '' }}">&#8249;</a>
+    {% for i in range(max(1, cp - 3), min(tp, cp + 3) + 1) %}
+    <a href="{{ baseUrl + '&p=%d' % i }}"
+       class="pagination__item {{ 'active' if i == cp else '' }}">{{ i }}</a>
+    {% endfor %}
+    <a href="{{ baseUrl + '&p=%d' % min(tp, cp + 1) }}"
+       class="pagination__item {{ 'disabled' if cp >= tp else '' }}">&#8250;</a>
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state" style="background:#fff; border-radius: 4px; box-shadow: var(--shadow);">
+    <div class="empty-state__icon">&#9989;</div>
+    <div class="empty-state__text">現在、未確認のアラートはありません</div>
+</div>
+{% endif %}
+
+<style>
+/* 2件の台帳を左右に並べて比較（スマホでは縦に並べる） */
+.alert-compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 600px) { .alert-compare { grid-template-columns: minmax(0, 1fr); } }
+</style>
+

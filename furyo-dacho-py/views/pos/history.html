@@ -1,0 +1,131 @@
+{% set pageTitle = '取引履歴 - 古物台帳管理システム' %}
+{% set activePage = 'pos.history' %}
+{% extends 'layouts/main' %}
+{# POS 取引履歴（変数: rows, total, sumTotal, sumCount, filters, page, totalPages, branches, registers, isAdmin） #}
+{% set methods = PAYMENT_LABELS %}
+{% set receiptLabels = {
+    'printed': ('印刷済', 'badge-success'),
+    'unprinted': ('未印刷（画面発行）', 'badge-warning'),
+    'print_failed': ('印刷失敗', 'badge-danger'),
+    'pending': ('未印刷', 'badge-secondary'),
+} %}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">取引履歴</h1>
+    <div class="page-header__actions">
+        <a href="/index.cgi?page=pos" class="btn btn-primary">POSレジ</a>
+        <a href="/index.cgi?page=pos.items&{{ pos_filter_query(filters) }}" class="btn btn-outline">明細で表示</a>
+        <a href="/index.cgi?page=pos.daily&date={{ filters['date_to'] }}" class="btn btn-outline">レジ精算</a>
+        {% if has(var('isAdmin')) %}
+            <a href="/index.cgi?page=pos.export&{{ pos_filter_query(filters) }}" class="btn btn-outline">CSV出力</a>
+        {% endif %}
+    </div>
+</div>
+
+{% include 'pos/_lookup_box' %}
+
+<div class="card">
+    <div class="card__body">
+        <form method="GET" action="/index.cgi" class="pos-filter">
+            <input type="hidden" name="page" value="pos.history">
+            {% if has(g(filters, 'member_id')) %}
+                <input type="hidden" name="member_id" value="{{ to_int(filters['member_id']) }}">
+            {% endif %}
+            {% include 'pos/_filter_fields' %}
+            <div class="form-group"><label class="form-label">品名・シリアル</label>
+                <input type="text" name="keyword" class="form-control" maxlength="100" value="{{ filters['keyword'] }}"></div>
+            <div class="form-group" style="align-self:end;">
+                <button type="submit" class="btn btn-primary">検索</button>
+                <a href="/index.cgi?page=pos.history" class="btn btn-secondary">クリア</a>
+            </div>
+        </form>
+        {% if has(g(filters, 'member_id')) %}
+            <p class="text-muted" style="font-size:.8rem; margin-top:8px;">会員（ID {{ to_int(filters['member_id']) }}）の取引に絞り込んでいます。
+                <a href="/index.cgi?page=pos.history&{{ pos_filter_query(dict(filters, member_id=0)) }}">解除</a></p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="pos-hist-sum">
+    <span>該当 <b>{{ number_format(to_int(total)) }}</b> 件</span>
+    <span>完了 <b>{{ number_format(to_int(sumCount)) }}</b> 件</span>
+    <span>売上合計（取消を除く） <b>¥{{ number_format(to_int(sumTotal)) }}</b></span>
+</div>
+
+<div class="table-wrap">
+    {% if has(var('rows')) %}
+    <table class="table table--striped">
+        <thead>
+            <tr>
+                <th>会計日時</th>
+                <th>レジ</th>
+                <th>レシート番号</th>
+                <th>品名</th>
+                <th style="text-align:right;">点数</th>
+                <th style="text-align:right;">合計</th>
+                <th>支払</th>
+                <th>会員</th>
+                <th>担当</th>
+                <th>レシート</th>
+                <th>状態</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}
+{% set rl = receiptLabels.get(r['receipt_status'], ('-', 'badge-secondary')) %}
+{% set names = str(g(r, 'item_names', d='')) %}
+            <tr{{ raw(' style="opacity:.6;"') if r['status'] == 'voided' else '' }}>
+                <td>{{ r['created_at'] }}</td>
+                <td>{{ ('%02d' % to_int(r['register_no'])) if has(r.get('register_no')) else '-' }}</td>
+                <td><a href="/index.cgi?page=pos.show&id={{ to_int(r['id']) }}">{{ r['receipt_no'] }}</a></td>
+                <td style="max-width:260px; overflow:hidden; text-overflow:ellipsis;" title="{{ names }}">{{ mb_strimwidth(names, 36, '…') }}</td>
+                <td style="text-align:right;">{{ to_int(r['item_count']) }}</td>
+                <td style="text-align:right; font-weight:600;{{ ' text-decoration:line-through;' if r['status'] == 'voided' else '' }}">¥{{ number_format(to_int(r['total'])) }}</td>
+                <td>{{ methods.get(r['payment_method'], r['payment_method']) }}</td>
+                <td style="font-size:.8rem;">
+                    {% if has(g(r, 'member_id')) %}
+                        <a href="/index.cgi?page=member.show&id={{ to_int(r['member_id']) }}">{{ g(r, 'member_code', d='') }}</a><br>{{ g(r, 'member_name', d='') }}
+                    {% elif has(g(r, 'member_code')) %}
+                        {{ r['member_code'] }}
+                    {% else %}-{% endif %}
+                </td>
+                <td>{{ g(r, 'cashier_name', d='') }}</td>
+                <td><span class="badge {{ rl[1] }}">{{ rl[0] }}</span>{{ raw(' <small class="text-muted">再%d</small>' % (to_int(r['print_count']) - 1)) if to_int(r['print_count']) > 1 else '' }}</td>
+                <td>{% if r['status'] == 'voided' %}<span class="badge badge-danger">取消</span>{% else %}<span class="badge badge-success">完了</span>{% endif %}</td>
+                <td style="white-space:nowrap;">
+                    <a href="/index.cgi?page=pos.show&id={{ to_int(r['id']) }}" class="btn btn-secondary btn-sm">明細</a>
+                    <button type="button" class="btn btn-outline btn-sm" data-reprint="{{ to_int(r['id']) }}">再印刷</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="background:#fff;">
+        <div class="empty-state__icon">&#128203;</div>
+        <div class="empty-state__text">該当する取引はありません</div>
+    </div>
+    {% endif %}
+</div>
+
+{% if totalPages > 1 %}
+<div class="pagination">
+    <a href="/index.cgi?{{ pos_filter_query(filters, {'page': 'pos.history', 'p': max(1, page - 1)}) }}" class="pagination__item {{ 'disabled' if page <= 1 else '' }}">&#8249;</a>
+    {% for i in range(max(1, page - 3), min(totalPages, page + 3) + 1) %}
+        <a href="/index.cgi?{{ pos_filter_query(filters, {'page': 'pos.history', 'p': i}) }}" class="pagination__item {{ 'active' if i == page else '' }}">{{ i }}</a>
+    {% endfor %}
+    <a href="/index.cgi?{{ pos_filter_query(filters, {'page': 'pos.history', 'p': min(totalPages, page + 1)}) }}" class="pagination__item {{ 'disabled' if page >= totalPages else '' }}">&#8250;</a>
+</div>
+{% endif %}
+
+<style>
+.pos-filter { display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:10px; }
+.pos-filter .form-group { margin:0; }
+.pos-hist-sum { display:flex; gap:20px; flex-wrap:wrap; margin:0 0 12px; font-size:.9rem; }
+</style>
+
+{% include 'pos/_printer' %}
+{% include 'pos/_reprint' %}
+

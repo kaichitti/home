@@ -1,0 +1,65 @@
+{# DBマイグレーション（app/maintenance/migrate.py が値を渡す）。変数: errors, codeWarnings, results, db_ok, pending, csrf_token #}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DBマイグレーション - 古物台帳管理システム</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+       background: #f4f5f7; color: #333; padding: 24px; }
+.wrap { max-width: 640px; margin: 0 auto; background: #fff; border-radius: 8px;
+        box-shadow: 0 1px 4px rgba(0,0,0,.12); padding: 24px; }
+h1 { font-size: 1.2rem; color: #1e3a5f; margin-bottom: 16px; }
+ul { margin: 8px 0 16px 20px; }
+li { margin-bottom: 6px; font-size: .9rem; }
+.ok    { color: #27ae60; }
+.err   { color: #c0392b; }
+.warn  { background: #fdf3e7; border: 1px solid #e67e22; color: #9a5b13;
+         padding: 10px 12px; border-radius: 6px; font-size: .85rem; margin-bottom: 16px; }
+button { background: #1e3a5f; color: #fff; border: none; border-radius: 6px;
+         padding: 10px 24px; font-size: .95rem; cursor: pointer; }
+button:hover { background: #2a4e7f; }
+.note { font-size: .8rem; color: #777; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+    <h1>DBマイグレーション</h1>
+
+    {% if has(var('errors')) %}
+        <ul>{% for e in errors %}<li class="err">{{ e }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    {% if has(var('codeWarnings')) %}
+        <div class="warn">
+            <b>拠点ログインコードの重複・衝突があります</b>
+            <ul>{% for w in codeWarnings %}<li>{{ w }}</li>{% endfor %}</ul>
+            各テナントの管理者が「拠点管理」で、重複しない新しいコードに変更してください。
+        </div>
+    {% endif %}
+
+    {% if has(var('results')) %}
+        <ul>{% for r in results %}<li class="ok">{{ r }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    {% if db_ok %}
+        {% if not has(var('pending')) %}
+            <p class="ok" style="margin-bottom:16px;">&#10004; データベースは最新の状態です。適用が必要な変更はありません。</p>
+            <div class="warn"><b>このファイル（migrate.cgi）を今すぐサーバーから削除してください。</b></div>
+        {% else %}
+            <p style="font-size:.9rem; margin-bottom:8px;">以下の変更が未適用です:</p>
+            <ul>{% for p in pending %}<li>{{ p }}</li>{% endfor %}</ul>
+            <div class="warn">実行前にXREAコントロールパネル等でDBのバックアップを取得することを推奨します。</div>
+            <form method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button type="submit" name="run" value="1">マイグレーションを実行</button>
+            </form>
+        {% endif %}
+    {% endif %}
+
+    <p class="note">実行が完了し「最新の状態です」と表示されたら、このファイルは必ず削除してください。</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,79 @@
+{# テナント管理（一覧）。変数: tenants（利用状況つき）, showDeleted #}
+{% extends 'layouts/admin' %}
+{% include 'admin/_tenant_helpers' %}
+{% set tenants = var('tenants', []) %}
+{% set showDeleted = has(var('showDeleted')) %}
+{% set adminTitle = 'テナント管理' %}
+<div class="page-header">
+    <h1 class="page-header__title">テナント管理</h1>
+    <div class="page-header__actions">
+        {% if showDeleted %}
+        <a href="/admin/index.cgi?page=tenant" class="btn btn-outline">削除済みを隠す</a>
+        {% else %}
+        <a href="/admin/index.cgi?page=tenant&amp;deleted=1" class="btn btn-outline">削除済みも表示</a>
+        {% endif %}
+        <a href="/admin/index.cgi?page=tenant.create" class="btn btn-primary">＋ テナント追加</a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>コード</th>
+                    <th>テナント名</th>
+                    <th>種別</th>
+                    <th>状態</th>
+                    <th style="text-align:right;">利用者</th>
+                    <th style="text-align:right;">台帳</th>
+                    <th>作成日</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% if not has(var('tenants')) %}
+                <tr><td colspan="9" class="empty-state">テナントが登録されていません。</td></tr>
+            {% endif %}
+            {% for tenant in tenants %}
+                {% set st = str(g(tenant, 'status', d='')) %}
+                <tr>
+                    <td class="nowrap text-muted">{{ to_int(tenant['id']) }}</td>
+                    <td class="nowrap"><code>{{ tenant['code'] }}</code></td>
+                    <td><a href="/admin/index.cgi?page=tenant.show&amp;id={{ to_int(tenant['id']) }}">{{ tenant['name'] }}</a></td>
+                    <td class="nowrap">{{ admin_type_label(str(tenant['type'])) }}</td>
+                    <td class="nowrap">{{ admin_status_badge(st) }}</td>
+                    <td class="nowrap" style="text-align:right;">{{ to_int(g(tenant, 'active_user_count', d=0)) }}人</td>
+                    <td class="nowrap" style="text-align:right;">{{ number_format(to_int(g(tenant, 'ledger_count', d=0))) }}件</td>
+                    <td class="nowrap" style="font-size:.8rem;">{{ str(tenant['created_at'])[:10] }}</td>
+                    <td>
+                        <div class="actions">
+                            <a href="/admin/index.cgi?page=tenant.show&amp;id={{ to_int(tenant['id']) }}" class="btn btn-accent btn-sm">詳細</a>
+                            {% if st != 'deleted' %}
+                            <a href="/admin/index.cgi?page=tenant.edit&amp;id={{ to_int(tenant['id']) }}" class="btn btn-outline btn-sm">編集</a>
+                            {% endif %}
+                            {% if st == 'active' %}
+                            <form method="POST" action="/admin/index.cgi?page=tenant.suspend">
+                                <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+                                <input type="hidden" name="id" value="{{ to_int(tenant['id']) }}">
+                                <button type="submit" class="btn btn-warning btn-sm"
+                                        onclick="return confirm('このテナントを停止しますか？\n利用者はログインできなくなります（データは保持されます）。')">停止</button>
+                            </form>
+                            {% elif st == 'suspended' %}
+                            <form method="POST" action="/admin/index.cgi?page=tenant.resume">
+                                <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+                                <input type="hidden" name="id" value="{{ to_int(tenant['id']) }}">
+                                <button type="submit" class="btn btn-success btn-sm"
+                                        onclick="return confirm('このテナントを再開しますか？')">再開</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+<p class="form-hint">テナントの削除は、各テナントの詳細画面から行えます（誤操作防止のためテナントコードの入力が必要です）。</p>

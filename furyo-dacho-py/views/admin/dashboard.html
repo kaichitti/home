@@ -1,0 +1,82 @@
+{# システム管理者ダッシュボード（変数: tenants（利用状況つき）, totalCount） #}
+{% extends 'layouts/admin' %}
+{% include 'admin/_tenant_helpers' %}
+{% py %}
+tenants = var('tenants', [])
+totalCount = var('totalCount', len(tenants))
+adminTitle = 'ダッシュボード'
+activeCount = suspendedCount = userTotal = ledgerTotal = 0
+for _t in tenants:
+    if _t.get('status') == 'active':
+        activeCount += 1
+    elif _t.get('status') == 'suspended':
+        suspendedCount += 1
+    userTotal += to_int(_t.get('active_user_count'))
+    ledgerTotal += to_int(_t.get('ledger_count'))
+{% endpy %}
+<div class="page-header">
+    <h1 class="page-header__title">システム管理 ダッシュボード</h1>
+    <div class="page-header__actions">
+        <a href="/admin/index.cgi?page=tenant.create" class="btn btn-primary">＋ 新規テナント登録</a>
+    </div>
+</div>
+
+<div class="stat-cards">
+    <div class="stat-card">
+        <div class="stat-card__label">テナント総数</div>
+        <div class="stat-card__value">{{ to_int(totalCount) }}</div>
+    </div>
+    <div class="stat-card stat-card--success">
+        <div class="stat-card__label">有効</div>
+        <div class="stat-card__value">{{ activeCount }}</div>
+    </div>
+    <div class="stat-card stat-card--warning">
+        <div class="stat-card__label">停止中</div>
+        <div class="stat-card__value">{{ suspendedCount }}</div>
+    </div>
+    <div class="stat-card stat-card--accent">
+        <div class="stat-card__label">有効な利用者 / 台帳件数（全テナント）</div>
+        <div class="stat-card__value" style="font-size:1.5rem;">{{ number_format(userTotal) }}人 / {{ number_format(ledgerTotal) }}件</div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card__header">
+        テナント一覧
+        <a href="/admin/index.cgi?page=tenant" class="btn btn-outline btn-sm">テナント管理へ</a>
+    </div>
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>コード</th>
+                    <th>テナント名</th>
+                    <th>種別</th>
+                    <th>状態</th>
+                    <th style="text-align:right;">利用者</th>
+                    <th style="text-align:right;">台帳</th>
+                    <th>最終ログイン</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+            {% if not has(var('tenants')) %}
+                <tr><td colspan="8" class="empty-state">テナントが登録されていません。</td></tr>
+            {% else %}
+                {% for t in tenants %}
+                <tr>
+                    <td class="nowrap"><code>{{ g(t, 'code', d='') }}</code></td>
+                    <td><a href="/admin/index.cgi?page=tenant.show&amp;id={{ to_int(t['id']) }}">{{ g(t, 'name', d='') }}</a></td>
+                    <td class="nowrap">{{ admin_type_label(str(g(t, 'type', d=''))) }}</td>
+                    <td class="nowrap">{{ admin_status_badge(str(g(t, 'status', d=''))) }}</td>
+                    <td class="nowrap" style="text-align:right;">{{ to_int(g(t, 'active_user_count', d=0)) }}人</td>
+                    <td class="nowrap" style="text-align:right;">{{ number_format(to_int(g(t, 'ledger_count', d=0))) }}件</td>
+                    <td class="nowrap" style="font-size:.8rem;">{% if has(t.get('last_login_at')) %}{{ str(t['last_login_at'])[:16] }}{% else %}<span class="text-muted">-</span>{% endif %}</td>
+                    <td class="nowrap"><a href="/admin/index.cgi?page=tenant.show&amp;id={{ to_int(t['id']) }}" class="btn btn-accent btn-sm">詳細</a></td>
+                </tr>
+                {% endfor %}
+            {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,109 @@
+{% set pageTitle = '監査ログ - 古物台帳管理システム' %}
+{% set activePage = 'audit' %}
+{% extends 'layouts/main' %}
+{% set actionLabels = {'login': 'ログイン', 'create': '登録', 'edit': '編集', 'delete': '削除', 'export': '出力', 'alert_action': 'アラート処理'} %}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">監査ログ</h1>
+</div>
+
+<div class="table-wrap">
+    {% if has(var('logs')) %}
+    <table class="table table--striped">
+        <thead>
+            <tr>
+                <th>操作日時</th>
+                <th>操作者</th>
+                <th>所属拠点</th>
+                <th>操作種別</th>
+                <th>対象ID</th>
+                <th>IPアドレス</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            {% set action = g(log, 'action_type', d='') %}
+            <tr>
+                <td style="white-space: nowrap;">{{ g(log, 'created_at', d='') }}</td>
+                <td>{{ g(log, 'user_display_name', d='-') }}</td>
+                <td>{{ g(log, 'branch_name', d='-') }}</td>
+                <td>
+                    {% py %}
+label = actionLabels.get(action, action)  # 出力時にエスケープする（二重エスケープしない）
+badgeClass = {'delete': 'badge-danger', 'create': 'badge-success', 'edit': 'badge-warning',
+              'login': 'badge-primary', 'export': 'badge-primary'}.get(action, 'badge-secondary')
+{% endpy %}
+                    <span class="badge {{ badgeClass }}">{{ label }}</span>
+                </td>
+                <td>
+                    {% py %}
+# 対象の種類（after/before の kind）に応じてリンク先を決める
+vals = {}
+for vk in ('after_value', 'before_value'):
+    dv = json_loads(log.get(vk))
+    if isinstance(dv, dict):
+        for k, v in dv.items():
+            vals.setdefault(k, v)
+kind = str(vals.get('kind') or '')
+kindLabels = {
+    'sale': '販売記録', 'pos_transaction': 'POS取引', 'pos_void': 'POS取引',
+    'pos_print': 'POS取引', 'pos_closing': 'レジ精算', 'pos_settings': 'POS設定',
+    'pos_csv': 'POS売上CSV', 'member': '会員', 'user': 'ユーザー',
+}
+tid = to_int(log.get('target_id'))
+link = None
+if kind == 'sale' and has(vals.get('ledger_id')):
+    link = '/index.cgi?page=ledger.show&id=%d' % to_int(vals['ledger_id'])
+elif kind in ('pos_transaction', 'pos_void', 'pos_print') and tid > 0:
+    link = '/index.cgi?page=pos.show&id=%d' % tid
+elif kind == '' and tid > 0 and action in ('create', 'edit', 'delete'):
+    link = '/index.cgi?page=ledger.show&id=%d' % tid
+{% endpy %}
+                    {% if kind != '' %}
+                        <span class="text-muted" style="font-size:.75rem;">{{ kindLabels.get(kind, kind) }}</span>
+                    {% endif %}
+                    {% if tid > 0 %}
+                        {% if link is not None %}
+                            <a href="{{ link }}">#{{ tid }}</a>
+                        {% else %}
+                            #{{ tid }}
+                        {% endif %}
+                    {% elif kind == '' %}
+                        -
+                    {% endif %}
+                </td>
+                <td style="font-family: monospace; font-size: 0.8rem;">
+                    {{ g(log, 'ip_address', d='-') }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="background:#fff;">
+        <div class="empty-state__icon">&#128196;</div>
+        <div class="empty-state__text">ログデータがありません</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ページネーション -->
+{% if has(var('pagination')) and to_int(g(pagination, 'total_pages', d=0)) > 1 %}
+{% set cp = to_int(g(pagination, 'current_page', d=1)) %}
+{% set tp = to_int(pagination['total_pages']) %}
+{# 絞り込み条件（操作種別・操作者・期間）を引き継ぐ #}
+{% set kept = {k: v for k, v in var('filters', {}).items() if has(v)} %}
+{% set baseUrl = '/index.cgi?page=audit' + (('&' + http_build_query(kept)) if kept else '') %}
+<div class="pagination">
+    <a href="{{ baseUrl + '&p=%d' % max(1, cp - 1) }}"
+       class="pagination__item {{ 'disabled' if cp <= 1 else '' }}">&#8249;</a>
+    {% for i in range(max(1, cp - 3), min(tp, cp + 3) + 1) %}
+    <a href="{{ baseUrl + '&p=%d' % i }}"
+       class="pagination__item {{ 'active' if i == cp else '' }}">{{ i }}</a>
+    {% endfor %}
+    <a href="{{ baseUrl + '&p=%d' % min(tp, cp + 1) }}"
+       class="pagination__item {{ 'disabled' if cp >= tp else '' }}">&#8250;</a>
+</div>
+{% endif %}
+

@@ -1,0 +1,437 @@
+{#
+  初回セットアップウィザード（app/maintenance/setup.py が値を渡す）
+  変数: step, stepTitles, errors, success, envChecks, allOk, s（セッションの値）, csrf_token, default_upload_dir
+#}
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>セットアップ - 古物台帳管理システム</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: #f4f5f7;
+    color: #333;
+    font-size: 15px;
+    line-height: 1.6;
+}
+.wrapper {
+    max-width: 720px;
+    margin: 40px auto;
+    padding: 0 16px;
+}
+.header {
+    background: #1a1a2e;
+    color: #fff;
+    padding: 20px 28px;
+    border-radius: 8px 8px 0 0;
+}
+.header h1 { font-size: 20px; font-weight: 700; }
+.header p { font-size: 13px; color: #aaa; margin-top: 4px; }
+.steps {
+    display: flex;
+    background: #16213e;
+    padding: 12px 28px;
+}
+.step-item {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    color: #666;
+    position: relative;
+}
+.step-item.active { color: #4fc3f7; font-weight: 700; }
+.step-item.done { color: #81c784; }
+.step-num {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #333;
+    line-height: 24px;
+    margin-bottom: 4px;
+    font-weight: 700;
+}
+.step-item.active .step-num { background: #4fc3f7; color: #000; }
+.step-item.done .step-num { background: #81c784; color: #000; }
+.card {
+    background: #fff;
+    padding: 32px 28px;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #1a1a2e; }
+.alert {
+    padding: 12px 16px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+.alert-danger { background: #fff3f3; border-left: 4px solid #e53935; color: #c62828; }
+.alert-success { background: #f1f8e9; border-left: 4px solid #43a047; color: #2e7d32; }
+.alert-warning {
+    background: #fff8e1;
+    border-left: 4px solid #ffb300;
+    color: #6d4c00;
+    font-size: 14px;
+}
+.alert-warning strong { display: block; font-size: 16px; margin-bottom: 6px; }
+.check-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+.check-table th {
+    background: #f4f5f7;
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #555;
+    border-bottom: 2px solid #e0e0e0;
+}
+.check-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+}
+.ok { color: #43a047; font-weight: 700; }
+.ng { color: #e53935; font-weight: 700; }
+.note-ng { color: #e53935; font-size: 12px; margin-top: 2px; }
+.form-group { margin-bottom: 18px; }
+label { display: block; font-size: 14px; font-weight: 600; margin-bottom: 6px; color: #444; }
+label .required { color: #e53935; margin-left: 4px; }
+input[type="text"], input[type="password"], input[type="url"], select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+input:focus, select:focus {
+    outline: none;
+    border-color: #4fc3f7;
+    box-shadow: 0 0 0 3px rgba(79,195,247,0.15);
+}
+.hint { font-size: 12px; color: #888; margin-top: 4px; }
+.btn {
+    display: inline-block;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.2s;
+    text-decoration: none;
+}
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: #1976d2; color: #fff; }
+.btn-success { background: #43a047; color: #fff; }
+.btn-secondary { background: #78909c; color: #fff; }
+.btn-danger { background: #e53935; color: #fff; }
+.btn-row { display: flex; gap: 12px; align-items: center; margin-top: 24px; }
+.key-display {
+    background: #1a1a2e;
+    color: #4fc3f7;
+    font-family: monospace;
+    font-size: 13px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    word-break: break-all;
+    margin-bottom: 12px;
+}
+.final-warning {
+    background: #ffebee;
+    border: 2px solid #e53935;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+}
+.final-warning h3 { color: #b71c1c; font-size: 18px; margin-bottom: 12px; }
+.final-warning p, .final-warning li { font-size: 14px; color: #b71c1c; }
+.final-warning ul { padding-left: 20px; margin-top: 8px; }
+.login-info {
+    background: #e8f5e9;
+    border: 1px solid #a5d6a7;
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 24px;
+}
+.login-info h3 { color: #2e7d32; margin-bottom: 12px; }
+.login-info table { width: 100%; border-collapse: collapse; }
+.login-info td { padding: 6px 8px; font-size: 14px; }
+.login-info td:first-child { font-weight: 600; width: 200px; color: #555; }
+.section-divider { border: none; border-top: 1px solid #eee; margin: 24px 0; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<div class="header">
+    <h1>古物台帳管理システム - セットアップウィザード</h1>
+    <p>初回のみ実行。完了後は必ず setup.cgi を削除してください。</p>
+</div>
+
+<div class="steps">
+{% for n, title in stepTitles.items() %}
+    {% set cls = 'step-item' + (' active' if n == step else (' done' if n < step else '')) %}
+    <div class="{{ cls }}">
+        <div class="step-num">{{ n }}</div>
+        <div>{{ title }}</div>
+    </div>
+{% endfor %}
+</div>
+
+<div class="card">
+
+{% if errors %}
+    <div class="alert alert-danger">
+        {% for e in errors %}
+            <div>{{ e }}</div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+{% if success %}
+    <div class="alert alert-success">
+        {% for s_msg in success %}
+            <div>{{ s_msg }}</div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<!-- ================================================================
+     Step 1: 環境チェック
+     ================================================================ -->
+{% if step == 1 %}
+<h2>Step 1: 環境チェック</h2>
+
+<table class="check-table">
+    <thead>
+        <tr>
+            <th>チェック項目</th>
+            <th>結果</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for check in envChecks %}
+        <tr>
+            <td>{{ check['label'] }}</td>
+            <td>
+                {% if check['ok'] %}
+                    <span class="ok">OK</span>
+                    {% if check['note'] %}
+                        <div style="font-size:.8rem; color:#9a5b13; margin-top:4px;">{{ check['note'] }}</div>
+                    {% endif %}
+                {% else %}
+                    <span class="ng">NG</span>
+                    {% if check['note'] %}
+                        <div class="note-ng">{{ check['note'] }}</div>
+                    {% endif %}
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% if allOk %}
+    <div class="alert alert-success">全てのチェックが通過しました。次のステップへ進めます。</div>
+    <div class="btn-row">
+        <a href="?step=2" class="btn btn-primary">次へ: DB接続テスト</a>
+    </div>
+{% else %}
+    <div class="alert alert-danger">チェックに失敗した項目があります。サーバー設定を確認してから再度アクセスしてください。</div>
+    <div class="btn-row">
+        <a href="?step=1" class="btn btn-secondary">再チェック</a>
+    </div>
+{% endif %}
+
+<!-- ================================================================
+     Step 2: DB接続テスト
+     ================================================================ -->
+{% elif step == 2 %}
+<h2>Step 2: DB接続テスト</h2>
+<p style="margin-bottom:20px;color:#555;font-size:14px;">XREAのコントロールパネルで作成したMySQLのデータベース情報を入力してください。</p>
+
+<form method="POST" action="?step=2">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <div class="form-group">
+        <label>DBホスト <span class="required">*</span></label>
+        <input type="text" name="db_host" value="{{ s.get('db_host', 'localhost') }}" placeholder="localhost">
+        <div class="hint">XREAでは通常 localhost</div>
+    </div>
+    <div class="form-group">
+        <label>データベース名 <span class="required">*</span></label>
+        <input type="text" name="db_name" value="{{ s.get('db_name', '') }}" placeholder="例: your_dbname">
+    </div>
+    <div class="form-group">
+        <label>DBユーザー名 <span class="required">*</span></label>
+        <input type="text" name="db_user" value="{{ s.get('db_user', '') }}" placeholder="例: your_dbuser">
+    </div>
+    <div class="form-group">
+        <label>DBパスワード</label>
+        <input type="password" name="db_pass" placeholder="DBパスワード">
+    </div>
+    <div class="btn-row">
+        <button type="submit" name="test_connection" value="1" class="btn btn-primary">接続テスト</button>
+    </div>
+</form>
+
+{% if s.get('db_ok') %}
+<hr class="section-divider">
+<form method="POST" action="?step=2">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <div class="btn-row">
+        <button type="submit" name="next_to_step3" value="1" class="btn btn-success">次へ: DB初期化</button>
+    </div>
+</form>
+{% endif %}
+
+<!-- ================================================================
+     Step 3: DB初期化
+     ================================================================ -->
+{% elif step == 3 %}
+<h2>Step 3: DB初期化</h2>
+
+<div class="alert alert-warning">
+    <strong>注意</strong>
+    database/schema.sql を実行してテーブルを作成します。<br>
+    既にテーブルが存在する場合は CREATE TABLE IF NOT EXISTS のため上書きされませんが、
+    初期データ（INSERT IGNORE）は重複しない場合のみ挿入されます。
+</div>
+
+<p style="margin-bottom:20px;color:#555;font-size:14px;">
+    接続先: <strong>{{ s.get('db_host', '') }}</strong> /
+    データベース: <strong>{{ s.get('db_name', '') }}</strong>
+</p>
+
+<form method="POST" action="?step=3">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <div class="btn-row">
+        <button type="submit" name="run_init" value="1" class="btn btn-danger">DBを初期化する</button>
+    </div>
+</form>
+
+{% if s.get('db_init_ok') %}
+<hr class="section-divider">
+<p style="font-size:14px;color:#555;margin-bottom:16px;">
+    生成された暗号化キー（config/.env に自動書き込みされます）:
+</p>
+<div class="key-display">{{ s.get('encryption_key', '') }}</div>
+<form method="POST" action="?step=3">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <div class="btn-row">
+        <button type="submit" name="next_to_step4" value="1" class="btn btn-success">次へ: 設定ファイル生成</button>
+    </div>
+</form>
+{% endif %}
+
+<!-- ================================================================
+     Step 4: 設定ファイル生成
+     ================================================================ -->
+{% elif step == 4 %}
+<h2>Step 4: 設定ファイル生成</h2>
+<p style="margin-bottom:20px;color:#555;font-size:14px;">config/.env を生成します。</p>
+
+<form method="POST" action="?step=4">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <div class="form-group">
+        <label>アプリケーションURL <span class="required">*</span></label>
+        <input type="url" name="app_url" value="{{ s.get('app_url', 'https://') }}" placeholder="https://yourdomain.com">
+        <div class="hint">末尾スラッシュ不要。例: https://example.com</div>
+    </div>
+    <div class="form-group">
+        <label>環境</label>
+        <select name="app_env">
+            <option value="production" {{ 'selected' if s.get('app_env', 'production') == 'production' else '' }}>production（本番）</option>
+            <option value="development" {{ 'selected' if s.get('app_env') == 'development' else '' }}>development（開発）</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label>
+            <input type="checkbox" name="app_debug" value="1" {{ 'checked' if s.get('app_debug') else '' }}>
+            デバッグモード有効（本番環境では OFF を推奨）
+        </label>
+    </div>
+    <div class="form-group">
+        <label>アップロードディレクトリ（絶対パス） <span class="required">*</span></label>
+        <input type="text" name="upload_dir" value="{{ s.get('upload_dir', default_upload_dir) }}" placeholder="/home/アカウント名/furyo-dacho-uploads">
+        <div class="hint">Webルート（public_html/）の外に配置してください。</div>
+    </div>
+    <div class="btn-row">
+        <button type="submit" name="generate_env" value="1" class="btn btn-primary">config/.env を生成</button>
+    </div>
+</form>
+
+{% if s.get('env_ok') %}
+<hr class="section-divider">
+<form method="POST" action="?step=4">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <div class="btn-row">
+        <button type="submit" name="next_to_step5" value="1" class="btn btn-success">完了画面へ</button>
+    </div>
+</form>
+{% endif %}
+
+<!-- ================================================================
+     Step 5: 完了
+     ================================================================ -->
+{% elif step == 5 %}
+<h2>Step 5: セットアップ完了</h2>
+
+<div class="final-warning">
+    <h3>!!! 重要 !!! setup.cgi を今すぐ削除してください</h3>
+    <p>このファイルが残っていると、誰でもDBを再初期化・設定を上書きできる状態になります。</p>
+    <ul>
+        <li>FTPクライアントで <strong>setup.cgi</strong> を今すぐ削除してください</li>
+        <li>削除確認後、ログインページへ進んでください</li>
+    </ul>
+</div>
+
+<div class="login-info">
+    <h3>初回ログイン情報</h3>
+    <table>
+        <tr>
+            <td>テナント側URL</td>
+            <td><a href="{{ s.get('app_url', '/') }}/" target="_blank">{{ s.get('app_url', '/') }}/</a></td>
+        </tr>
+        <tr>
+            <td>テナントコード</td>
+            <td><code>honsha</code></td>
+        </tr>
+        <tr>
+            <td>メールアドレス</td>
+            <td><code>admin@example.com</code></td>
+        </tr>
+        <tr>
+            <td>パスワード</td>
+            <td><code>Admin7777</code>（初回ログイン時に変更必須）</td>
+        </tr>
+    </table>
+    <hr style="margin:12px 0;border:none;border-top:1px solid #c8e6c9;">
+    <table>
+        <tr>
+            <td>システム管理者URL</td>
+            <td><a href="{{ s.get('app_url', '/') }}/admin/" target="_blank">{{ s.get('app_url', '/') }}/admin/</a></td>
+        </tr>
+        <tr>
+            <td>ユーザー名</td>
+            <td><code>admin</code></td>
+        </tr>
+        <tr>
+            <td>パスワード</td>
+            <td><code>Admin7777</code>（初回ログイン時に変更必須）</td>
+        </tr>
+    </table>
+</div>
+
+<div class="btn-row">
+    <a href="{{ s.get('app_url', '/') }}/index.cgi?page=login" class="btn btn-primary" target="_blank">ログインページへ</a>
+</div>
+
+{% endif %}
+
+</div><!-- /.card -->
+</div><!-- /.wrapper -->
+</body>
+</html>

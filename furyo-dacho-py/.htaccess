@@ -1,0 +1,47 @@
+# 古物台帳管理システム（Python版）
+# アプリ一式を公開フォルダ（public_html）にそのまま置く構成用。
+
+# 入口（/ と /admin/ で index.cgi を開く）
+DirectoryIndex index.cgi index.html
+
+# .cgi を CGI プログラムとして動かす。
+# CGI が動かない（ソースがそのまま表示される・403 になる）場合のみ、次の行の先頭の # を外す。
+# Options +ExecCGI
+AddHandler cgi-script .cgi
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# プログラム・画面テンプレート・設定・保存データ・資料等への直接アクセスを全て拒否
+RewriteRule ^(app|views|lib|config|database|storage|tools|tests|docs|public)(/|$) - [F,L]
+
+# 「.」で始まるファイル（.env 等）は拒否（SSL証明書の認証用 .well-known は除く）
+RewriteCond %{REQUEST_URI} !^/\.well-known/
+RewriteRule (^|/)\. - [F,L]
+
+# 旧PHP版のURL（ブックマーク等）は新しいURLへ転送
+RewriteRule ^index\.php$ index.cgi [R=301,L]
+RewriteRule ^admin/index\.php$ admin/index.cgi [R=301,L]
+
+# HTTPSへ転送（本番環境で SSL を有効にしたら先頭の # を外す）
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# 存在するファイル・フォルダはそのまま
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# admin/ 配下は admin/index.cgi に集約
+RewriteRule ^admin/(.*)$ admin/index.cgi?page=$1 [QSA,L]
+
+# それ以外はすべて index.cgi へ
+RewriteRule ^(.*)$ index.cgi [QSA,L]
+</IfModule>
+
+# セキュリティヘッダー（X-Frame-Options・Content-Security-Policy 等）はプログラム側で付けている。
+# HTTPS 運用時は次の行の先頭の # を外して HSTS を有効化する。
+# <IfModule mod_headers.c>
+#     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+# </IfModule>

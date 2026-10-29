@@ -1,0 +1,79 @@
+{% set pageTitle = '古物区分管理 - 古物台帳管理システム' %}
+{% set activePage = 'category' %}
+{% extends 'layouts/main' %}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">古物区分管理</h1>
+</div>
+
+<!-- 追加フォーム -->
+<div class="card">
+    <div class="card__header">独自区分の追加</div>
+    <div class="card__body">
+        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 12px;">
+            法定13区分・「その他（自由記述）」に加えて、台帳登録時に選択できる独自の区分を追加できます。
+        </p>
+        <form method="POST" action="/index.cgi?page=category.store"
+              style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-start;">
+            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+            <input type="text" name="name" class="form-control" style="max-width: 320px;"
+                   placeholder="例: ゲーム機類" maxlength="100" required>
+            <button type="submit" class="btn btn-primary">追加</button>
+        </form>
+    </div>
+</div>
+
+<!-- 独自区分一覧 -->
+<div class="card">
+    <div class="card__header">独自区分一覧</div>
+    <div class="card__body">
+        {% if has(var('categories')) %}
+        <div class="table-wrap">
+            <table class="table table--striped">
+                <thead>
+                    <tr>
+                        <th>区分名</th>
+                        <th>追加日</th>
+                        <th style="width: 100px;">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in categories %}
+                    <tr>
+                        <td>{{ c['name'] }}</td>
+                        <td>{{ g(c, 'created_at', d='') }}</td>
+                        <td>
+                            <form method="POST" action="/index.cgi?page=category.delete" style="display:inline;">
+                                <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+                                <input type="hidden" name="id" value="{{ to_int(c['id']) }}">
+                                <button type="submit" class="btn btn-secondary btn-sm"
+                                        onclick="return confirm('この区分を削除しますか？\n（登録済みの台帳の表記は変わりません）')">
+                                    削除
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted" style="font-size: 0.875rem;">独自区分はまだ登録されていません。</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 法定区分（参考表示） -->
+<div class="card">
+    <div class="card__header">法定区分（古物営業法施行規則 別表第1・変更不可）</div>
+    <div class="card__body">
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            {% for label in var('statutory', {}).values() %}
+            <span class="badge badge-secondary">{{ label }}</span>
+            {% endfor %}
+            <span class="badge badge-secondary">その他（自由記述）</span>
+        </div>
+    </div>
+</div>
+

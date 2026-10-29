@@ -1,0 +1,79 @@
+{% set pageTitle = '拠点管理 - 古物台帳管理システム' %}
+{% set activePage = 'branch' %}
+{% extends 'layouts/main' %}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">拠点管理</h1>
+    {% if has(var('isAdmin')) %}
+    <div class="page-header__actions">
+        <a href="/index.cgi?page=branch.create" class="btn btn-primary">拠点新規登録</a>
+    </div>
+    {% endif %}
+</div>
+
+{% if has(var('flashSuccess')) %}
+<div class="alert alert-success">{{ flashSuccess }}</div>
+{% endif %}
+{% if has(var('flashError')) %}
+<div class="alert alert-danger">{{ flashError }}</div>
+{% endif %}
+
+<div class="table-wrap">
+    {% if has(var('branches')) %}
+    <table class="table table--striped">
+        <thead>
+            <tr>
+                <th>拠点名</th>
+                <th>ログインコード</th>
+                <th>住所</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in branches %}
+            <tr>
+                <td>
+                    {{ g(b, 'name', d='') }}
+                    {% if has(g(b, 'is_main')) %}
+                    <span class="badge badge-primary">主拠点</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if has(g(b, 'login_code')) %}
+                        <code>{{ b['login_code'] }}</code>
+                    {% else %}
+                        <span class="text-muted" style="font-size:.8rem;">（テナントコード）</span>
+                    {% endif %}
+                </td>
+                <td>{{ g(b, 'address', d='-') }}</td>
+                <td>
+                    <div class="d-flex gap-8">
+                        <a href="/index.cgi?page=branch.edit&id={{ to_int(b['id']) }}"
+                           class="btn btn-outline btn-sm">編集</a>
+                        {% if has(var('isAdmin')) and not has(b.get('is_main')) %}
+                        <form method="POST" action="/index.cgi?page=branch.delete" style="display:inline;">
+                            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+                            <input type="hidden" name="id" value="{{ to_int(b['id']) }}">
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                    onclick="return confirm('この拠点を削除しますか？')">
+                                削除
+                            </button>
+                        </form>
+                        {% elif has(g(b, 'is_main')) %}
+                        <span class="text-muted" style="font-size:.75rem; align-self:center;">削除不可（名称変更のみ）</span>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="background:#fff;">
+        <div class="empty-state__icon">&#127968;</div>
+        <div class="empty-state__text">拠点が登録されていません</div>
+    </div>
+    {% endif %}
+</div>
+

@@ -1,0 +1,122 @@
+{% set pageTitle = 'ユーザー管理 - 古物台帳管理システム' %}
+{% set activePage = 'user' %}
+{% extends 'layouts/main' %}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">ユーザー管理</h1>
+    {% if has(var('isAdmin')) %}
+    <div class="page-header__actions">
+        <a href="/index.cgi?page=user.create" class="btn btn-primary">ユーザー新規登録</a>
+    </div>
+    {% endif %}
+</div>
+
+
+<div class="table-wrap">
+    {% if has(var('users')) %}
+    <table class="table table--striped">
+        <thead>
+            <tr>
+                <th>表示名</th>
+                <th>メールアドレス</th>
+                <th>権限</th>
+                <th>所属拠点</th>
+                <th>状態</th>
+                <th>最終ログイン</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr>
+                <td>
+                    {{ g(u, 'display_name', d='') }}
+                    {% if has(g(u, 'is_owner')) %}
+                    <span class="badge badge-primary">オーナー</span>
+                    {% endif %}
+                </td>
+                <td>{{ g(u, 'email', d='') }}</td>
+                <td>
+                    {% if g(u, 'role', d='') == 'admin' %}
+                        <span class="badge badge-warning">管理者</span>
+                    {% else %}
+                        <span class="badge badge-secondary">一般</span>
+                    {% endif %}
+                </td>
+                <td>{{ g(u, 'branch_name', d='-') }}</td>
+                <td>
+                    {% if has(g(u, 'is_active')) %}
+                        <span class="badge badge-success">有効</span>
+                    {% else %}
+                        <span class="badge badge-secondary">無効</span>
+                    {% endif %}
+                    {% if has(g(u, 'is_locked')) %}
+                        <span class="badge badge-danger" title="{{ u['locked_until'] }} までログイン不可">ロック中</span>
+                    {% endif %}
+                    {% if has(u.get('must_change_password')) and has(u.get('is_active')) %}
+                        <span class="badge badge-warning" title="次回ログイン時にパスワードの変更が必要です">PW変更待ち</span>
+                    {% endif %}
+                </td>
+                <td style="font-size:.8rem;">{% if has(u.get('last_login_at')) %}{{ str(u['last_login_at'])[:16] }}{% else %}<span class="text-muted">未ログイン</span>{% endif %}</td>
+                <td>
+                    <div class="d-flex gap-8">
+                        {% if has(var('isAdmin')) %}
+                        <a href="/index.cgi?page=user.edit&id={{ to_int(u['id']) }}"
+                           class="btn btn-outline btn-sm">編集</a>
+                        {% if has(g(u, 'is_locked')) %}
+                        <form method="POST" action="/index.cgi?page=user.unlock" style="display:inline;">
+                            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+                            <input type="hidden" name="id" value="{{ to_int(u['id']) }}">
+                            <button type="submit" class="btn btn-warning btn-sm"
+                                    onclick="return confirm('このユーザーのログインロックを解除しますか？')">ロック解除</button>
+                        </form>
+                        {% endif %}
+                        {% if has(u.get('is_active')) and to_int(g(u, 'id', d=0)) != to_int(var('currentUserId', 0)) and not has(u.get('is_owner')) %}
+                        <form method="POST" action="/index.cgi?page=user.deactivate" style="display:inline;">
+                            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+                            <input type="hidden" name="id" value="{{ to_int(u['id']) }}">
+                            <button type="submit" class="btn btn-secondary btn-sm"
+                                    onclick="return confirm('このユーザーを無効化しますか？')">
+                                無効化
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% if not has(g(u, 'is_active')) %}
+                        <form method="POST" action="/index.cgi?page=user.activate" style="display:inline;">
+                            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+                            <input type="hidden" name="id" value="{{ to_int(u['id']) }}">
+                            <button type="submit" class="btn btn-outline btn-sm"
+                                    onclick="return confirm('このユーザーを有効にしますか？\n（再びログインできるようになります）')">
+                                有効化
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% if to_int(g(u, 'id', d=0)) != to_int(var('currentUserId', 0)) and not has(u.get('is_owner')) %}
+                        <form method="POST" action="/index.cgi?page=user.delete" style="display:inline;">
+                            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+                            <input type="hidden" name="id" value="{{ to_int(u['id']) }}">
+                            <button type="submit" class="btn btn-danger btn-sm"
+                                    onclick="return confirm('このユーザーを完全に削除しますか？\nこの操作は取り消せません。\n（台帳の登録記録があるユーザーは削除できません）')">
+                                削除
+                            </button>
+                        </form>
+                        {% endif %}
+                        {% else %}
+                        <a href="/index.cgi?page=user.edit&id={{ to_int(u['id']) }}"
+                           class="btn btn-outline btn-sm">編集</a>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="background:#fff;">
+        <div class="empty-state__icon">&#128100;</div>
+        <div class="empty-state__text">ユーザーが登録されていません</div>
+    </div>
+    {% endif %}
+</div>
+
