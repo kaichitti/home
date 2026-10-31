@@ -1,0 +1,255 @@
+{% set pageTitle = ('承認待ち台帳' if has(var('approvalMode')) else '台帳一覧') + ' - 古物台帳管理システム' %}
+{% set activePage = 'ledger.approval' if has(var('approvalMode')) else 'ledger' %}
+{% extends 'layouts/main' %}
+{% set approvalMode = has(var('approvalMode')) %}
+{% set search = var('search', {}) %}
+{# itemTypes, transactionTypes はコントローラーから渡される（値: 表示名） #}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">{{ '承認待ち台帳' if approvalMode else '古物台帳 一覧' }}</h1>
+    <div class="page-header__actions">
+        {% if approvalMode %}
+        <a href="/index.cgi?page=ledger" class="btn btn-secondary">台帳一覧へ</a>
+        {% else %}
+        <a href="/index.cgi?page=ledger.create" class="btn btn-primary">新規登録</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if approvalMode %}
+<div class="alert alert-danger" style="font-size:.85rem;">
+    &#9888; 本人確認情報が未登録かつ相手方が未認証（本人確認済み会員に紐付いていない）の売買記録です。
+    各行を開いて内容を確認し、詳細画面の「承認する」ボタンで承認してください。
+</div>
+{% endif %}
+
+<!-- 検索パネル -->
+{% if not approvalMode %}
+<div class="search-panel">
+    {# 検索条件が1つでも指定されていれば検索パネルを開いた状態で表示する #}
+{% set hasSearch = any(v is not None and v != '' and not isinstance(v, dict) for k, v in search.items() if k != 'approval_status') %}
+    <button type="button" class="search-panel__toggle" aria-expanded="{{ 'true' if hasSearch else 'false' }}">
+        <span>絞り込み検索</span>
+        <span class="search-panel__chevron">&#9660;</span>
+    </button>
+    <div class="search-panel__body {{ '' if hasSearch else 'collapsed' }}">
+        <form method="GET" action="/index.cgi" id="searchForm">
+            <input type="hidden" name="page" value="ledger">
+            <div style="margin-top: 16px;">
+                <div class="form-row form-row-3">
+                    <div class="form-group">
+                        <label class="form-label">取引年月日（From）</label>
+                        <input type="date" name="date_from" class="form-control"
+                            value="{{ g(search, 'date_from', d='') }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">取引年月日（To）</label>
+                        <input type="date" name="date_to" class="form-control"
+                            value="{{ g(search, 'date_to', d='') }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">古物の種類</label>
+                        <select name="item_category" class="form-control">
+                            <option value="">-- すべて --</option>
+                            {% for val, label in itemTypes.items() %}
+                            <option value="{{ val }}"
+                                {{ 'selected' if g(search, 'item_category', d='') == val else '' }}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">取引種別</label>
+                        <select name="transaction_type" class="form-control">
+                            <option value="">-- すべて --</option>
+                            {% for val, label in transactionTypes.items() %}
+                            <option value="{{ val }}"
+                                {{ 'selected' if g(search, 'transaction_type', d='') == val else '' }}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">品目</label>
+                        <input type="text" name="item_name" class="form-control"
+                            placeholder="品目名で検索"
+                            value="{{ g(search, 'item_name', d='') }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">相手方氏名</label>
+                        <input type="text" name="counterpart_name" class="form-control"
+                            placeholder="氏名で検索"
+                            value="{{ g(search, 'counterpart_name', d='') }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">シリアル番号</label>
+                        <input type="text" name="serial_number" class="form-control"
+                            placeholder="シリアル番号で検索（部分一致）"
+                            value="{{ g(search, 'serial_number', d='') }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">登録者</label>
+                        <select name="registered_by" class="form-control">
+                            <option value="">-- すべて --</option>
+                            {% if has(var('users')) %}
+                            {% for u in users %}
+                            <option value="{{ to_int(u['id']) }}"
+                                {{ 'selected' if str(g(search, 'registered_by', d='')) == str(u['id']) else '' }}>
+                                {{ u['display_name'] }}
+                            </option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">拠点</label>
+                        <select name="branch_id" class="form-control">
+                            <option value="">-- すべて --</option>
+                            {% if has(var('branches')) %}
+                            {% for b in branches %}
+                            <option value="{{ to_int(b['id']) }}"
+                                {{ 'selected' if str(g(search, 'branch_id', d='')) == str(b['id']) else '' }}>
+                                {{ b['name'] }}
+                            </option>
+                            {% endfor %}
+                            {% endif %}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">年度</label>
+                        <select name="fiscal_year" class="form-control">
+                            <option value="">-- すべて --</option>
+                            {% py %}
+# 年度は4月始まり（1〜3月は前年が「今年度」）
+currentYear = int(php_date('Y')) if int(php_date('n')) >= 4 else int(php_date('Y')) - 1
+oldestYear = currentYear - 10
+for _yy in var('years', []):
+    oldestYear = min(oldestYear, to_int(_yy))
+{% endpy %}
+{% for y in range(currentYear, oldestYear - 1, -1) %}
+                            <option value="{{ y }}"
+                                {{ 'selected' if str(g(search, 'fiscal_year', d='')) == str(y) else '' }}>
+                                {{ y }}年度
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="search-panel__actions">
+                <button type="submit" class="btn btn-primary">検索</button>
+                <a href="/index.cgi?page=ledger" class="btn btn-outline">クリア</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endif %}
+
+<!-- 件数表示 -->
+<div style="margin-bottom: 12px; font-size: 0.85rem; color: #6c757d;">
+    全 <strong style="color: #212529;">{{ to_int(var('total', 0)) }}</strong> 件
+    {% if to_int(var('total', 0)) > 0 and defined('perPage') and defined('currentPage') %}
+    （{{ (to_int(currentPage) - 1) * to_int(perPage) + 1 }}〜{{ min(to_int(currentPage) * to_int(perPage), to_int(total)) }} 件表示）
+    {% endif %}
+</div>
+
+<!-- テーブル -->
+<div class="table-wrap">
+    {% if has(var('ledgers')) %}
+    <table class="table table--striped">
+        <thead>
+            <tr>
+                <th>台帳番号</th>
+                <th>取引年月日</th>
+                <th>品目</th>
+                <th>古物の種類</th>
+                <th>取引種別</th>
+                <th>相手方氏名</th>
+                <th>取引金額</th>
+                <th>登録者</th>
+                <th>拠点</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in ledgers %}
+            <tr>
+                <td>
+                    <span style="font-family: monospace; font-size: 0.8rem; color: #6c757d;">
+                        #{{ to_int(row['id']) }}
+                    </span>
+                </td>
+                <td>{{ g(row, 'transaction_date', d='') }}</td>
+                <td style="white-space: normal; min-width: 100px;">
+                    {{ g(row, 'item_name', d='') }}
+                    {% if g(row, 'approval_status', d='none') == 'pending' %}
+                    <span class="badge badge-danger">承認待ち</span>
+                    {% endif %}
+                    {% set rowRemaining = to_int(g(row, 'quantity', d=1)) - to_int(g(row, 'sold_quantity', d=0)) %}
+{% if to_int(g(row, 'sold_quantity', d=0)) > 0 %}
+                        {% if rowRemaining <= 0 %}
+                        <span class="badge badge-secondary">売切</span>
+                        {% else %}
+                        <span class="badge badge-success">残{{ rowRemaining }}</span>
+                        {% endif %}
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge badge-primary">{{ item_label(g(row, 'item_category', d=''), row.get('item_category_note')) }}</span>
+                </td>
+                <td>{{ transactionTypes.get(g(row, 'transaction_type', d=''), g(row, 'transaction_type', d='')) }}</td>
+                <td>{{ g(row, 'counterpart_name', d='') }}</td>
+                <td style="text-align: right;">
+                    {% if row.get('transaction_amount') is not None and row.get('transaction_amount') != '' %}
+                        &#165;{{ number_format(float(row['transaction_amount'])) }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ g(row, 'registered_by_name', d='') }}</td>
+                <td>{{ g(row, 'branch_name', d='') }}</td>
+                <td>
+                    <a href="/index.cgi?page=ledger.show&id={{ to_int(row['id']) }}" class="btn btn-accent btn-sm">詳細</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% elif approvalMode %}
+    <div class="empty-state" style="background:#fff;">
+        <div class="empty-state__icon" style="color:#27ae60;">&#10003;</div>
+        <div class="empty-state__text">現在、承認待ちの台帳はありません</div>
+        <p class="text-muted" style="font-size:.8rem; margin-top:8px;">
+            本人確認情報が未登録かつ未認証の相手方で売買記録が登録されると、ここに表示されます。
+        </p>
+        <a href="/index.cgi?page=ledger" class="btn btn-secondary" style="margin-top:12px;">台帳一覧へ戻る</a>
+    </div>
+    {% else %}
+    <div class="empty-state" style="background:#fff;">
+        <div class="empty-state__icon">&#128196;</div>
+        <div class="empty-state__text">条件に一致する台帳データがありません</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- ページネーション -->
+{% if has(var('totalPages')) and to_int(totalPages) > 1 %}
+<div class="pagination">
+    {% set cp = to_int(var('currentPage', 1)) %}
+{% set tp = to_int(totalPages) %}
+{% set baseUrl = '/index.cgi?page=ledger' + ('&approval=pending' if approvalMode else '') + (('&' + http_build_query({k: v for k, v in search.items() if has(v)})) if has(search) else '') %}
+    <a href="{{ baseUrl + '&p=%d' % max(1, cp - 1) }}"
+       class="pagination__item {{ 'disabled' if cp <= 1 else '' }}">&#8249;</a>
+    {% for i in range(max(1, cp - 3), min(tp, cp + 3) + 1) %}
+    <a href="{{ baseUrl + '&p=%d' % i }}"
+       class="pagination__item {{ 'active' if i == cp else '' }}">{{ i }}</a>
+    {% endfor %}
+    <a href="{{ baseUrl + '&p=%d' % min(tp, cp + 1) }}"
+       class="pagination__item {{ 'disabled' if cp >= tp else '' }}">&#8250;</a>
+</div>
+{% endif %}
+

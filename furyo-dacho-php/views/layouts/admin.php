@@ -1,0 +1,211 @@
+<?php
+/**
+ * システム管理画面のレイアウト
+ * 以前は CSS が一切なく（フェーズ2の TODO のまま）、ブラウザ既定の素の表示になっていた。
+ * テナント側と同じ配色・部品（カード・表・ボタン・バッジ）で統一する。
+ */
+$adminPage   = (string)($activePage ?? '');
+$isLoginPage = $adminPage === 'login' || empty($adminName);
+$navItems = [
+    'dashboard' => ['ダッシュボード', ['dashboard']],
+    'tenant'    => ['テナント管理', ['tenant', 'tenant.create', 'tenant.show', 'tenant.edit', 'tenant.store', 'tenant.update', 'tenant.user.password']],
+    'password'  => ['パスワード変更', ['password']],
+];
+$flashes = [];
+if (!$isLoginPage) {
+    foreach (['success' => 'alert-success', 'error' => 'alert-danger'] as $fk => $fcls) {
+        if (isset($_SESSION['_flash_' . $fk])) {
+            $flashes[] = [$fcls, (string)$_SESSION['_flash_' . $fk]];
+            unset($_SESSION['_flash_' . $fk]);
+        }
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title><?= htmlspecialchars(($adminTitle ?? '') !== '' ? $adminTitle . ' - ' : '') ?>システム管理 - 古物台帳管理システム</title>
+    <style>
+        :root {
+            --c-primary: #1e3a5f;
+            --c-primary-dark: #152b47;
+            --c-accent: #3a7bd5;
+            --c-danger: #c0392b;
+            --c-warning: #e67e22;
+            --c-success: #27ae60;
+            --c-text: #212529;
+            --c-muted: #6c757d;
+            --c-border: #dee2e6;
+            --c-bg: #f4f6f9;
+            --radius: 6px;
+            --shadow: 0 1px 4px rgba(0,0,0,0.12);
+            --font: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic', 'Meiryo', sans-serif;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { font-size: 14px; }
+        body { font-family: var(--font); color: var(--c-text); background: var(--c-bg); line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+        a { color: var(--c-accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        button, input, select, textarea { font-family: inherit; font-size: inherit; }
+        a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--c-accent); outline-offset: 2px; }
+
+        /* ヘッダー */
+        .a-header { background: var(--c-primary-dark); color: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+        .a-header__inner { max-width: 1200px; margin: 0 auto; padding: 0 20px; height: 56px; display: flex; align-items: center; gap: 16px; }
+        .a-logo { color: #fff; font-weight: 700; font-size: 1.05rem; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+        .a-logo:hover { text-decoration: none; opacity: .9; }
+        .a-logo__tag { font-size: .65rem; font-weight: 700; letter-spacing: .08em; background: #e67e22; color: #fff; border-radius: 4px; padding: 1px 6px; }
+        .a-nav { display: flex; gap: 4px; flex: 1; min-width: 0; }
+        .a-nav a { color: rgba(255,255,255,.8); padding: 6px 12px; border-radius: 4px; font-size: .88rem; white-space: nowrap; }
+        .a-nav a:hover { background: rgba(255,255,255,.1); color: #fff; text-decoration: none; }
+        .a-nav a.active { background: rgba(255,255,255,.18); color: #fff; }
+        .a-user { display: flex; align-items: center; gap: 10px; font-size: .82rem; color: rgba(255,255,255,.8); white-space: nowrap; }
+        .a-user a { color: #fff; border: 1px solid rgba(255,255,255,.35); border-radius: 4px; padding: 4px 12px; font-size: .8rem; }
+        .a-user a:hover { background: rgba(255,255,255,.15); text-decoration: none; }
+
+        /* 本文 */
+        .a-main { flex: 1; width: 100%; max-width: 1200px; margin: 0 auto; padding: 24px 20px 40px; }
+        .a-footer { background: #fff; border-top: 1px solid var(--c-border); color: var(--c-muted); font-size: .75rem; text-align: center; padding: 12px; }
+
+        .page-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+        .page-header__title { font-size: 1.35rem; font-weight: 700; color: var(--c-primary); }
+        .page-header__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 7px 16px; border-radius: 4px; border: 1px solid transparent; cursor: pointer; font-size: .875rem; font-weight: 500; white-space: nowrap; text-decoration: none; transition: opacity .2s, background .2s; }
+        .btn:hover { text-decoration: none; opacity: .9; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-primary { background: var(--c-primary); color: #fff; }
+        .btn-accent { background: var(--c-accent); color: #fff; }
+        .btn-danger { background: var(--c-danger); color: #fff; }
+        .btn-warning { background: var(--c-warning); color: #fff; }
+        .btn-success { background: var(--c-success); color: #fff; }
+        .btn-secondary { background: #6c757d; color: #fff; }
+        .btn-outline { background: #fff; color: var(--c-primary); border-color: var(--c-primary); }
+        .btn-outline:hover { background: var(--c-primary); color: #fff; opacity: 1; }
+        .btn-sm { padding: 4px 10px; font-size: .8rem; }
+        .btn-block { width: 100%; }
+
+        .card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; overflow: hidden; }
+        .card__header { padding: 14px 20px; border-bottom: 1px solid var(--c-border); font-weight: 600; font-size: .95rem; color: var(--c-primary); display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+        .card__body { padding: 20px; }
+
+        .stat-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; border-top: 3px solid var(--c-primary); }
+        .stat-card--success { border-top-color: var(--c-success); }
+        .stat-card--warning { border-top-color: var(--c-warning); }
+        .stat-card--accent { border-top-color: var(--c-accent); }
+        .stat-card__label { font-size: .78rem; color: var(--c-muted); font-weight: 600; }
+        .stat-card__value { font-size: 2rem; font-weight: 700; color: var(--c-primary); line-height: 1.2; margin-top: 4px; }
+
+        .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table { width: 100%; border-collapse: collapse; background: #fff; font-size: .875rem; }
+        .table th { background: var(--c-primary); color: #fff; font-weight: 600; font-size: .8rem; text-align: left; padding: 10px 14px; white-space: nowrap; }
+        .table td { padding: 10px 14px; border-bottom: 1px solid var(--c-border); vertical-align: middle; }
+        .table tbody tr:last-child td { border-bottom: none; }
+        .table tbody tr:hover td { background: #f8f9ff; }
+        .table .nowrap { white-space: nowrap; }
+        .table th, .table td { white-space: nowrap; }
+        .table .actions { display: flex; gap: 6px; flex-wrap: nowrap; align-items: center; }
+        .table .actions form { margin: 0; }
+
+        .detail-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+        .detail-table th { width: 30%; text-align: left; padding: 10px 14px; background: var(--c-bg); border: 1px solid var(--c-border); color: var(--c-primary); font-weight: 600; vertical-align: top; }
+        .detail-table td { padding: 10px 14px; border: 1px solid var(--c-border); word-break: break-word; }
+
+        .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: .75rem; font-weight: 600; white-space: nowrap; }
+        .badge-primary { background: #dae6f7; color: var(--c-primary); }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-danger { background: #f8d7da; color: #721c24; }
+        .badge-warning { background: #fff3cd; color: #856404; }
+        .badge-secondary { background: #e2e3e5; color: #383d41; }
+
+        .alert { padding: 12px 16px; border-radius: 4px; margin-bottom: 16px; font-size: .875rem; border-left: 4px solid; display: flex; gap: 12px; align-items: flex-start; }
+        .alert > span { flex: 1; word-break: break-word; }
+        .alert-danger { background: #fdf3f3; border-color: var(--c-danger); color: #721c24; }
+        .alert-success { background: #f0faf4; border-color: var(--c-success); color: #155724; }
+        .alert-warning { background: #fffbf0; border-color: var(--c-warning); color: #856404; }
+        .alert-info { background: #f0f7ff; border-color: var(--c-accent); color: #0c4085; }
+        .alert__close { background: none; border: none; cursor: pointer; font-size: 1.2rem; line-height: 1; color: inherit; opacity: .6; }
+        .alert__close:hover { opacity: 1; }
+
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: 5px; }
+        .form-label .required { color: var(--c-danger); margin-left: 3px; }
+        .form-control { display: block; width: 100%; padding: 8px 12px; border: 1px solid var(--c-border); border-radius: 4px; background: #fff; color: var(--c-text); }
+        .form-control:focus { outline: none; border-color: var(--c-accent); box-shadow: 0 0 0 3px rgba(58,123,213,.15); }
+        .form-control.is-invalid { border-color: var(--c-danger); }
+        .form-control[readonly] { background: #e9ecef; }
+        .form-hint { font-size: .78rem; color: var(--c-muted); margin-top: 3px; }
+        .form-error { font-size: .8rem; color: var(--c-danger); margin-top: 3px; }
+        .form-row { display: grid; column-gap: 16px; row-gap: 0; grid-template-columns: 1fr 1fr; }
+        .form-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; margin-top: 8px; }
+        .section-title { font-size: .95rem; font-weight: 700; color: var(--c-primary); border-bottom: 2px solid var(--c-primary); padding-bottom: 6px; margin: 8px 0 16px; }
+
+        .empty-state { padding: 40px 20px; text-align: center; color: var(--c-muted); }
+        .text-muted { color: var(--c-muted); }
+        .text-danger { color: var(--c-danger); }
+        .mb-0 { margin-bottom: 0; }
+
+        /* ログイン画面 */
+        .login-wrap { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
+        .login-card { width: 100%; max-width: 400px; background: #fff; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,.12); overflow: hidden; }
+        .login-card__head { background: var(--c-primary-dark); color: #fff; padding: 22px 24px; text-align: center; }
+        .login-card__head h1 { font-size: 1.1rem; font-weight: 700; }
+        .login-card__head p { font-size: .78rem; opacity: .75; margin-top: 4px; }
+        .login-card__body { padding: 24px; }
+
+        @media (max-width: 768px) {
+            html { font-size: 13px; }
+            .a-header__inner { height: auto; min-height: 56px; flex-wrap: wrap; padding: 8px 12px; gap: 8px; }
+            .a-nav { order: 3; flex-basis: 100%; overflow-x: auto; }
+            .a-user { margin-left: auto; }
+            .a-user__name { display: none; }
+            .a-main { padding: 16px 12px 32px; }
+            .form-row { grid-template-columns: 1fr; }
+            .page-header { flex-direction: column; align-items: flex-start; }
+            .detail-table th, .detail-table td { display: block; width: 100%; }
+            .detail-table tr + tr th { border-top: none; }
+            .detail-table td { border-top: none; }
+            .stat-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+            .stat-card { padding: 14px; }
+            .stat-card__value { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+<?php if ($isLoginPage): ?>
+<main class="login-wrap">
+    <?= $content ?? '' ?>
+</main>
+<?php else: ?>
+<header class="a-header">
+    <div class="a-header__inner">
+        <a href="/admin/index.php?page=dashboard" class="a-logo">古物台帳 <span class="a-logo__tag">SYSTEM ADMIN</span></a>
+        <nav class="a-nav" aria-label="システム管理メニュー">
+            <?php foreach ($navItems as $navPage => [$navLabel, $navMatch]): ?>
+            <a href="/admin/index.php?page=<?= $navPage ?>" class="<?= in_array($adminPage, $navMatch, true) ? 'active' : '' ?>"
+               <?= in_array($adminPage, $navMatch, true) ? 'aria-current="page"' : '' ?>><?= htmlspecialchars($navLabel) ?></a>
+            <?php endforeach; ?>
+        </nav>
+        <div class="a-user">
+            <span class="a-user__name"><?= htmlspecialchars((string)$adminName) ?></span>
+            <a href="/admin/index.php?page=logout">ログアウト</a>
+        </div>
+    </div>
+</header>
+<main class="a-main">
+    <?php foreach ($flashes as [$fcls, $fmsg]): ?>
+    <div class="alert <?= $fcls ?>" role="<?= $fcls === 'alert-danger' ? 'alert' : 'status' ?>">
+        <span><?= htmlspecialchars($fmsg) ?></span>
+        <button type="button" class="alert__close" aria-label="閉じる" onclick="this.parentNode.remove()">&times;</button>
+    </div>
+    <?php endforeach; ?>
+    <?= $content ?? '' ?>
+</main>
+<?php endif; ?>
+<footer class="a-footer">&copy; <?= date('Y') ?> 古物台帳管理システム ・ システム管理</footer>
+</body>
+</html>

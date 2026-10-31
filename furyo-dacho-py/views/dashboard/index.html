@@ -1,0 +1,156 @@
+{% set pageTitle = 'ダッシュボード - 古物台帳管理システム' %}
+{% set activePage = 'dashboard' %}
+{% extends 'layouts/main' %}
+{# アラート一覧・CSV/PDF出力は管理者専用の画面のため、一般ユーザーにはリンクを出さない #}
+{% set isAdminUser = has(var('isAdmin')) %}
+{% set alertCnt = to_int(var('alert_count', 0)) %}
+{% set approvalCnt = to_int(var('approval_count', 0)) %}
+{% set transactionTypeLabels = {'buy': '買取', 'exchange': '交換', 'consignment': '委託販売受け', 'other': 'その他'} %}
+
+<div class="page-header">
+    <h1 class="page-header__title">ダッシュボード</h1>
+    <div class="page-header__actions">
+        <a href="/index.cgi?page=ledger.create" class="btn btn-primary">台帳を新規登録</a>
+        <a href="/index.cgi?page=pos" class="btn btn-outline">POSレジ</a>
+    </div>
+</div>
+
+<!-- 統計カード -->
+<div class="stat-cards">
+
+    <a href="/index.cgi?page=ledger&amp;date_from={{ php_date('Y-m-01') }}&amp;date_to={{ php_date('Y-m-t') }}" class="stat-card">
+        <div class="stat-card__label">今月の取引（台帳）</div>
+        <div class="stat-card__value">{{ to_int(var('monthly_count', 0)) }}</div>
+        <div class="stat-card__sub">件（取引年月日が今月）</div>
+    </a>
+
+    <a href="/index.cgi?page=ledger&amp;fiscal_year={{ to_int(var('current_year', php_date('Y'))) }}" class="stat-card">
+        <div class="stat-card__label">年度累計（{{ to_int(var('current_year', php_date('Y'))) }}年度）</div>
+        <div class="stat-card__value">{{ to_int(var('this_year', 0)) }}</div>
+        <div class="stat-card__sub">件</div>
+    </a>
+
+    {% if isinstance(var('pos_today'), dict) %}
+    <a href="/index.cgi?page=pos.daily" class="stat-card">
+        <div class="stat-card__label">本日のPOS売上</div>
+        <div class="stat-card__value">¥{{ number_format(to_int(pos_today['total'])) }}</div>
+        <div class="stat-card__sub">{{ to_int(pos_today['tx_count']) }}件・{{ to_int(pos_today['item_count']) }}点{{ ('（取消 %d件）' % to_int(pos_today['void_count'])) if to_int(pos_today['void_count']) > 0 else '' }}</div>
+    </a>
+    {% endif %}
+
+    {% if isAdminUser %}
+    <a href="/index.cgi?page=alert" class="stat-card">
+        <div class="stat-card__label">未確認アラート</div>
+        <div class="stat-card__value {{ 'has-alert' if alertCnt > 0 else '' }}">{{ alertCnt }}</div>
+        <div class="stat-card__sub">
+            {% if alertCnt > 0 %}
+                <span style="color: #c0392b; font-weight: 600;">要確認</span>
+            {% else %}
+                件（問題なし）
+            {% endif %}
+        </div>
+    </a>
+    {% if approvalCnt > 0 %}
+    <a href="/index.cgi?page=ledger&amp;approval=pending" class="stat-card">
+        <div class="stat-card__label">承認待ち台帳</div>
+        <div class="stat-card__value has-alert">{{ approvalCnt }}</div>
+        <div class="stat-card__sub"><span style="color: #c0392b; font-weight: 600;">要承認</span></div>
+    </a>
+    {% endif %}
+    {% endif %}
+
+    <a href="/index.cgi?page=ledger" class="stat-card">
+        <div class="stat-card__label">台帳総件数</div>
+        <div class="stat-card__value">{{ to_int(var('total_records', 0)) }}</div>
+        <div class="stat-card__sub">件（全期間）</div>
+    </a>
+
+</div>
+
+<!-- アラートバナー（管理者のみ） -->
+{% if isAdminUser and alertCnt > 0 %}
+<div class="alert alert-danger" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+    <span>
+        <strong>重複疑いのアラートが {{ alertCnt }} 件あります。</strong>
+        内容を確認してください。
+    </span>
+    <a href="/index.cgi?page=alert" class="btn btn-danger btn-sm">アラートを確認する</a>
+</div>
+{% endif %}
+
+<!-- 最近の登録 -->
+<div class="card">
+    <div class="card__header">
+        最近の登録（直近5件）
+        <a href="/index.cgi?page=ledger" class="btn btn-outline btn-sm">一覧を見る</a>
+    </div>
+    <div class="table-wrap" style="box-shadow:none; border-radius:0;">
+        {% if has(var('recent_records')) %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>台帳番号</th>
+                    <th>取引年月日</th>
+                    <th>品目</th>
+                    <th>古物の種類</th>
+                    <th>取引種別</th>
+                    <th style="text-align:right;">取引金額</th>
+                    <th>登録者</th>
+                    <th>拠点</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rec in recent_records %}
+                <tr>
+                    <td>
+                        <span style="font-family: monospace; font-size: 0.8rem; color: #6c757d;">
+                            #{{ to_int(rec['id']) }}
+                        </span>
+                    </td>
+                    <td>{{ g(rec, 'transaction_date', d='') }}</td>
+                    <td style="white-space: normal; min-width: 120px;">
+                        {{ g(rec, 'item_name', d='') }}
+                        {% if g(rec, 'approval_status', d='none') == 'pending' %}
+                        <span class="badge badge-danger">承認待ち</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge badge-primary">
+                            {{ item_label(g(rec, 'item_category', d=''), rec.get('item_category_note')) }}
+                        </span>
+                    </td>
+                    <td>{{ transactionTypeLabels.get(g(rec, 'transaction_type', d=''), g(rec, 'transaction_type', d='')) }}</td>
+                    <td style="text-align:right;">
+                        {{ ('¥' + number_format(float(rec['transaction_amount']))) if rec.get('transaction_amount') is not None and rec.get('transaction_amount') != '' else '-' }}
+                    </td>
+                    <td>{{ g(rec, 'registered_by_name', d='') or '-' }}</td>
+                    <td>{{ g(rec, 'branch_name', d='') }}</td>
+                    <td>
+                        <a href="/index.cgi?page=ledger.show&id={{ to_int(rec['id']) }}" class="btn btn-accent btn-sm">詳細</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state__icon" aria-hidden="true">&#128196;</div>
+            <div class="empty-state__text">登録データがありません</div>
+            <a href="/index.cgi?page=ledger.create" class="btn btn-primary" style="margin-top:14px;">最初の台帳を登録する</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- クイックアクション -->
+<div style="display: flex; gap: 12px; flex-wrap: wrap;">
+    <a href="/index.cgi?page=ledger" class="btn btn-outline">台帳一覧を見る</a>
+    <a href="/index.cgi?page=member" class="btn btn-outline">会員管理</a>
+    <a href="/index.cgi?page=pos.history" class="btn btn-outline">取引履歴</a>
+    {% if isAdminUser %}
+    <a href="/index.cgi?page=export" class="btn btn-outline">CSV・PDFを出力</a>
+    <a href="/index.cgi?page=report" class="btn btn-outline">集計レポート</a>
+    {% endif %}
+</div>
+

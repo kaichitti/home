@@ -1,0 +1,731 @@
+{% set pageTitle = ('台帳編集' if var('ledger') is not None else '台帳新規登録') + ' - 古物台帳管理システム' %}
+{% set activePage = 'ledger' if var('ledger') is not None else 'ledger.create' %}
+{% extends 'layouts/main' %}
+{% py %}
+isEdit = var('ledger') is not None
+ledger = var('ledger') or {}
+errors = var('errors', {})
+# 再表示用の入力値は文字列だけ使う（配列などは入力確認でエラーにしている）
+_in = var('input')
+input = {k: (None if isinstance(v, dict) else v) for k, v in _in.items()} if isinstance(_in, dict) else {}
+
+def v(key, default=''):
+    """入力値 → 登録済みの値 → 既定値 の順（PHP の $input[k] ?? $ledger[k] ?? default）"""
+    return g(input, key, d=g(ledger, key, d=default))
+{% endpy %}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">{{ '台帳編集' if isEdit else '台帳新規登録' }}</h1>
+    <div class="page-header__actions">
+        <a href="/index.cgi?page=ledger" class="btn btn-outline">&#8592; 一覧に戻る</a>
+    </div>
+</div>
+
+{% if has(g(errors, 'general')) %}
+<div class="alert alert-danger">{{ errors['general'] }}</div>
+{% elif has(var('errors')) %}
+{# 入力エラーの概要を先頭に表示する #}
+<div class="alert alert-danger" role="alert">
+    <strong>入力内容を確認してください（{{ len(errors) }}件）</strong>
+    <ul style="margin:6px 0 0 18px;">
+        {% for msg in errors.values() %}
+        <li>{{ msg }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form method="POST"
+      action="{{ ('/index.cgi?page=ledger.update&id=%d' % to_int(ledger['id'])) if isEdit else '/index.cgi?page=ledger.store' }}"
+      enctype="multipart/form-data"
+      id="ledgerForm">
+    <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+    {% if isEdit %}
+    <!-- 更新処理は POST の id を参照するため必須（以前は欠落しており、編集内容の保存が常に「台帳が見つかりません」になっていた） -->
+    <input type="hidden" name="id" value="{{ to_int(ledger['id']) }}">
+    {% endif %}
+
+    <!-- ============================================================
+         取引情報セクション
+    ============================================================ -->
+    <div class="card">
+        <div class="card__header">取引情報</div>
+        <div class="card__body">
+
+            <!-- 拠点 -->
+            <div class="form-group">
+                <label class="form-label" for="branch_id">
+                    拠点 <span class="required">*</span>
+                </label>
+                <select id="branch_id" name="branch_id"
+                        class="form-control {{ 'is-invalid' if has(g(errors, 'branch_id')) else '' }}"
+                        required>
+                    <option value="">-- 選択してください --</option>
+                    {% if has(var('branches')) %}
+                    {% for b in branches %}
+                    <option value="{{ to_int(b['id']) }}"
+                        {{ 'selected' if to_int(v('branch_id', 0)) == to_int(b['id']) else '' }}>
+                        {{ b['name'] }}
+                    </option>
+                    {% endfor %}
+                    {% endif %}
+                </select>
+                {% if has(g(errors, 'branch_id')) %}
+                    <div class="form-error">{{ errors['branch_id'] }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-row form-row-2">
+                <!-- 取引年月日 -->
+                <div class="form-group">
+                    <label class="form-label" for="transaction_date">
+                        取引年月日 <span class="required">*</span>
+                    </label>
+                    <input type="date" id="transaction_date" name="transaction_date"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'transaction_date')) else '' }}"
+                           value="{{ v('transaction_date') }}"
+                           required>
+                    {% if has(g(errors, 'transaction_date')) %}
+                        <div class="form-error">{{ errors['transaction_date'] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 取引種別 -->
+                <div class="form-group">
+                    <label class="form-label" for="transaction_type">
+                        取引種別 <span class="required">*</span>
+                    </label>
+                    <select id="transaction_type" name="transaction_type"
+                            class="form-control {{ 'is-invalid' if has(g(errors, 'transaction_type')) else '' }}"
+                            required>
+                        <option value="">-- 選択してください --</option>
+                        <option value="buy"          {{ 'selected' if v('transaction_type') == 'buy' else '' }}>買取</option>
+                        <option value="exchange"     {{ 'selected' if v('transaction_type') == 'exchange' else '' }}>交換</option>
+                        <option value="consignment"  {{ 'selected' if v('transaction_type') == 'consignment' else '' }}>委託販売受け</option>
+                        <option value="other"        {{ 'selected' if v('transaction_type') == 'other' else '' }}>その他</option>
+                    </select>
+                    {% if has(g(errors, 'transaction_type')) %}
+                        <div class="form-error">{{ errors['transaction_type'] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 取引種別補足（other選択時に表示） -->
+            <div class="form-group" id="transaction_type_note_wrap"
+                 style="{{ 'display:none;' if v('transaction_type') != 'other' else '' }}">
+                <label class="form-label" for="transaction_type_note">取引種別の補足</label>
+                <input type="text" id="transaction_type_note" name="transaction_type_note" maxlength="255"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'transaction_type_note')) else '' }}"
+                       value="{{ v('transaction_type_note') }}"
+                       placeholder="取引種別の詳細を入力してください">
+                {% if has(g(errors, 'transaction_type_note')) %}
+                    <div class="form-error">{{ errors['transaction_type_note'] }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-row form-row-2">
+                <!-- 古物の種類 -->
+                <div class="form-group">
+                    <label class="form-label" for="item_category">
+                        古物の種類 <span class="required">*</span>
+                    </label>
+                    {# 選択肢: 法定13区分 + テナント独自区分 + その他（自由記述） #}
+{% set catOptions = var('categoryOptions') or dict(list(item_category_statutory.items()) + [('other', 'その他（自由記述）')]) %}
+{% set catSelected = v('item_category') %}
+                    <select id="item_category" name="item_category"
+                            class="form-control {{ 'is-invalid' if has(g(errors, 'item_category')) else '' }}">
+                        <option value="">-- 選択してください --</option>
+                        {% for catVal, catLabel in catOptions.items() %}
+                        <option value="{{ catVal }}"
+                            {{ 'selected' if str(catSelected) == str(catVal) else '' }}>
+                            {{ catLabel }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if has(g(errors, 'item_category')) %}
+                        <div class="form-error">{{ errors['item_category'] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 品目 -->
+                <div class="form-group">
+                    <label class="form-label" for="item_name">
+                        品目 <span class="required">*</span>
+                    </label>
+                    <input type="text" id="item_name" name="item_name" maxlength="255"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'item_name')) else '' }}"
+                           value="{{ v('item_name') }}"
+                           placeholder="例：ロレックス デイトナ" required>
+                    {% if has(g(errors, 'item_name')) %}
+                        <div class="form-error">{{ errors['item_name'] }}</div>
+                    {% endif %}
+                </div>
+
+            </div>
+
+            <!-- 古物の種類: その他の自由記述 -->
+            {% set catNote = v('item_category_note') %}
+            <div class="form-group" id="item_category_note_wrap"
+                 style="{{ 'display:none;' if catSelected != 'other' else '' }}">
+                <label class="form-label" for="item_category_note">
+                    古物の種類（自由記述） <span class="required">*</span>
+                </label>
+                <input type="text" id="item_category_note" name="item_category_note"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'item_category_note')) else '' }}"
+                       value="{{ catNote }}"
+                       maxlength="255"
+                       placeholder="区分名を入力してください（例: 楽器類）">
+                {% if has(g(errors, 'item_category_note')) %}
+                    <div class="form-error">{{ errors['item_category_note'] }}</div>
+                {% endif %}
+            </div>
+
+
+            <!-- 特徴・説明 -->
+            <div class="form-group">
+                <label class="form-label" for="item_description">特徴・説明</label>
+                <textarea id="item_description" name="item_description"
+                          class="form-control {{ 'is-invalid' if has(g(errors, 'item_description')) else '' }}"
+                          rows="3"
+                          placeholder="品物の特徴・状態・シリアル番号等を入力してください">{{ v('item_description') }}</textarea>
+                {% if has(g(errors, 'item_description')) %}
+                    <div class="form-error">{{ errors['item_description'] }}</div>
+                {% endif %}
+            </div>
+
+            <!-- シリアル番号（任意） -->
+            <div class="form-group">
+                <label class="form-label" for="serial_number">シリアル番号・製造番号</label>
+                <input type="text" id="serial_number" name="serial_number"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'serial_number')) else '' }}"
+                       value="{{ v('serial_number') }}"
+                       maxlength="100" placeholder="例：C02XL0GWJGH5（任意・検索に使用できます）">
+                {% if has(g(errors, 'serial_number')) %}
+                    <div class="form-error">{{ errors['serial_number'] }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-row form-row-3">
+                <!-- 数量 -->
+                <div class="form-group">
+                    <label class="form-label" for="quantity">
+                        数量 <span class="required">*</span>
+                    </label>
+                    <input type="number" id="quantity" name="quantity"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'quantity')) else '' }}"
+                           value="{{ v('quantity', '1') }}"
+                           min="1" required>
+                    {% if has(g(errors, 'quantity')) %}
+                        <div class="form-error">{{ errors['quantity'] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 取引金額 -->
+                <div class="form-group">
+                    <label class="form-label" for="transaction_amount">
+                        取引金額（円） <span class="required">*</span>
+                    </label>
+                    <input type="number" id="transaction_amount" name="transaction_amount"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'transaction_amount')) else '' }}"
+                           value="{{ v('transaction_amount') }}"
+                           min="1" placeholder="例：10000" required>
+                    {% if has(g(errors, 'transaction_amount')) %}
+                        <div class="form-error">{{ errors['transaction_amount'] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 販売予定価格（任意・POSレジの単価の初期値） -->
+                <div class="form-group">
+                    <label class="form-label" for="sale_price">販売予定価格（円・任意）</label>
+                    <input type="text" id="sale_price" name="sale_price" inputmode="numeric" maxlength="15"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'sale_price')) else '' }}"
+                           value="{{ v('sale_price') }}"
+                           placeholder="例：15000">
+                    <div class="form-hint">POSレジでカートに入れたときの単価に自動入力されます（1点あたり）。</div>
+                    {% if has(g(errors, 'sale_price')) %}
+                        <div class="form-error">{{ errors['sale_price'] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================
+         相手方情報セクション
+    ============================================================ -->
+    <div class="card">
+        <div class="card__header">相手方情報</div>
+        <div class="card__body">
+
+            <!-- 会員番号による紐付け・引用（任意） -->
+            {% set cpType = v('counterpart_type', 'individual') %}
+            <div class="form-group">
+                <label class="form-label" for="member_code">会員番号（任意）</label>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <input type="text" id="member_code" name="member_code"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'member_code')) else '' }}"
+                           style="max-width:220px;"
+                           value="{{ v('member_code') }}"
+                           maxlength="50" placeholder="例：M-0001">
+                    <button type="button" id="member_lookup_btn" class="btn btn-secondary">会員情報を引用</button>
+                </div>
+                <div class="form-hint">会員管理に登録済みの会員番号を入力して「会員情報を引用」を押すと、相手方情報・本人確認情報が自動入力されます。</div>
+                <div id="member_lookup_msg" class="form-hint" style="display:none;"></div>
+                {% if has(g(errors, 'member_code')) %}
+                    <div class="form-error">{{ errors['member_code'] }}</div>
+                {% endif %}
+                {% if not isEdit %}
+                <label style="display:flex; align-items:center; gap:6px; margin-top:8px; cursor:pointer; font-size:.85rem;">
+                    <input type="checkbox" id="register_member" name="register_member" value="1"
+                           {{ 'checked' if has(g(input, 'register_member')) else '' }}>
+                    この相手方を新規会員として登録する（下に入力した相手方情報で会員を作成します）
+                </label>
+                <div class="form-hint" style="margin-left:22px;">
+                    上の会員番号が未入力の場合は自動で採番、入力済みでその番号が未登録の場合はその番号で登録します。既に登録済みの番号なら会員登録はスキップされます。
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- 個人／法人切り替え -->
+            <div class="form-group">
+                <label class="form-label">相手方区分 <span class="required">*</span></label>
+                <div style="display:flex; gap:20px;">
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                        <input type="radio" name="counterpart_type" value="individual"
+                               {{ 'checked' if cpType != 'corporate' else '' }}> 個人
+                    </label>
+                    <label style="display:flex; align-items:center; gap:6px; cursor:pointer;">
+                        <input type="radio" name="counterpart_type" value="corporate"
+                               {{ 'checked' if cpType == 'corporate' else '' }}> 法人
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-row form-row-2">
+                <!-- 氏名／名称 -->
+                <div class="form-group">
+                    <label class="form-label" for="counterpart_name">
+                        <span id="counterpart_name_label">{{ '名称（会社名）' if cpType == 'corporate' else '氏名' }}</span>
+                        <span class="required">*</span>
+                    </label>
+                    <input type="text" id="counterpart_name" name="counterpart_name" maxlength="255"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'counterpart_name')) else '' }}"
+                           value="{{ v('counterpart_name') }}"
+                           placeholder="例：山田 太郎" required>
+                    {% if has(g(errors, 'counterpart_name')) %}
+                        <div class="form-error">{{ errors['counterpart_name'] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 職業（個人のみ） -->
+                <div class="form-group" id="occupation_wrap" style="{{ 'display:none;' if cpType == 'corporate' else '' }}">
+                    <label class="form-label" for="counterpart_occupation">
+                        職業 <span class="required">*</span>
+                    </label>
+                    <input type="text" id="counterpart_occupation" name="counterpart_occupation" maxlength="255"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'counterpart_occupation')) else '' }}"
+                           value="{{ v('counterpart_occupation') }}"
+                           placeholder="例：会社員">
+                    {% if has(g(errors, 'counterpart_occupation')) %}
+                        <div class="form-error">{{ errors['counterpart_occupation'] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 担当者名（法人のみ） -->
+                <div class="form-group" id="contact_name_wrap" style="{{ 'display:none;' if cpType != 'corporate' else '' }}">
+                    <label class="form-label" for="counterpart_contact_name">
+                        担当者名 <span class="required">*</span>
+                    </label>
+                    <input type="text" id="counterpart_contact_name" name="counterpart_contact_name" maxlength="255"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'counterpart_contact_name')) else '' }}"
+                           value="{{ v('counterpart_contact_name') }}"
+                           placeholder="例：営業部 佐藤 花子">
+                    {% if has(g(errors, 'counterpart_contact_name')) %}
+                        <div class="form-error">{{ errors['counterpart_contact_name'] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 住所 -->
+            <div class="form-group">
+                <label class="form-label" for="counterpart_address">
+                    <span id="counterpart_address_label">{{ '所在地' if cpType == 'corporate' else '住所' }}</span>
+                    <span class="required">*</span>
+                </label>
+                <input type="text" id="counterpart_address" name="counterpart_address" maxlength="512"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'counterpart_address')) else '' }}"
+                       value="{{ v('counterpart_address') }}"
+                       placeholder="例：東京都新宿区西新宿1-1-1" required>
+                {% if has(g(errors, 'counterpart_address')) %}
+                    <div class="form-error">{{ errors['counterpart_address'] }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-row form-row-2">
+                <!-- 年齢（個人のみ） -->
+                <div class="form-group" id="age_wrap" style="{{ 'display:none;' if cpType == 'corporate' else '' }}">
+                    <label class="form-label" for="counterpart_age">
+                        年齢 <span class="required">*</span>
+                    </label>
+                    <input type="number" id="counterpart_age" name="counterpart_age"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'counterpart_age')) else '' }}"
+                           value="{{ v('counterpart_age') }}"
+                           min="0" max="150" placeholder="例：35">
+                    {% if has(g(errors, 'counterpart_age')) %}
+                        <div class="form-error">{{ errors['counterpart_age'] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 電話番号 -->
+                <div class="form-group">
+                    <label class="form-label" for="counterpart_phone">電話番号</label>
+                    <input type="text" id="counterpart_phone" name="counterpart_phone" maxlength="20"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'counterpart_phone')) else '' }}"
+                           value="{{ v('counterpart_phone') }}"
+                           placeholder="例：090-1234-5678">
+                    {% if has(g(errors, 'counterpart_phone')) %}
+                        <div class="form-error">{{ errors['counterpart_phone'] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 取引アカウント（任意） -->
+            <div class="form-group">
+                <label class="form-label" for="counterpart_account">取引アカウント</label>
+                <input type="text" id="counterpart_account" name="counterpart_account"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'counterpart_account')) else '' }}"
+                       value="{{ v('counterpart_account') }}"
+                       maxlength="255" placeholder="例：メルカリ @user123 / ヤフオク example_id（オンライン買付時のID等・任意）">
+                {% if has(g(errors, 'counterpart_account')) %}
+                    <div class="form-error">{{ errors['counterpart_account'] }}</div>
+                {% endif %}
+            </div>
+
+            <!-- 備考（任意） -->
+            <div class="form-group">
+                <label class="form-label" for="counterpart_note">備考</label>
+                <textarea id="counterpart_note" name="counterpart_note"
+                          class="form-control {{ 'is-invalid' if has(g(errors, 'counterpart_note')) else '' }}"
+                          rows="2" placeholder="相手方に関する特記事項があれば入力してください（任意）">{{ v('counterpart_note') }}</textarea>
+                {% if has(g(errors, 'counterpart_note')) %}
+                    <div class="form-error">{{ errors['counterpart_note'] }}</div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ============================================================
+         本人確認情報セクション
+    ============================================================ -->
+{% set maxUploadMb = max_upload_mb() %}
+    <div class="card">
+        <div class="card__header">本人確認情報</div>
+        <div class="card__body">
+
+            <div class="form-row form-row-2">
+                <!-- 確認書類種別 -->
+                <div class="form-group">
+                    <label class="form-label" for="id_document_type">
+                        確認書類種別
+                    </label>
+                    {% py %}
+# 選択状態: 再表示時は入力値、編集時は登録値（未登録＝NULL は「未登録」）、新規は未選択
+if input.get('id_document_type') is not None:
+    selDoc = str(input['id_document_type'])
+elif isEdit:
+    selDoc = str(ledger.get('id_document_type') or '')
+else:
+    selDoc = '__unset'
+{% endpy %}
+                    <select id="id_document_type" name="id_document_type"
+                            class="form-control {{ 'is-invalid' if has(g(errors, 'id_document_type')) else '' }}">
+                        <option value="__unset" {{ 'selected' if selDoc == '__unset' else '' }}>-- 選択してください --</option>
+                        <option value="" {{ 'selected' if selDoc == '' else '' }}>未登録（本人確認をスキップ）</option>
+                        <option value="driver_license"    {{ 'selected' if selDoc == 'driver_license' else '' }}>運転免許証</option>
+                        <option value="my_number"         {{ 'selected' if selDoc == 'my_number' else '' }}>マイナンバーカード</option>
+                        <option value="passport"          {{ 'selected' if selDoc == 'passport' else '' }}>パスポート</option>
+                        <option value="health_insurance"  {{ 'selected' if selDoc == 'health_insurance' else '' }}>健康保険証</option>
+                        <option value="residence_card"    {{ 'selected' if selDoc == 'residence_card' else '' }}>住民基本台帳カード</option>
+                        <option value="residence_status"  {{ 'selected' if selDoc == 'residence_status' else '' }}>在留カード</option>
+                        <option value="special_permanent" {{ 'selected' if selDoc == 'special_permanent' else '' }}>特別永住者証明書</option>
+                        <option value="other"             {{ 'selected' if selDoc == 'other' else '' }}>その他</option>
+                    </select>
+                    {% if has(g(errors, 'id_document_type')) %}
+                        <div class="form-error">{{ errors['id_document_type'] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 書類番号・記号 -->
+                <div class="form-group">
+                    <label class="form-label" for="id_document_number">
+                        書類番号・記号
+                    </label>
+                    <input type="text" id="id_document_number" name="id_document_number" maxlength="64"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'id_document_number')) else '' }}"
+                           value="{{ v('id_document_number') }}"
+                           placeholder="免許証番号・証明書番号等（任意）">
+                    <div class="form-hint" id="mynumber_hint" style="display:none; color:#c0392b;">
+                        &#9888; マイナンバーカードの個人番号は法令上記録できないため、番号欄は入力できません。
+                    </div>
+                    {% if has(g(errors, 'id_document_number')) %}
+                        <div class="form-error">{{ errors['id_document_number'] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 書類種別補足（other選択時に表示） -->
+            <div class="form-group" id="id_document_type_note_wrap"
+                 style="{{ 'display:none;' if selDoc != 'other' else '' }}">
+                <label class="form-label" for="id_document_type_note">確認書類の内容 <span class="required">*</span></label>
+                <input type="text" id="id_document_type_note" name="id_document_type_note" maxlength="255"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'id_document_type_note')) else '' }}"
+                       value="{{ v('id_document_type_note') }}"
+                       placeholder="例：社員証（顔写真付き）・学生証 など">
+                {% if has(g(errors, 'id_document_type_note')) %}
+                    <div class="form-error">{{ errors['id_document_type_note'] }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-row form-row-2">
+                <!-- 本人確認書類スキャン -->
+                <div class="form-group">
+                    <label class="form-label" for="id_document_file">
+                        本人確認書類スキャンデータ
+                    </label>
+                    {% if isEdit and has(ledger.get('has_id_document')) %}
+                        <div class="mb-8">
+                            <a href="/index.cgi?page=file.download&id={{ to_int(ledger['id']) }}&type=id_document"
+                               class="btn btn-outline btn-sm">
+                                &#128196; 登録済みのファイルをダウンロード
+                            </a>
+                            <div class="form-hint">新しいファイルを選択すると追加で保存され、詳細画面では最新のファイルが表示されます（任意）。</div>
+                        </div>
+                    {% endif %}
+                    <input type="file" id="id_document_file" name="id_document_file"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'id_document_file')) else '' }}"
+                           accept="image/jpeg,image/png,image/gif,image/webp,application/pdf">
+                    <div class="form-hint">JPEG・PNG・GIF・WebP・PDF（最大{{ maxUploadMb }}MB）。本人確認をスキップする場合は不要です。</div>
+                    {% if has(g(errors, 'id_document_file')) %}
+                        <div class="form-error">{{ errors['id_document_file'] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 買取受付表スキャン -->
+                <div class="form-group">
+                    <label class="form-label" for="receipt_form_file">買取受付表スキャンデータ</label>
+                    {% if isEdit and has(ledger.get('has_receipt_form')) %}
+                        <div class="mb-8">
+                            <a href="/index.cgi?page=file.download&id={{ to_int(ledger['id']) }}&type=receipt_form"
+                               class="btn btn-outline btn-sm">
+                                &#128196; 登録済みのファイルをダウンロード
+                            </a>
+                            <div class="form-hint">新しいファイルを選択すると追加で保存され、詳細画面では最新のファイルが表示されます（任意）。</div>
+                        </div>
+                    {% endif %}
+                    <input type="file" id="receipt_form_file" name="receipt_form_file"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'receipt_form_file')) else '' }}"
+                           accept="image/jpeg,image/png,image/gif,image/webp,application/pdf">
+                    <div class="form-hint">JPEG・PNG・GIF・WebP・PDF（最大{{ maxUploadMb }}MB）</div>
+                    {% if has(g(errors, 'receipt_form_file')) %}
+                        <div class="form-error">{{ errors['receipt_form_file'] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 商品画像（複数・任意） -->
+            <div class="form-group">
+                <label class="form-label" for="item_photos">商品画像</label>
+                {% if isEdit and has(var('itemPhotoCount')) %}
+                    <div class="form-hint mb-8">現在 {{ to_int(itemPhotoCount) }} 点登録済み（詳細画面で確認できます）。追加でアップロードできます。</div>
+                {% endif %}
+                <input type="file" id="item_photos" name="item_photos[]"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'item_photos')) else '' }}"
+                       accept="image/jpeg,image/png,image/gif,image/webp" multiple>
+                <div class="form-hint">JPEG・PNG・GIF・WebP／1点あたり25MBまで・1件の台帳につき最大20点（複数選択可）</div>
+                {% if has(g(errors, 'item_photos')) %}
+                    <div class="form-error">{{ errors['item_photos'] }}</div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- フォームアクション -->
+    <div class="d-flex gap-8" style="justify-content: flex-end; margin-bottom: 24px;">
+        <a href="/index.cgi?page=ledger" class="btn btn-secondary">キャンセル</a>
+        <button type="submit" class="btn btn-primary">
+            {{ '変更を保存する' if isEdit else '登録する' }}
+        </button>
+    </div>
+
+</form>
+
+<script>
+(function () {
+    'use strict';
+
+    /* 取引種別 → その他補足欄の表示切替 */
+    var transType     = document.getElementById('transaction_type');
+    var transNoteWrap = document.getElementById('transaction_type_note_wrap');
+    var transNote     = document.getElementById('transaction_type_note');
+
+    function toggleTransNote() {
+        var show = transType.value === 'other';
+        transNoteWrap.style.display = show ? '' : 'none';
+        if (!show) transNote.value = '';
+    }
+    if (transType) {
+        transType.addEventListener('change', toggleTransNote);
+    }
+
+    /* 古物の種類「その他」で自由記述欄を表示 */
+    var catType     = document.getElementById('item_category');
+    var catNoteWrap = document.getElementById('item_category_note_wrap');
+    var catNote     = document.getElementById('item_category_note');
+
+    function toggleCatNote() {
+        var show = catType.value === 'other';
+        catNoteWrap.style.display = show ? '' : 'none';
+        if (!show) catNote.value = '';
+    }
+    if (catType && catNoteWrap && catNote) {
+        catType.addEventListener('change', toggleCatNote);
+    }
+
+    /* ============ 個人／法人切り替え ============ */
+    function currentCpType() {
+        var checked = document.querySelector('input[name="counterpart_type"]:checked');
+        return checked ? checked.value : 'individual';
+    }
+    function toggleCpType() {
+        var corporate = currentCpType() === 'corporate';
+        var occWrap   = document.getElementById('occupation_wrap');
+        var ageWrap   = document.getElementById('age_wrap');
+        var conWrap   = document.getElementById('contact_name_wrap');
+        var nameLabel = document.getElementById('counterpart_name_label');
+        var addrLabel = document.getElementById('counterpart_address_label');
+        var nameInput = document.getElementById('counterpart_name');
+        if (occWrap) occWrap.style.display = corporate ? 'none' : '';
+        if (ageWrap) ageWrap.style.display = corporate ? 'none' : '';
+        if (conWrap) conWrap.style.display = corporate ? '' : 'none';
+        if (nameLabel) nameLabel.textContent = corporate ? '名称（会社名）' : '氏名';
+        if (addrLabel) addrLabel.textContent = corporate ? '所在地' : '住所';
+        if (nameInput) nameInput.placeholder = corporate ? '例：株式会社〇〇商事' : '例：山田 太郎';
+    }
+    var cpRadios = document.querySelectorAll('input[name="counterpart_type"]');
+    for (var r = 0; r < cpRadios.length; r++) {
+        cpRadios[r].addEventListener('change', toggleCpType);
+    }
+
+    /* ============ 会員情報の引用 ============ */
+    var lookupBtn = document.getElementById('member_lookup_btn');
+    if (lookupBtn) {
+        lookupBtn.addEventListener('click', function () {
+            var code = (document.getElementById('member_code').value || '').trim();
+            var msg  = document.getElementById('member_lookup_msg');
+            function showMsg(text, ok) {
+                if (!msg) return;
+                msg.style.display = '';
+                msg.style.color = ok ? '#27ae60' : '#c0392b';
+                msg.textContent = text;
+            }
+            if (code === '') { showMsg('会員番号を入力してください。', false); return; }
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', '/index.cgi?page=member.lookup&code=' + encodeURIComponent(code), true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== 4) return;
+                var data;
+                try { data = JSON.parse(xhr.responseText); } catch (e) { showMsg('引用に失敗しました。', false); return; }
+                if (!data.found) { showMsg(data.message || '会員が見つかりません。', false); return; }
+                var m = data.member;
+                // 区分ラジオ
+                for (var i = 0; i < cpRadios.length; i++) {
+                    cpRadios[i].checked = (cpRadios[i].value === m.counterpart_type);
+                }
+                toggleCpType();
+                function setVal(id, v) { var el = document.getElementById(id); if (el) el.value = v || ''; }
+                setVal('counterpart_name', m.name);
+                setVal('counterpart_address', m.address);
+                setVal('counterpart_occupation', m.occupation);
+                setVal('counterpart_age', m.age);
+                setVal('counterpart_phone', m.phone);
+                setVal('counterpart_contact_name', m.contact_name);
+                setVal('counterpart_account', m.account);
+                var docSel = document.getElementById('id_document_type');
+                if (docSel) { docSel.value = m.id_document_type || ''; docSel.dispatchEvent(new Event('change')); }
+                // 本人確認書類番号は個人情報保護のため会員引用では自動入力しない
+                // （必要な場合は書類を確認のうえ手入力する）。
+                showMsg('会員「' + m.name + '」の情報を引用しました。', true);
+            };
+            xhr.send();
+        });
+    }
+
+    /* ============ マイナンバーカード選択時は番号欄を無効化（入力不可） ============ */
+    var docTypeSel = document.getElementById('id_document_type');
+    var mnHint     = document.getElementById('mynumber_hint');
+    var docNumIn   = document.getElementById('id_document_number');
+    function toggleMnHint() {
+        var isMn   = docTypeSel && docTypeSel.value === 'my_number';
+        var isSkip = docTypeSel && (docTypeSel.value === '' || docTypeSel.value === '__unset');
+        if (mnHint) mnHint.style.display = isMn ? '' : 'none';
+        if (docNumIn) {
+            docNumIn.disabled = isMn || isSkip;
+            if (isMn || isSkip) {
+                docNumIn.value = '';
+                docNumIn.placeholder = isMn ? 'マイナンバーカードの番号は記録できません' : '確認書類種別を選択すると入力できます';
+                docNumIn.style.background = '#e9ecef';
+                docNumIn.style.cursor = 'not-allowed';
+            } else {
+                docNumIn.placeholder = '免許証番号・証明書番号等（任意）';
+                docNumIn.style.background = '';
+                docNumIn.style.cursor = '';
+            }
+        }
+    }
+    if (docTypeSel) {
+        docTypeSel.addEventListener('change', toggleMnHint);
+        toggleMnHint();
+    }
+
+    /* ============ 本人確認スキップ時の確認アラート ============ */
+    var ledgerForm = document.querySelector('form[action*="ledger."]');
+    if (ledgerForm && docTypeSel) {
+        ledgerForm.addEventListener('submit', function (e) {
+            var fileInput = document.getElementById('id_document_file');
+            var hasFile   = fileInput && fileInput.files && fileInput.files.length > 0;
+            if (docTypeSel.value === '__unset') {
+                // 種別か「未登録」のどちらかを明示的に選んでもらう（サーバー側でも同じ検証を行う）
+                e.preventDefault();
+                window.alert('本人確認情報の「確認書類種別」を選択してください。\n本人確認をしない場合は「未登録（本人確認をスキップ）」を選択します。');
+                docTypeSel.focus();
+                return;
+            }
+            if (docTypeSel.value === '' && !hasFile) {
+                if (!window.confirm('本人確認情報が未登録です。\n古物営業法上、1万円以上の買受け等では相手方の確認が義務付けられています。\nこのまま登録しますか？')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    }
+
+    /* 確認書類種別 → その他補足欄の表示切替 */
+    var docType     = document.getElementById('id_document_type');
+    var docNoteWrap = document.getElementById('id_document_type_note_wrap');
+    var docNote     = document.getElementById('id_document_type_note');
+
+    function toggleDocNote() {
+        var show = docType.value === 'other';
+        docNoteWrap.style.display = show ? '' : 'none';
+        if (!show) docNote.value = '';
+    }
+    if (docType) {
+        docType.addEventListener('change', toggleDocNote);
+    }
+}());
+</script>
+

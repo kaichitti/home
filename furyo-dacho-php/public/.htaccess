@@ -1,0 +1,27 @@
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# HTTPSリダイレクト（本番環境用）
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# セキュリティヘッダー
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    # 旧ブラウザのXSSフィルタは誤検知や情報漏えいの原因になるため無効化し、
+    # XSS対策は出力エスケープと下記CSPで行う（OWASP推奨値）
+    Header always set X-XSS-Protection "0"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Content-Security-Policy（多層防御）
+    # 本アプリはインラインの <script> / style 属性を多用するため
+    # 'unsafe-inline' を許可しつつ、外部スクリプト・フレーム埋め込み・
+    # プラグインを禁止し、フォーム送信先と base URI を自サイトに限定する。
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
+
+    # HTTPS 運用時はコメントを解除して HSTS を有効化すること
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>

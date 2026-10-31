@@ -1,0 +1,13 @@
+{# システム管理画面の共通表示ヘルパー（テナントの種別・状態のラベル） #}
+{% py %}
+def admin_status_badge(status):
+    cls, label = {
+        'active': ('badge-success', '有効'),
+        'suspended': ('badge-warning', '停止中'),
+        'deleted': ('badge-secondary', '削除済み'),
+    }.get(status, ('badge-secondary', status))
+    return raw('<span class="badge ' + cls + '">' + h(label) + '</span>')
+
+def admin_type_label(type_value):
+    return '自社' if type_value == 'own' else '顧客'
+{% endpy %}

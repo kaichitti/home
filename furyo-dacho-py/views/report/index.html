@@ -1,0 +1,145 @@
+{% set pageTitle = '集計レポート - 古物台帳管理システム' %}
+{% set activePage = 'report' %}
+{% extends 'layouts/main' %}
+{% py %}
+def fmt(n):
+    return number_format(float(n or 0))
+
+# 棒グラフ用の最大値
+maxVal = 1
+for _row in periods.values():
+    maxVal = max(maxVal, to_int(g(_row, 'purchase', 'total', d=0)), to_int(g(_row, 'sale', 'total', d=0)))
+{% endpy %}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">集計レポート</h1>
+</div>
+
+<!-- 期間・粒度の選択 -->
+<div class="card">
+    <div class="card__body">
+        <form method="GET" action="/index.cgi" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+            <input type="hidden" name="page" value="report">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">表示単位</label>
+                <div style="display:flex; gap:6px;">
+                    {% for gv, gl in granularities.items() %}
+                    <label class="btn {{ 'btn-primary' if granularity == gv else 'btn-secondary' }} btn-sm" style="cursor:pointer;">
+                        <input type="radio" name="granularity" value="{{ gv }}" {{ 'checked' if granularity == gv else '' }}
+                               onchange="this.form.submit()" style="display:none;">
+                        {{ gl }}
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label" for="from">開始日</label>
+                <input type="date" id="from" name="from" class="form-control" value="{{ var('from') }}">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label" for="to">終了日</label>
+                <input type="date" id="to" name="to" class="form-control" value="{{ to }}">
+            </div>
+            <button type="submit" class="btn btn-primary">表示</button>
+        </form>
+    </div>
+</div>
+
+<!-- サマリー -->
+<div class="card">
+    <div class="card__body" style="display:flex; gap:24px; flex-wrap:wrap;">
+        <div>
+            <div class="text-muted" style="font-size:.8rem;">仕入合計（{{ var('from') }} 〜 {{ to }}）</div>
+            <div style="font-size:1.4rem; font-weight:700;">¥{{ fmt(totalPurchase) }}</div>
+        </div>
+        <div>
+            <div class="text-muted" style="font-size:.8rem;">売上合計</div>
+            <div style="font-size:1.4rem; font-weight:700; color:#27ae60;">¥{{ fmt(totalSale) }}</div>
+        </div>
+        <div>
+            <div class="text-muted" style="font-size:.8rem;">差引（売上 − 仕入）</div>
+            {% set diff = totalSale - totalPurchase %}
+            <div style="font-size:1.4rem; font-weight:700; color:{{ '#27ae60' if diff >= 0 else '#c0392b' }};">
+                {{ '+' if diff >= 0 else '−' }}¥{{ fmt(abs(diff)) }}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if not has(var('periods')) %}
+<div class="card"><div class="card__body">
+    <p class="text-muted">この期間のデータはありません。</p>
+</div></div>
+{% else %}
+
+<!-- 推移グラフ（CSSバー・外部ライブラリ不使用） -->
+<div class="card">
+    <div class="card__header">推移グラフ
+        <span style="font-size:.75rem; font-weight:normal; margin-left:8px;">
+            <span style="display:inline-block; width:10px; height:10px; background:#1e3a5f; border-radius:2px;"></span> 仕入
+            <span style="display:inline-block; width:10px; height:10px; background:#27ae60; border-radius:2px; margin-left:8px;"></span> 売上
+        </span>
+    </div>
+    <div class="card__body" style="overflow-x:auto;">
+        <div style="display:flex; align-items:flex-end; gap:10px; min-height:180px; padding-bottom:4px;">
+            {% for period, row in periods.items() %}
+{% py %}
+pv = to_int(g(row, 'purchase', 'total', d=0))
+sv = to_int(g(row, 'sale', 'total', d=0))
+ph = int(php_round(pv / maxVal * 150))
+sh = int(php_round(sv / maxVal * 150))
+{% endpy %}
+            <div style="display:flex; flex-direction:column; align-items:center; gap:2px; min-width:52px;">
+                <div style="display:flex; align-items:flex-end; gap:3px; height:152px;">
+                    <div title="仕入 ¥{{ fmt(pv) }}" style="width:16px; height:{{ max(ph, 2 if pv > 0 else 0) }}px; background:#1e3a5f; border-radius:3px 3px 0 0;"></div>
+                    <div title="売上 ¥{{ fmt(sv) }}" style="width:16px; height:{{ max(sh, 2 if sv > 0 else 0) }}px; background:#27ae60; border-radius:3px 3px 0 0;"></div>
+                </div>
+                <div style="font-size:.65rem; color:#666; white-space:nowrap;">{{ period }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- 明細テーブル -->
+<div class="card">
+    <div class="card__header">明細（{{ granularities[granularity] }}別）</div>
+    <div class="card__body">
+        <div class="table-wrap">
+            <table class="table table--striped">
+                <thead>
+                    <tr>
+                        <th>期間{{ '（週の開始日）' if granularity == 'week' else '' }}</th>
+                        <th style="text-align:right;">仕入件数</th>
+                        <th style="text-align:right;">仕入点数</th>
+                        <th style="text-align:right;">仕入金額</th>
+                        <th style="text-align:right;">売上件数</th>
+                        <th style="text-align:right;">売上点数</th>
+                        <th style="text-align:right;">売上金額</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for period, row in periods.items() %}
+{% set p = row.get('purchase') %}
+{% set sRow = row.get('sale') %}
+                    <tr>
+                        <td>{{ period }}</td>
+                        <td style="text-align:right;">{{ fmt(p['cnt']) if p else '-' }}</td>
+                        <td style="text-align:right;">{{ fmt(p['qty']) if p else '-' }}</td>
+                        <td style="text-align:right;">{{ ('¥' + fmt(p['total'])) if p else '-' }}</td>
+                        <td style="text-align:right;">{{ fmt(sRow['cnt']) if sRow else '-' }}</td>
+                        <td style="text-align:right;">{{ fmt(sRow['qty']) if sRow else '-' }}</td>
+                        <td style="text-align:right; color:#27ae60;">{{ ('¥' + fmt(sRow['total'])) if sRow else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-muted" style="font-size:.75rem; margin-top:8px;">
+            仕入 = 台帳の取引金額（取引年月日基準）／売上 = 販売記録の販売金額（販売日時基準・POS含む）
+        </p>
+    </div>
+</div>
+{% endif %}
+

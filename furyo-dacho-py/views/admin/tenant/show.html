@@ -1,0 +1,161 @@
+{# テナント詳細（基本情報・利用状況・利用者一覧・パスワード再設定・停止/再開/削除）。変数: tenant, users, stats #}
+{% extends 'layouts/admin' %}
+{% include 'admin/_tenant_helpers' %}
+{% set adminTitle = 'テナント詳細' %}
+{% set users = var('users', []) %}
+{% set stats = var('stats', {}) %}
+{% set st = str(g(tenant, 'status', d='')) %}
+<div class="page-header">
+    <h1 class="page-header__title">{{ tenant['name'] }} {{ admin_status_badge(st) }}</h1>
+    <div class="page-header__actions">
+        <a href="/admin/index.cgi?page=tenant" class="btn btn-outline">&#8592; 一覧へ戻る</a>
+        {% if st != 'deleted' %}
+        <a href="/admin/index.cgi?page=tenant.edit&amp;id={{ to_int(tenant['id']) }}" class="btn btn-accent">編集</a>
+        {% endif %}
+        {% if st == 'active' %}
+        <form method="POST" action="/admin/index.cgi?page=tenant.suspend" style="margin:0;">
+            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+            <input type="hidden" name="id" value="{{ to_int(tenant['id']) }}">
+            <input type="hidden" name="back" value="show">
+            <button type="submit" class="btn btn-warning"
+                    onclick="return confirm('このテナントを停止しますか？\n利用者はログインできなくなります（データは保持されます）。')">停止</button>
+        </form>
+        {% elif st == 'suspended' %}
+        <form method="POST" action="/admin/index.cgi?page=tenant.resume" style="margin:0;">
+            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+            <input type="hidden" name="id" value="{{ to_int(tenant['id']) }}">
+            <input type="hidden" name="back" value="show">
+            <button type="submit" class="btn btn-success" onclick="return confirm('このテナントを再開しますか？')">再開</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+{% if st == 'suspended' %}
+<div class="alert alert-warning"><span>このテナントは停止中です。利用者はログインできません。</span></div>
+{% elif st == 'deleted' %}
+<div class="alert alert-info"><span>このテナントは削除済みです（全利用者が無効化されています。台帳データはDBに保持されています）。</span></div>
+{% endif %}
+
+<div class="stat-cards">
+    <div class="stat-card"><div class="stat-card__label">利用者（有効）</div><div class="stat-card__value">{{ len([u for u in users if has(u.get('is_active'))]) }}人</div></div>
+    <div class="stat-card stat-card--accent"><div class="stat-card__label">台帳件数</div><div class="stat-card__value">{{ number_format(to_int(g(stats, 'ledger_count', d=0))) }}件</div></div>
+    <div class="stat-card stat-card--success"><div class="stat-card__label">拠点数</div><div class="stat-card__value">{{ to_int(g(stats, 'branch_count', d=0)) }}</div></div>
+    <div class="stat-card stat-card--warning"><div class="stat-card__label">会員数</div><div class="stat-card__value">{{ number_format(to_int(g(stats, 'member_count', d=0))) }}</div></div>
+</div>
+
+<div class="card">
+    <div class="card__header">基本情報</div>
+    <table class="detail-table">
+        <tr><th>ID</th><td>{{ to_int(tenant['id']) }}</td></tr>
+        <tr><th>テナントコード（ログイン時に入力）</th><td><code>{{ tenant['code'] }}</code></td></tr>
+        <tr><th>テナント名</th><td>{{ tenant['name'] }}</td></tr>
+        <tr><th>種別</th><td>{{ admin_type_label(str(tenant['type'])) }}</td></tr>
+        <tr><th>状態</th><td>{{ admin_status_badge(st) }}</td></tr>
+        <tr><th>作成日時</th><td>{{ tenant['created_at'] }}</td></tr>
+        <tr><th>更新日時</th><td>{{ tenant['updated_at'] }}</td></tr>
+    </table>
+</div>
+
+<div class="card">
+    <div class="card__header">利用者一覧</div>
+    {% if not has(var('users')) %}
+        <div class="empty-state">利用者が登録されていません。</div>
+    {% else %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>表示名</th>
+                    <th>メールアドレス（ログインID）</th>
+                    <th>権限</th>
+                    <th>状態</th>
+                    <th>最終ログイン</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for user in users %}
+                <tr>
+                    <td>
+                        {{ user['display_name'] }}
+                        {% if has(g(user, 'is_owner')) %}<span class="badge badge-primary">オーナー</span>{% endif %}
+                    </td>
+                    <td>{{ user['email'] }}</td>
+                    <td class="nowrap">{% if g(user, 'role', d='') == 'admin' %}<span class="badge badge-warning">管理者</span>{% else %}<span class="badge badge-secondary">一般</span>{% endif %}</td>
+                    <td class="nowrap">
+                        {{ raw('<span class="badge badge-success">有効</span>') if has(g(user, 'is_active')) else raw('<span class="badge badge-secondary">無効</span>') }}
+                        {% if has(g(user, 'is_locked')) %}<span class="badge badge-danger" title="{{ user['locked_until'] }} まで">ロック中</span>{% endif %}
+                        {% if has(user.get('must_change_password')) and has(user.get('is_active')) %}<span class="badge badge-warning">PW変更待ち</span>{% endif %}
+                    </td>
+                    <td class="nowrap" style="font-size:.8rem;">{% if has(user.get('last_login_at')) %}{{ str(user['last_login_at'])[:16] }}{% else %}<span class="text-muted">未ログイン</span>{% endif %}</td>
+                    <td>
+                        {% if st != 'deleted' %}
+                        <div class="actions">
+                            {% if has(g(user, 'is_locked')) %}
+                            <form method="POST" action="/admin/index.cgi?page=tenant.user.unlock">
+                                <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+                                <input type="hidden" name="tenant_id" value="{{ to_int(tenant['id']) }}">
+                                <input type="hidden" name="user_id" value="{{ to_int(user['id']) }}">
+                                <button type="submit" class="btn btn-warning btn-sm" onclick="return confirm('この利用者のログインロックを解除しますか？')">ロック解除</button>
+                            </form>
+                            {% endif %}
+                            <button type="button" class="btn btn-outline btn-sm"
+                                    onclick="var r=document.getElementById('pwreset-{{ to_int(user['id']) }}'); r.hidden=!r.hidden; if(!r.hidden){r.querySelector('input[type=password]').focus();}">パスワード再設定</button>
+                        </div>
+                        {% else %}
+                        <span class="text-muted" style="font-size:.8rem;">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if st != 'deleted' %}
+                <tr id="pwreset-{{ to_int(user['id']) }}" hidden>
+                    <td colspan="6" style="background:#f8f9fb;">
+                        <form method="POST" action="/admin/index.cgi?page=tenant.user.password" autocomplete="off"
+                              style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;"
+                              onsubmit="return confirm('この利用者のパスワードを再設定しますか？\n（今のパスワードではログインできなくなります）');">
+                            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+                            <input type="hidden" name="tenant_id" value="{{ to_int(tenant['id']) }}">
+                            <input type="hidden" name="user_id" value="{{ to_int(user['id']) }}">
+                            <div>
+                                <label class="form-label" style="font-size:.78rem;">仮パスワード（8文字以上・英字と数字）</label>
+                                <input type="password" name="new_password" class="form-control" minlength="8" maxlength="72" required autocomplete="new-password" style="width:220px;">
+                            </div>
+                            <div>
+                                <label class="form-label" style="font-size:.78rem;">仮パスワード（確認）</label>
+                                <input type="password" name="new_password_confirm" class="form-control" minlength="8" maxlength="72" required autocomplete="new-password" style="width:220px;">
+                            </div>
+                            <button type="submit" class="btn btn-warning">再設定する</button>
+                            <span class="form-hint" style="flex-basis:100%;">ロックも解除されます。次回ログイン時に本人のパスワードへの変更が求められます。</span>
+                        </form>
+                    </td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+{% if st != 'deleted' %}
+<div class="card" style="border:1px solid #f1c4c0;">
+    <div class="card__header" style="color:#c0392b;">テナントの削除</div>
+    <div class="card__body">
+        <p style="font-size:.875rem; margin-bottom:12px;">
+            削除すると、このテナントの全利用者が無効化され、ログインできなくなります。台帳などのデータはDBに保持されます（画面からは元に戻せません）。
+            一時的に利用を止める場合は「停止」を使用してください。
+        </p>
+        <form method="POST" action="/admin/index.cgi?page=tenant.delete" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;"
+              onsubmit="return confirm('本当にこのテナントを削除しますか？\nこの操作は画面から元に戻せません。');">
+            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+            <input type="hidden" name="id" value="{{ to_int(tenant['id']) }}">
+            <div>
+                <label class="form-label" for="confirm_code" style="font-size:.8rem;">確認のためテナントコード「{{ tenant['code'] }}」を入力</label>
+                <input type="text" id="confirm_code" name="confirm_code" class="form-control" required autocomplete="off" style="width:240px;">
+            </div>
+            <button type="submit" class="btn btn-danger">テナントを削除する</button>
+        </form>
+    </div>
+</div>
+{% endif %}

@@ -1,0 +1,84 @@
+{% set pageTitle = ('拠点編集' if var('isEdit', False) else '拠点新規登録') + ' - 古物台帳管理システム' %}
+{% set activePage = 'branch' %}
+{% extends 'layouts/main' %}
+{% set isEdit = var('isEdit', False) %}
+{% set errors = var('errors', {}) %}
+{% set input = var('input', {}) %}
+{% set branch = var('branch') or {} %}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">{{ '拠点編集' if isEdit else '拠点新規登録' }}</h1>
+    <div class="page-header__actions">
+        <a href="/index.cgi?page=branch" class="btn btn-outline">&#8592; 一覧に戻る</a>
+    </div>
+</div>
+
+{% if has(g(errors, 'general')) %}
+<div class="alert alert-danger">{{ errors['general'] }}</div>
+{% endif %}
+
+<div class="card">
+    <div class="card__body">
+        <form method="POST"
+              action="{{ ('/index.cgi?page=branch.update&id=%d' % to_int(branch['id'])) if isEdit else '/index.cgi?page=branch.store' }}">
+            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+            {% if isEdit %}
+            <!-- 更新処理は POST の id を参照するため必須（以前は欠落しており、編集の保存が常に「見つかりません」になっていた） -->
+            <input type="hidden" name="id" value="{{ to_int(branch['id']) }}">
+            {% endif %}
+
+            <!-- 拠点名 -->
+            <div class="form-group">
+                <label class="form-label" for="name">
+                    拠点名 <span class="required">*</span>
+                </label>
+                <input type="text" id="name" name="name"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'name')) else '' }}"
+                       value="{{ g(input, 'name', d=g(branch, 'name', d='')) }}"
+                       placeholder="例：東京本店" required>
+                {% if has(g(errors, 'name')) %}
+                    <div class="form-error">{{ errors['name'] }}</div>
+                {% endif %}
+            </div>
+
+            <!-- 住所 -->
+            <div class="form-group">
+                <label class="form-label" for="address">住所</label>
+                <input type="text" id="address" name="address"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'address')) else '' }}"
+                       value="{{ g(input, 'address', d=g(branch, 'address', d='')) }}"
+                       placeholder="例：東京都新宿区西新宿1-1-1">
+                {% if has(g(errors, 'address')) %}
+                    <div class="form-error">{{ errors['address'] }}</div>
+                {% endif %}
+            </div>
+
+            <!-- 拠点ログインコード -->
+            <div class="form-group">
+                <label class="form-label" for="login_code">拠点ログインコード</label>
+                <input type="text" id="login_code" name="login_code"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'login_code')) else '' }}"
+                       value="{{ g(input, 'login_code', d=g(branch, 'login_code', d='')) }}"
+                       maxlength="50" placeholder="例：osaka-branch（半角英数字・ハイフン・アンダースコア）">
+                <div class="form-hint">
+                    この拠点のユーザーがログイン画面で使うコードです。設定すると、テナントコードの代わりにこのコードでログインでき、
+                    その拠点に所属するユーザーのみログインできます（管理者・オーナーは全拠点からログイン可）。空欄の場合はテナントコードでログインします。
+                </div>
+                {% if has(g(errors, 'login_code')) %}
+                    <div class="form-error">{{ errors['login_code'] }}</div>
+                {% endif %}
+            </div>
+
+            <!-- フォームアクション -->
+            <div class="d-flex gap-8" style="justify-content: flex-end; margin-top: 8px;">
+                <a href="/index.cgi?page=branch" class="btn btn-secondary">キャンセル</a>
+                <button type="submit" class="btn btn-primary">
+                    {{ '変更を保存する' if isEdit else '登録する' }}
+                </button>
+            </div>
+
+        </form>
+    </div>
+</div>
+

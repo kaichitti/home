@@ -1,0 +1,23 @@
+# 環境設定（DBパスワード・暗号化キー。絶対に共有しない）
+config/.env
+.env
+
+# サーバーごとに異なるデータ
+storage/uploads/*
+!storage/uploads/.htaccess
+storage/sessions/*
+!storage/sessions/.htaccess
+storage/logs/*
+!storage/logs/.htaccess
+storage/tmp/*
+!storage/tmp/.htaccess
+
+# Python のキャッシュ
+__pycache__/
+*.pyc
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,209 @@
+{% set pageTitle = ('ユーザー編集' if var('isEdit', False) else 'ユーザー新規登録') + ' - 古物台帳管理システム' %}
+{% set activePage = 'user' %}
+{% extends 'layouts/main' %}
+{% py %}
+isEdit = var('isEdit', False)
+errors = var('errors', {})
+user = var('user')
+# 入力エラーで再表示した場合は入力値を優先する
+_in = var('input')
+input = {k: ('' if isinstance(v, dict) else str(v)) for k, v in _in.items()} if isinstance(_in, dict) else {}
+
+def val(key, default=''):
+    if key in input:
+        return input[key]
+    if isinstance(user, dict) and user.get(key) is not None:
+        return str(user[key])
+    return str(default)
+
+selBranch = val('branch_id')
+selRole = val('role', 'user')
+isSelf = isEdit and to_int(g(user, 'id', d=0)) == to_int(var('currentUserId', 0))
+isOwnerU = isEdit and has(g(user, 'is_owner'))
+{% endpy %}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">{{ 'ユーザー編集' if isEdit else 'ユーザー新規登録' }}</h1>
+    <div class="page-header__actions">
+        <a href="/index.cgi?page=user" class="btn btn-outline">&#8592; 一覧に戻る</a>
+    </div>
+</div>
+
+{% if has(g(errors, 'general')) %}
+<div class="alert alert-danger">{{ errors['general'] }}</div>
+{% elif has(var('errors')) %}
+<div class="alert alert-danger">入力内容を確認してください。</div>
+{% endif %}
+
+<div class="card">
+    <div class="card__header">{{ '基本情報' if isEdit else 'ユーザー情報' }}</div>
+    <div class="card__body">
+        <form method="POST"
+              action="{{ ('/index.cgi?page=user.update&id=%d' % to_int(user['id'])) if isEdit else '/index.cgi?page=user.store' }}">
+            <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+            {% if isEdit %}
+            <!-- 更新処理は POST の id を参照するため必須 -->
+            <input type="hidden" name="id" value="{{ to_int(user['id']) }}">
+            {% endif %}
+
+            <!-- 表示名 -->
+            <div class="form-group">
+                <label class="form-label" for="display_name">
+                    表示名 <span class="required">*</span>
+                </label>
+                <input type="text" id="display_name" name="display_name" maxlength="255"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'display_name')) else '' }}"
+                       value="{{ val('display_name') }}"
+                       placeholder="例：山田 太郎" required>
+                {% if has(g(errors, 'display_name')) %}
+                    <div class="form-error">{{ errors['display_name'] }}</div>
+                {% endif %}
+            </div>
+
+            <!-- メールアドレス -->
+            <div class="form-group">
+                <label class="form-label" for="email">
+                    メールアドレス（ログインID） <span class="required">*</span>
+                </label>
+                <input type="email" id="email" name="email" maxlength="255"
+                       class="form-control {{ 'is-invalid' if has(g(errors, 'email')) else '' }}"
+                       value="{{ val('email') }}"
+                       placeholder="例：taro@example.com" autocomplete="off"
+                       {{ 'readonly' if (isOwnerU and not isSelf) else '' }}
+                       required>
+                {% if isOwnerU and not isSelf %}
+                    <div class="form-hint">オーナーのメールアドレスは、オーナー本人が「アカウント設定」から変更します。</div>
+                {% elif isEdit %}
+                    <div class="form-hint">メールアドレスはログインIDです。変更すると次回から新しいアドレスでログインします。</div>
+                {% endif %}
+                {% if has(g(errors, 'email')) %}
+                    <div class="form-error">{{ errors['email'] }}</div>
+                {% endif %}
+            </div>
+
+            {% if not isEdit %}
+            <!-- 初期パスワード（新規登録時のみ） -->
+            <div class="form-row form-row-2">
+                <div class="form-group">
+                    <label class="form-label" for="password">
+                        初期パスワード <span class="required">*</span>
+                    </label>
+                    <input type="password" id="password" name="password"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'password')) else '' }}"
+                           autocomplete="new-password" minlength="8" maxlength="72" required>
+                    <div class="form-hint">8文字以上で英字・数字を含めてください。本人に伝え、初回ログイン時に本人のパスワードへ変更してもらいます。</div>
+                    {% if has(g(errors, 'password')) %}
+                        <div class="form-error">{{ errors['password'] }}</div>
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="password_confirm">
+                        初期パスワード（確認） <span class="required">*</span>
+                    </label>
+                    <input type="password" id="password_confirm" name="password_confirm"
+                           class="form-control {{ 'is-invalid' if has(g(errors, 'password_confirm')) else '' }}"
+                           autocomplete="new-password" minlength="8" maxlength="72" required>
+                    {% if has(g(errors, 'password_confirm')) %}
+                        <div class="form-error">{{ errors['password_confirm'] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="form-row form-row-2">
+                <!-- 所属拠点 -->
+                <div class="form-group">
+                    <label class="form-label" for="branch_id">
+                        所属拠点 <span class="required">*</span>
+                    </label>
+                    <select id="branch_id" name="branch_id"
+                            class="form-control {{ 'is-invalid' if has(g(errors, 'branch_id')) else '' }}"
+                            required>
+                        <option value="">-- 選択してください --</option>
+                        {% for b in var('branches', []) %}
+                        <option value="{{ to_int(b['id']) }}" {{ 'selected' if selBranch == str(b['id']) else '' }}>
+                            {{ b['name'] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if has(g(errors, 'branch_id')) %}
+                        <div class="form-error">{{ errors['branch_id'] }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- 権限 -->
+                <div class="form-group">
+                    <label class="form-label" for="role">権限</label>
+                    <select id="role" name="role"
+                            class="form-control {{ 'is-invalid' if has(g(errors, 'role')) else '' }}">
+                        <option value="user"  {{ 'selected' if selRole == 'user' else '' }}>一般ユーザー</option>
+                        <option value="admin" {{ 'selected' if selRole == 'admin' else '' }}>管理者</option>
+                    </select>
+                    <div class="form-hint">管理者はユーザー・拠点の管理、台帳の削除・承認、取引の取消、CSV出力などができます。</div>
+                    {% if has(g(errors, 'role')) %}
+                        <div class="form-error">{{ errors['role'] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- フォームアクション -->
+            <div class="d-flex gap-8" style="justify-content: flex-end; margin-top: 8px; flex-wrap: wrap;">
+                <a href="/index.cgi?page=user" class="btn btn-secondary">キャンセル</a>
+                <button type="submit" class="btn btn-primary">
+                    {{ '変更を保存する' if isEdit else '登録する' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if isEdit %}
+<!-- パスワードの再設定（管理者が仮パスワードを設定する） -->
+<div class="card">
+    <div class="card__header">パスワードの再設定</div>
+    <div class="card__body">
+        {% if isSelf %}
+            <p class="text-muted" style="font-size:.875rem;">
+                自分のパスワードは <a href="/index.cgi?page=change_password">パスワード変更</a> から変更してください。
+            </p>
+        {% elif isOwnerU %}
+            <p class="text-muted" style="font-size:.875rem;">
+                オーナーのパスワードは他の管理者からは再設定できません。オーナー本人が変更するか、システム管理者に再設定を依頼してください。
+            </p>
+        {% else %}
+            <p style="font-size:.85rem; margin-bottom:12px;">
+                本人がパスワードを忘れた場合やログインがロックされた場合に、仮のパスワードを設定します。
+                設定するとロックも解除され、次回ログイン時に本人のパスワードへの変更が求められます。
+            </p>
+            {% if has(g(user, 'locked_until')) and (strtotime(str(user['locked_until'])) or now()) > now() %}
+            <div class="alert alert-warning" style="font-size:.85rem;">
+                このユーザーはログイン失敗によりロック中です（{{ user['locked_until'] }} まで）。
+            </div>
+            {% endif %}
+            <form method="POST" action="/index.cgi?page=user.password" autocomplete="off"
+                  onsubmit="return confirm('このユーザーのパスワードを再設定しますか？\n（今のパスワードではログインできなくなります）');">
+                <input type="hidden" name="_csrf_token" value="{{ var('csrf_token', '') }}">
+                <input type="hidden" name="id" value="{{ to_int(user['id']) }}">
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label class="form-label" for="new_password">仮パスワード <span class="required">*</span></label>
+                        <input type="password" id="new_password" name="new_password" class="form-control"
+                               autocomplete="new-password" minlength="8" maxlength="72" required>
+                        <div class="form-hint">8文字以上で英字・数字を含めてください。</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="new_password_confirm">仮パスワード（確認） <span class="required">*</span></label>
+                        <input type="password" id="new_password_confirm" name="new_password_confirm" class="form-control"
+                               autocomplete="new-password" minlength="8" maxlength="72" required>
+                    </div>
+                </div>
+                <div class="d-flex" style="justify-content:flex-end;">
+                    <button type="submit" class="btn btn-warning">パスワードを再設定する</button>
+                </div>
+            </form>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+

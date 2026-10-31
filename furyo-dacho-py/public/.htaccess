@@ -1,0 +1,38 @@
+# 古物台帳管理システム（Python版）
+# 公開フォルダ（public_html）とアプリ本体を分けて置く構成用。
+# このフォルダの中身（index.cgi・admin/index.cgi・この .htaccess）を public_html/ に置く。
+
+DirectoryIndex index.cgi index.html
+
+# CGI が動かない（ソースがそのまま表示される・403 になる）場合のみ、次の行の先頭の # を外す。
+# Options +ExecCGI
+AddHandler cgi-script .cgi
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# 「.」で始まるファイルは拒否（SSL証明書の認証用 .well-known は除く）
+RewriteCond %{REQUEST_URI} !^/\.well-known/
+RewriteRule (^|/)\. - [F,L]
+
+# 旧PHP版のURL（ブックマーク等）は新しいURLへ転送
+RewriteRule ^index\.php$ index.cgi [R=301,L]
+RewriteRule ^admin/index\.php$ admin/index.cgi [R=301,L]
+
+# HTTPSへ転送（本番環境で SSL を有効にしたら先頭の # を外す）
+# RewriteCond %{HTTPS} off
+# RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+RewriteRule ^admin/(.*)$ admin/index.cgi?page=$1 [QSA,L]
+RewriteRule ^(.*)$ index.cgi [QSA,L]
+</IfModule>
+
+# HTTPS 運用時は先頭の # を外して HSTS を有効化する。
+# <IfModule mod_headers.c>
+#     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+# </IfModule>

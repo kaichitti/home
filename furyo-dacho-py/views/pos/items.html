@@ -1,0 +1,133 @@
+{% set pageTitle = 'レジ明細検索 - 古物台帳管理システム' %}
+{% set activePage = 'pos.items' %}
+{% extends 'layouts/main' %}
+{# レジ明細検索（変数: rows, total, sumQty, sumAmount, sumAlloc, filters, page, totalPages, branches, registers, isAdmin） #}
+{% set methods = PAYMENT_LABELS %}
+
+
+<div class="page-header">
+    <h1 class="page-header__title">レジ明細検索</h1>
+    <div class="page-header__actions">
+        <a href="/index.cgi?page=pos" class="btn btn-primary">POSレジ</a>
+        <a href="/index.cgi?page=pos.history&{{ pos_filter_query(filters) }}" class="btn btn-outline">取引単位で表示</a>
+        {% if has(var('isAdmin')) %}
+            <a href="/index.cgi?page=pos.export&mode=items&{{ pos_filter_query(filters) }}" class="btn btn-outline">CSV出力</a>
+        {% endif %}
+    </div>
+</div>
+
+{% include 'pos/_lookup_box' %}
+
+<div class="card">
+    <div class="card__body">
+        <form method="GET" action="/index.cgi" class="pos-filter">
+            <input type="hidden" name="page" value="pos.items">
+            {% if has(g(filters, 'member_id')) %}
+                <input type="hidden" name="member_id" value="{{ to_int(filters['member_id']) }}">
+            {% endif %}
+            <div class="form-group" style="grid-column: span 2;"><label class="form-label">品名・シリアル番号</label>
+                <input type="text" name="keyword" class="form-control" maxlength="100" value="{{ filters['keyword'] }}" placeholder="品名・シリアル番号の一部" autofocus></div>
+            <div class="form-group"><label class="form-label">台帳番号</label>
+                <input type="text" name="ledger_id" class="form-control" inputmode="numeric" maxlength="18" value="{{ to_int(filters['ledger_id']) if has(filters.get('ledger_id')) else '' }}"></div>
+            {% include 'pos/_filter_fields' %}
+            <div class="form-group" style="align-self:end;">
+                <button type="submit" class="btn btn-primary">検索</button>
+                <a href="/index.cgi?page=pos.items" class="btn btn-secondary">クリア</a>
+            </div>
+        </form>
+        {% if has(g(filters, 'member_id')) %}
+            <p class="text-muted" style="font-size:.8rem; margin-top:8px;">会員（ID {{ to_int(filters['member_id']) }}）の明細に絞り込んでいます。
+                <a href="/index.cgi?page=pos.items&{{ pos_filter_query(dict(filters, member_id=0)) }}">解除</a></p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="pos-hist-sum">
+    <span>該当 <b>{{ number_format(to_int(total)) }}</b> 明細</span>
+    <span>販売点数 <b>{{ number_format(to_int(sumQty)) }}</b> 点</span>
+    <span>明細金額 <b>{{ yen(sumAmount) }}</b></span>
+    <span title="小計値引・外税を按分した、販売記録上の金額">売上計上額 <b>{{ yen(sumAlloc) }}</b></span>
+    <span class="text-muted" style="font-size:.8rem;">（合計は取消を除く）</span>
+</div>
+
+<div class="table-wrap">
+    {% if has(var('rows')) %}
+    <table class="table table--striped">
+        <thead>
+            <tr>
+                <th>会計日時</th>
+                <th>レジ</th>
+                <th>レシート番号</th>
+                <th>品名</th>
+                <th>シリアル</th>
+                <th style="text-align:right;">単価</th>
+                <th style="text-align:right;">数量</th>
+                <th style="text-align:right;">値引</th>
+                <th style="text-align:right;">金額</th>
+                <th>支払</th>
+                <th>会員</th>
+                <th>担当</th>
+                <th>状態</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in rows %}{% set voided = r['status'] == 'voided' %}
+            <tr{{ raw(' style="opacity:.6;"') if voided else '' }}>
+                <td>{{ r['created_at'] }}</td>
+                <td>{{ ('%02d' % to_int(r['register_no'])) if has(r.get('register_no')) else '-' }}</td>
+                <td><a href="/index.cgi?page=pos.show&id={{ to_int(r['tx_id']) }}">{{ r['receipt_no'] }}</a></td>
+                <td style="white-space:normal; min-width:160px;">
+                    <a href="/index.cgi?page=ledger.show&id={{ to_int(r['ledger_id']) }}" title="台帳 #{{ to_int(r['ledger_id']) }}">{{ r['item_name'] }}</a>
+                </td>
+                <td style="font-size:.8rem;">{{ g(r, 'serial_number', d='') }}</td>
+                <td style="text-align:right;">{{ yen(r['unit_price']) }}</td>
+                <td style="text-align:right;">{{ to_int(r['quantity']) }}</td>
+                <td style="text-align:right;">{{ yen(-to_int(r['line_discount'])) if to_int(r['line_discount']) > 0 else '-' }}</td>
+                <td style="text-align:right; font-weight:600;{{ ' text-decoration:line-through;' if voided else '' }}">{{ yen(r['amount']) }}</td>
+                <td>{{ methods.get(r['payment_method'], r['payment_method']) }}</td>
+                <td style="font-size:.8rem;">
+                    {% if has(g(r, 'member_id')) %}
+                        <a href="/index.cgi?page=member.show&id={{ to_int(r['member_id']) }}">{{ g(r, 'member_code', d='') }}</a><br>{{ g(r, 'member_name', d='') }}
+                    {% elif has(g(r, 'member_code')) %}
+                        {{ r['member_code'] }}
+                    {% else %}-{% endif %}
+                </td>
+                <td>{{ g(r, 'cashier_name', d='') }}</td>
+                <td>{% if voided %}<span class="badge badge-danger">取消</span>{% else %}<span class="badge badge-success">完了</span>{% endif %}</td>
+                <td style="white-space:nowrap;">
+                    <a href="/index.cgi?page=pos.show&id={{ to_int(r['tx_id']) }}" class="btn btn-secondary btn-sm">明細</a>
+                    <button type="button" class="btn btn-outline btn-sm" data-reprint="{{ to_int(r['tx_id']) }}">再印刷</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="background:#fff;">
+        <div class="empty-state__icon">&#128269;</div>
+        <div class="empty-state__text">該当する明細はありません（期間の既定は本日です）</div>
+    </div>
+    {% endif %}
+</div>
+
+{% if totalPages > 1 %}
+<div class="pagination">
+    <a href="/index.cgi?{{ pos_filter_query(filters, {'page': 'pos.items', 'p': max(1, page - 1)}) }}" class="pagination__item {{ 'disabled' if page <= 1 else '' }}">&#8249;</a>
+    {% for i in range(max(1, page - 3), min(totalPages, page + 3) + 1) %}
+        <a href="/index.cgi?{{ pos_filter_query(filters, {'page': 'pos.items', 'p': i}) }}" class="pagination__item {{ 'active' if i == page else '' }}">{{ i }}</a>
+    {% endfor %}
+    <a href="/index.cgi?{{ pos_filter_query(filters, {'page': 'pos.items', 'p': min(totalPages, page + 1)}) }}" class="pagination__item {{ 'disabled' if page >= totalPages else '' }}">&#8250;</a>
+</div>
+{% endif %}
+
+<style>
+.pos-filter { display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:10px; }
+.pos-filter .form-group { margin:0; }
+.pos-hist-sum { display:flex; gap:20px; flex-wrap:wrap; margin:0 0 12px; font-size:.9rem; align-items:baseline; }
+@media (max-width: 768px) { .pos-filter .form-group[style*="span 2"] { grid-column: auto !important; } }
+</style>
+
+{% include 'pos/_printer' %}
+{% include 'pos/_reprint' %}
+
