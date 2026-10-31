@@ -1,0 +1,7 @@
+numpy>=1.24
+PyYAML>=6.0
+jsonschema>=4.17
+# 任意: 自動テロップ（文字起こし）を使う場合
+# faster-whisper>=1.0
+# 任意: GUIへのドラッグ&ドロップ
+# tkinterdnd2>=0.4

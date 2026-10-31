@@ -1,0 +1,189 @@
+{
+  "format": "detcut-transcript",
+  "version": 1,
+  "meta": {
+    "source": "test fixture"
+  },
+  "segments": [
+    {
+      "start_ms": 600,
+      "end_ms": 2400,
+      "text": "こんにちは、今日はアイフォンをレビューします。",
+      "words": [
+        {
+          "start_ms": 600,
+          "end_ms": 1069,
+          "text": "こんにちは、"
+        },
+        {
+          "start_ms": 1069,
+          "end_ms": 1303,
+          "text": "今日は"
+        },
+        {
+          "start_ms": 1303,
+          "end_ms": 1694,
+          "text": "アイフォン"
+        },
+        {
+          "start_ms": 1694,
+          "end_ms": 1772,
+          "text": "を"
+        },
+        {
+          "start_ms": 1772,
+          "end_ms": 2085,
+          "text": "レビュー"
+        },
+        {
+          "start_ms": 2085,
+          "end_ms": 2398,
+          "text": "します。"
+        }
+      ]
+    },
+    {
+      "start_ms": 3400,
+      "end_ms": 5000,
+      "text": "これは本当にすごいです",
+      "words": [
+        {
+          "start_ms": 3400,
+          "end_ms": 3836,
+          "text": "これは"
+        },
+        {
+          "start_ms": 3836,
+          "end_ms": 4272,
+          "text": "本当に"
+        },
+        {
+          "start_ms": 4272,
+          "end_ms": 4708,
+          "text": "すごい"
+        },
+        {
+          "start_ms": 4708,
+          "end_ms": 4998,
+          "text": "です"
+        }
+      ]
+    },
+    {
+      "start_ms": 5250,
+      "end_ms": 7000,
+      "text": "バッテリーは5000ミリアンペアで一日余裕で持ちます。",
+      "words": [
+        {
+          "start_ms": 5250,
+          "end_ms": 5638,
+          "text": "バッテリーは"
+        },
+        {
+          "start_ms": 5638,
+          "end_ms": 5897,
+          "text": "5000"
+        },
+        {
+          "start_ms": 5897,
+          "end_ms": 6285,
+          "text": "ミリアンペア"
+        },
+        {
+          "start_ms": 6285,
+          "end_ms": 6349,
+          "text": "で"
+        },
+        {
+          "start_ms": 6349,
+          "end_ms": 6478,
+          "text": "一日"
+        },
+        {
+          "start_ms": 6478,
+          "end_ms": 6672,
+          "text": "余裕で"
+        },
+        {
+          "start_ms": 6672,
+          "end_ms": 6996,
+          "text": "持ちます。"
+        }
+      ]
+    },
+    {
+      "start_ms": 7600,
+      "end_ms": 8100,
+      "text": "えー",
+      "words": [
+        {
+          "start_ms": 7600,
+          "end_ms": 8100,
+          "text": "えー"
+        }
+      ]
+    },
+    {
+      "start_ms": 10500,
+      "end_ms": 13000,
+      "text": "最後にまとめると、とても最高のスマホでした。また次の動画でお会いしましょう",
+      "words": [
+        {
+          "start_ms": 10500,
+          "end_ms": 10702,
+          "text": "最後に"
+        },
+        {
+          "start_ms": 10702,
+          "end_ms": 11107,
+          "text": "まとめると、"
+        },
+        {
+          "start_ms": 11107,
+          "end_ms": 11309,
+          "text": "とても"
+        },
+        {
+          "start_ms": 11309,
+          "end_ms": 11511,
+          "text": "最高の"
+        },
+        {
+          "start_ms": 11511,
+          "end_ms": 11713,
+          "text": "スマホ"
+        },
+        {
+          "start_ms": 11713,
+          "end_ms": 11983,
+          "text": "でした。"
+        },
+        {
+          "start_ms": 11983,
+          "end_ms": 12118,
+          "text": "また"
+        },
+        {
+          "start_ms": 12118,
+          "end_ms": 12253,
+          "text": "次の"
+        },
+        {
+          "start_ms": 12253,
+          "end_ms": 12455,
+          "text": "動画で"
+        },
+        {
+          "start_ms": 12455,
+          "end_ms": 12657,
+          "text": "お会い"
+        },
+        {
+          "start_ms": 12657,
+          "end_ms": 12994,
+          "text": "しましょう"
+        }
+      ]
+    }
+  ]
+}
