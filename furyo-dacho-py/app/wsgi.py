@@ -6,10 +6,8 @@
   3. 予期しないエラーは、アプリと同じデザインのエラー画面で返す（詳細はログへ）
   4. セッションを保存し、セキュリティヘッダを付けて送信する
 """
-import datetime
 import importlib
 import os
-import sys
 import time
 import traceback
 

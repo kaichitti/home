@@ -3,6 +3,7 @@
 PHP版（`../furyo-dacho-php`）を、**画面・機能・データベースをそのままに** Python 3 で書き換えたものです。
 XREA などのレンタルサーバーで CGI として動きます。導入・移行の手順は [DEPLOY.md](DEPLOY.md) を見てください。
 操作マニュアルは PHP版と同じです（[docs/manual.pdf](docs/manual.pdf)）。
+プログラムを直す人向けの説明は [docs/DEVELOPER.md](docs/DEVELOPER.md) にあります。
 
 ## Python を選んだ理由
 XREA で動かせる言語（PHP・Perl・Python など）の中で、次の点から Python 3 を選びました。

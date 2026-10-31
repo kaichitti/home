@@ -4,7 +4,6 @@ HTTP レスポンス
 画面を返す・リダイレクトする・JSON を返すときは、その場で処理を終えるために
 ResponseDone 例外を投げる（PHP 版の exit と同じ使い方）。最上位（wsgi.py）が受け取って送信する。
 """
-import json
 import re
 
 from ..util import php_json_encode
