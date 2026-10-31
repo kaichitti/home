@@ -1,0 +1,27 @@
+# トーク・ポッドキャスト向け：無音を完全には切らず、間を短く詰める（F3）
+version: 1
+paths:
+  base_dir: ".."
+project:
+  target: both
+  width: "auto"
+  height: "auto"
+  fps: "auto"
+  template_aup2: "templates/base_1080p.aup2"
+cut:
+  mode: compress
+  speech_on_db: -40
+  speech_off_db: -48
+  min_silence_ms: 500
+  min_speech_ms: 150
+  pad_before_ms: 100
+  pad_after_ms: 150
+  merge_gap_ms: 200
+  compress_to_ms: 300
+bgm:
+  enabled: false
+  file: "assets/bgm/lofi01.wav"
+  volume: 20
+  duck_volume: 8
+output:
+  dir: "./out"

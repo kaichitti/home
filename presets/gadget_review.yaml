@@ -1,0 +1,147 @@
+# ガジェットレビュー動画（1人喋り＋手元のBロール）向けプリセット
+# 使い方:  detcut run 動画.mp4 -p presets/gadget_review.yaml
+#
+# パスは paths.base_dir（このファイルから見た相対位置）を基準に解決されます。
+# ".." にしているので、DetCut のフォルダ直下の templates/ や assets/ を参照します。
+version: 1
+paths:
+  base_dir: ".."
+
+project:
+  target: aup2          # aup2 | exo | both
+  width: 1920           # "auto" にすると入力動画の解像度
+  height: 1080
+  fps: "30000/1001"     # "auto" にすると入力動画のfps（素材とそろえるのがおすすめ）
+  audio_rate: 48000
+  template_aup2: "templates/base_1080p.aup2"   # AviUtl2で保存した空プロジェクトに差し替え推奨
+  aup2_audio: embedded  # embedded: 動画オブジェクトの「音声付き」で再生 / separate: 音声を別レイヤーに置く
+  # 実機で保存したサンプル（detcut harvest で確認）。指定するとそのキー構成で書き出す
+  object_samples_aup2: null
+  object_samples_exo: null
+
+cut:
+  mode: jetcut          # jetcut | compress
+  speech_on_db: -38
+  speech_off_db: -45
+  min_silence_ms: 350
+  min_speech_ms: 120
+  pad_before_ms: 80
+  pad_after_ms: 120
+  merge_gap_ms: 150
+  compress_to_ms: 200   # mode=compress のときに残す間
+  keep_ranges: []       # 手動で残す区間 ["00:01:23.000-00:01:30.000"]
+  force_cut_ranges: []  # 手動で切る区間
+
+telop:
+  enabled: false
+  transcript_file: null # 直した字幕（.json / .srt）を指定するとAIを使わない
+  asr:
+    engine: faster-whisper
+    model: "large-v3"   # small / medium / large-v3 など
+    model_path: null    # ローカルのモデルフォルダを直接指定する場合
+    model_sha256: null  # model.bin のSHA-256を書くと、モデルが変わったとき止まる
+    device: cpu
+    compute_type: int8
+    cpu_threads: 4
+    language: ja
+    beam_size: 5
+    temperature: 0.0
+    vad_filter: true
+  max_chars_per_line: 24
+  max_lines: 2
+  min_display_ms: 800
+  snap_to_cut_frames: 6
+  style_template: "templates/telop_gadget.object"  # AviUtl2で作ったテキストの .object
+  style_template_exo: null                          # 従来版用（テキストを1つ置いてエクスポートした .exo）
+  style:                                            # テンプレートがない場合のスタイル
+    font: "メイリオ"
+    size: 64
+    color: "ffffff"
+    outline_color: "1a1a1a"
+    decoration: outline
+    align: center_middle
+    x: 0
+    y: 400
+    bold: true
+  dictionary: "dict/gadget_terms.tsv"
+
+se:
+  enabled: false
+  snap_to_cut_frames: 3
+  rules:
+    - id: se_wow
+      type: keyword
+      pattern: "(すごい|ヤバい|最高)"
+      file: "assets/se/wow.wav"
+      layer: 6
+      volume: 80
+      priority: 10
+    - id: se_cut_whoosh
+      type: after_cut
+      min_cut_ms: 1500
+      min_interval_ms: 8000
+      file: "assets/se/whoosh.wav"
+      layer: 7
+      volume: 60
+      priority: 5
+
+bgm:
+  enabled: false
+  file: "assets/bgm/lofi01.wav"
+  volume: 25
+  duck: true
+  duck_volume: 12
+  duck_min_gap_ms: 1500
+  duck_fade_ms: 300
+
+zoom:
+  enabled: false
+  min_shot_ms: 6000     # 同じ画がこれ以上続いたら、次の編集点で拡大率を切り替える
+  split_long_ms: 0      # 0以外にすると、長い区間をこの長さ以下に分割して切り替え点を作る
+  levels:
+    - {scale: 100, x: 0, y: 0}
+    - {scale: 110, x: 0, y: -20}
+
+chapters:
+  file: null            # CSV: 時刻,タイトル（元素材の時刻）
+  items: []             # [{at: "00:01:00.000", title: "開封"}]
+  title_telop: false
+  title_ms: 3000
+
+layers:
+  video: 1
+  audio: 2
+  telop: 4
+  chapter: 5
+  bgm: 9
+
+shortcuts:
+  - id: wow
+    label: "驚き（テロップ＋SE）"
+    length_ms: 1500
+    items:
+      - type: text
+        text: "すごい！"
+        style: {size: 110, color: "ffdd00", y: -250, align: center_middle}
+      - type: se
+        file: "assets/se/wow.wav"
+        layer: 1
+        volume: 80
+  - id: point
+    label: "ポイント解説"
+    length_ms: 3000
+    items:
+      - type: text
+        text: "ここがポイント"
+        style: {size: 72, color: "00e0ff", x: -600, y: -380, align: left_top}
+      - type: se
+        file: "assets/se/pop.wav"
+        layer: 1
+        volume: 70
+
+output:
+  dir: "./out"
+  report_csv: true
+  path_map: []          # WSL等で作る場合: [["/mnt/c/", "C:\\"]]
+  open_after: false     # true にすると書き出し後に AviUtl2 で開く
+  aviutl2_exe: null     # 例: "C:/aviutl2/aviutl2.exe"

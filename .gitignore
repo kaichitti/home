@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.detcut_cache/
+out/
+# 個人のSE・BGM素材はリポジトリに入れない（サンプルは tools/make_sample_media.py で作れる）
+assets/**/*.wav
+assets/**/*.mp3
+assets/**/*.ogg
+assets/**/*.flac
+assets/**/*.m4a
