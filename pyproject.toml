@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "detcut"
+version = "0.1.0"
+description = "AviUtl向け 決定論的自動編集ツール（無音カット・テロップ・SE・BGM → .aup2 / .exo）"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.24",
+    "PyYAML>=6.0",
+    "jsonschema>=4.17",
+]
+
+[project.optional-dependencies]
+asr = ["faster-whisper>=1.0"]
+gui = ["tkinterdnd2>=0.4"]
+dev = ["pytest>=7"]
+
+[project.scripts]
+detcut = "detcut.cli:main"
+
+[project.gui-scripts]
+detcut-gui = "detcut.gui.app:main"
+
+[tool.setuptools.packages.find]
+include = ["detcut*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

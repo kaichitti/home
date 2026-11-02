@@ -1,0 +1,13 @@
+# 表記ゆれの置換表（上から順に適用）。左:置換前 <TAB> 右:置換後
+# 正規表現は先頭に re: を付ける（グループは \1 で参照）
+アイフォン	iPhone
+アイパッド	iPad
+マックブック	MacBook
+エアポッズ	AirPods
+アンドロイド	Android
+ピクセル	Pixel
+re:ギャラクシー\s*([SZ]?\d+)	Galaxy \1
+ユーエスビー	USB
+タイプシー	Type-C
+re:(\d+)ミリアンペア	\1mAh
+re:(\d+)ギガ	\1GB

@@ -1,0 +1,6 @@
+# AviUtl のファイルとゴールデンファイルはバイト単位で比較するので改行変換させない
+*.aup2 -text
+*.exo -text
+*.object -text
+tests/golden/* -text
+*.bat text eol=crlf
