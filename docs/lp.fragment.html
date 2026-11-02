@@ -1,0 +1,699 @@
+<title>DetCut</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="DetCut は動画の音声を解析して、無音カット・テロップ・SE・BGM を配置した AviUtl のプロジェクトを書き出すツールです。同じ素材と設定なら、出力はバイト単位で一致します。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+JP:wght@400;500;700&display=swap">
+<style>
+/* Layout: 左寄せの1カラム（最大1080px）。ヒーローは見出し＋タイムライン図。各セクションは左に見出し列・右に本文の2カラム、狭い画面では1列。
+   色は AviUtl のタイムラインのオブジェクト色（動画・テキスト・音声）を意味のある記号として使い、アクセントはレベルメーターの橙だけ。 */
+:root {
+  --paper: #eef1f4;
+  --panel: #fbfcfd;
+  --ink: #111923;
+  --ink-soft: #4b5867;
+  --rule: #d3dae2;
+  --signal: #c96508;
+  --signal-ink: #ffffff;
+  --obj-video: #2c62c4;
+  --obj-text: #7048c2;
+  --obj-audio: #b93f35;
+  --obj-se: #a87406;
+  --keep: rgba(44, 98, 196, 0.13);
+  --cut: rgba(75, 88, 103, 0.28);
+  --ok: #1f7a4a;
+  --term-bg: #121a24;
+  --term-fg: #e3e9ef;
+  --term-accent: #f39a45;
+  --term-ok: #5fd394;
+
+  --f-display: "Dela Gothic One", "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --f-body: "IBM Plex Sans JP", "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", "Meiryo", sans-serif;
+  --f-mono: "IBM Plex Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+
+  --s-cap: 12.5px;
+  --s-small: 14px;
+  --s-body: 16px;
+  --s-lead: 18px;
+  --s-h3: 18px;
+  --s-h2: clamp(22px, 2.6vw, 28px);
+  --s-hero: clamp(34px, 6.2vw, 64px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d131a;
+    --panel: #141c25;
+    --ink: #e5eaf0;
+    --ink-soft: #9aa8b7;
+    --rule: #26313d;
+    --signal: #f08a2c;
+    --signal-ink: #1a0d00;
+    --obj-video: #5e8ff0;
+    --obj-text: #a083f2;
+    --obj-audio: #e3665a;
+    --obj-se: #dcaa35;
+    --keep: rgba(94, 143, 240, 0.17);
+    --cut: rgba(154, 168, 183, 0.22);
+    --ok: #4cc584;
+    --term-bg: #070b10;
+    --term-fg: #dbe3ec;
+    --term-accent: #f39a45;
+    --term-ok: #5fd394;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d131a;
+  --panel: #141c25;
+  --ink: #e5eaf0;
+  --ink-soft: #9aa8b7;
+  --rule: #26313d;
+  --signal: #f08a2c;
+  --signal-ink: #1a0d00;
+  --obj-video: #5e8ff0;
+  --obj-text: #a083f2;
+  --obj-audio: #e3665a;
+  --obj-se: #dcaa35;
+  --keep: rgba(94, 143, 240, 0.17);
+  --cut: rgba(154, 168, 183, 0.22);
+  --ok: #4cc584;
+  --term-bg: #070b10;
+  --term-fg: #dbe3ec;
+  --term-accent: #f39a45;
+  --term-ok: #5fd394;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: var(--s-body);
+  line-height: 1.8;
+  font-feature-settings: "palt" 0;
+}
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; border-radius: 2px; }
+
+.wrap {
+  max-width: 1080px;
+  margin-inline: auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+/* ---------- top bar */
+.topbar { border-bottom: 1px solid var(--rule); }
+.topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 14px; }
+.brand { font-family: var(--f-display); font-size: 20px; letter-spacing: 0.02em; text-decoration: none; }
+.brand span { color: var(--signal); }
+.topnav { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: var(--s-small); color: var(--ink-soft); }
+.topnav a { text-decoration: none; }
+.topnav a:hover { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+@media (max-width: 560px) {
+  .topbar .wrap { flex-wrap: wrap; row-gap: 8px; }
+  .topnav { width: 100%; gap: 4px 16px; font-size: 13px; }
+}
+
+/* ---------- hero */
+.hero .wrap { padding-block: 48px 40px; display: grid; gap: 28px; }
+.eyebrow { font-family: var(--f-mono); font-size: var(--s-cap); letter-spacing: 0.08em; color: var(--ink-soft); text-transform: uppercase; margin: 0; }
+.hero h1 {
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: var(--s-hero);
+  line-height: 1.18;
+  letter-spacing: 0.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+.hero h1 em { font-style: normal; color: var(--signal); }
+.lead { font-size: var(--s-lead); max-width: 40em; margin: 0; color: var(--ink); }
+.lead code { font-family: var(--f-mono); font-size: 0.92em; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 11px 18px; border-radius: 6px;
+  font-weight: 700; font-size: var(--s-small); text-decoration: none;
+  border: 1px solid var(--ink);
+}
+.btn.primary { background: var(--signal); border-color: var(--signal); color: var(--signal-ink); }
+.btn.primary:hover { filter: brightness(1.06); }
+.btn.ghost:hover { background: var(--panel); }
+
+.demo {
+  margin: 0;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 16px 16px 12px;
+  display: grid;
+  gap: 10px;
+}
+.demo-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; font-size: var(--s-cap); color: var(--ink-soft); }
+.demo canvas { width: 100%; height: 236px; display: block; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: var(--s-cap); color: var(--ink-soft); margin: 0; padding: 0; list-style: none; }
+.legend li { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 10px; border-radius: 2px; display: inline-block; }
+.sw.keep { background: var(--keep); outline: 1px solid var(--obj-video); }
+.sw.cut { background: repeating-linear-gradient(135deg, var(--cut) 0 2px, transparent 2px 5px); outline: 1px solid var(--ink-soft); }
+.sw.video { background: var(--obj-video); }
+.sw.text { background: var(--obj-text); }
+.sw.se { background: var(--obj-se); }
+.result { font-family: var(--f-mono); font-size: var(--s-small); font-variant-numeric: tabular-nums; }
+.result b { color: var(--signal); font-weight: 500; }
+
+/* ---------- sections */
+.sec { border-top: 1px solid var(--rule); }
+.sec > .wrap { display: grid; grid-template-columns: minmax(0, 260px) minmax(0, 1fr); gap: 24px 48px; padding-block: 56px; }
+.sec h2 { font-size: var(--s-h2); line-height: 1.35; margin: 0; text-wrap: balance; font-weight: 700; }
+.sec .kicker { font-family: var(--f-mono); font-size: var(--s-cap); letter-spacing: 0.08em; color: var(--signal); margin: 0 0 6px; text-transform: uppercase; }
+.body { min-width: 0; display: grid; gap: 20px; align-content: start; }
+.body p { margin: 0; max-width: 42em; }
+.note { font-size: var(--s-small); color: var(--ink-soft); }
+@media (max-width: 760px) {
+  .sec > .wrap { grid-template-columns: minmax(0, 1fr); padding-block: 44px; }
+}
+
+/* terminal */
+.term {
+  margin: 0;
+  background: var(--term-bg);
+  color: var(--term-fg);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 14px 16px;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-x: auto;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+.term .p { color: var(--term-accent); }
+.term .ok { color: var(--term-ok); }
+.term .c { opacity: 0.7; }
+
+/* points */
+.points { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 28px; margin: 0; padding: 0; list-style: none; }
+.points li { display: grid; gap: 4px; align-content: start; }
+.points h3 { margin: 0; font-size: var(--s-h3); line-height: 1.5; }
+.points p { font-size: var(--s-small); color: var(--ink-soft); }
+@media (max-width: 900px) { .points { grid-template-columns: minmax(0, 1fr); } }
+
+/* feature groups */
+.groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 36px; }
+.group h3 { margin: 0 0 8px; font-size: var(--s-h3); display: flex; align-items: center; gap: 10px; }
+.group h3 .sw { width: 14px; height: 14px; }
+.group ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.group li { padding-left: 24px; position: relative; font-size: 15px; }
+.group li::before { content: ""; position: absolute; left: 4px; top: 0.85em; width: 10px; border-top: 1px solid var(--ink-soft); }
+.group .tag { font-family: var(--f-mono); font-size: 11.5px; color: var(--ink-soft); margin-left: 6px; }
+@media (max-width: 760px) { .groups { grid-template-columns: minmax(0, 1fr); } }
+
+/* report table */
+.tablebox { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--rule); vertical-align: top; white-space: nowrap; }
+tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+th { font-size: var(--s-cap); font-weight: 500; color: var(--ink-soft); letter-spacing: 0.04em; }
+td.mono { font-size: 12.5px; }
+td.why { white-space: normal; min-width: 16em; }
+.kind { display: inline-block; font-family: var(--f-mono); font-size: 11.5px; padding: 1px 7px; border-radius: 3px; border: 1px solid currentColor; }
+.kind.cut { color: var(--ink-soft); }
+.kind.keep { color: var(--obj-video); }
+.kind.telop { color: var(--obj-text); }
+.kind.se { color: var(--obj-se); }
+.kind.drop { color: var(--obj-audio); }
+
+/* steps */
+.steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 22px; counter-reset: step; }
+.steps li { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 14px; counter-increment: step; }
+.steps li::before {
+  content: counter(step);
+  grid-row: span 2;
+  font-family: var(--f-display);
+  font-size: 26px;
+  line-height: 1.3;
+  color: var(--signal);
+}
+.steps h3 { margin: 0; font-size: var(--s-h3); line-height: 1.5; }
+.steps p { font-size: 15px; color: var(--ink-soft); }
+.steps code, .body code, td code { font-family: var(--f-mono); font-size: 0.9em; background: var(--panel); border: 1px solid var(--rule); border-radius: 3px; padding: 0 4px; }
+
+/* spec */
+.spec th[scope="row"] { color: var(--ink); font-size: 14px; font-weight: 700; letter-spacing: 0; }
+.spec td { white-space: normal; min-width: 11em; }
+@media (max-width: 560px) {
+  .spec th, .spec td { padding: 8px 9px; }
+  .spec td { min-width: 0; }
+}
+.badge { display: inline-block; font-size: 11.5px; padding: 0 7px; border-radius: 999px; border: 1px solid currentColor; font-weight: 500; white-space: nowrap; }
+.badge.measured { color: var(--ok); }
+.badge.estimate { color: var(--obj-se); }
+.times { display: grid; gap: 0; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); }
+.times > div { display: grid; grid-template-columns: minmax(0, 12em) minmax(0, 1fr); gap: 4px 16px; padding: 12px 14px; border-bottom: 1px solid var(--rule); }
+.times > div:last-child { border-bottom: 0; }
+.times dt { font-weight: 700; font-size: 15px; }
+.times dd { margin: 0; font-size: 15px; display: grid; gap: 4px; }
+.times dd small { color: var(--ink-soft); font-size: 13px; }
+@media (max-width: 560px) { .times > div { grid-template-columns: minmax(0, 1fr); } }
+
+/* faq */
+.faq { display: grid; gap: 0; border-top: 1px solid var(--rule); }
+.faq details { border-bottom: 1px solid var(--rule); padding-block: 4px; }
+.faq summary { cursor: pointer; font-weight: 700; padding-block: 10px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after { content: "+"; font-family: var(--f-mono); color: var(--signal); }
+.faq details[open] summary::after { content: "−"; }
+.faq details p { padding-bottom: 12px; font-size: 15px; color: var(--ink-soft); }
+
+/* footer */
+.foot { border-top: 1px solid var(--rule); }
+.foot .wrap { padding-block: 28px 40px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; font-size: var(--s-small); color: var(--ink-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { scroll-behavior: auto !important; }
+}
+</style>
+
+<div class="page" lang="ja">
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="#top">Det<span>Cut</span></a>
+    <nav class="topnav" aria-label="ページ内">
+      <a href="#same">決定論</a>
+      <a href="#features">機能</a>
+      <a href="#start">使い方</a>
+      <a href="#spec">動作環境</a>
+      <a href="#faq">よくある質問</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">AviUtl ExEdit2 / AviUtl 1.10 向け　自動編集ツール</p>
+      <h1>無音を切る。<br><em>毎回、同じように。</em></h1>
+      <p class="lead">DetCut は動画の音声を解析して、無音カット・テロップ・SE・BGM を配置した AviUtl のプロジェクト（<code>.aup2</code> / <code>.exo</code>）を書き出すツールです。判定はすべて決まったルールで行うので、同じ素材と設定なら出力はバイト単位で一致します。</p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/kaichitti/home" target="_blank" rel="noopener">GitHub でソースを見る</a>
+        <a class="btn ghost" href="#spec">動作環境を確認する</a>
+      </div>
+
+      <figure class="demo" aria-labelledby="demo-cap">
+        <div class="demo-head">
+          <span id="demo-cap">付属のサンプル動画（14秒）を処理した実際の結果</span>
+          <span class="mono">29.97fps（30000/1001）</span>
+        </div>
+        <canvas id="tl" role="img" aria-label="上段は元の音声の波形で、発話のある3区間が残す区間、無音と咳の区間がカット区間。下段は書き出し後のタイムラインで、3つの動画オブジェクトが詰めて並び、テロップ5枚とSE3つが配置されている。"></canvas>
+        <ul class="legend">
+          <li><span class="sw keep"></span>残す区間</li>
+          <li><span class="sw cut"></span>カット（無音・短い雑音）</li>
+          <li><span class="sw video"></span>動画</li>
+          <li><span class="sw text"></span>テロップ</li>
+          <li><span class="sw se"></span>SE</li>
+        </ul>
+        <p class="result" style="margin:0">元の素材 13.9秒 → 書き出し後 8.6秒（<b>-39%</b>）　3区間を残して4区間をカット</p>
+      </figure>
+    </div>
+  </section>
+
+  <section class="sec" id="same">
+    <div class="wrap">
+      <div>
+        <p class="kicker">Deterministic</p>
+        <h2>同じ入力なら、<br>同じ出力。</h2>
+      </div>
+      <div class="body">
+        <p>自動編集の結果が実行のたびに少しずつ変わると、どこを直したのか分からなくなります。DetCut は乱数もネットワークも使わず、しきい値と区間の計算だけで判定します。2回実行して出力を比べるコマンドも付いています。</p>
+<pre class="term" aria-label="detcut verify の出力例"><span class="p">$</span> detcut verify sample_talk.mp4 -p presets/gadget_review.yaml
+  一致  sample_talk.aup2         ee3633535fbd76ed…c1c5
+  一致  sample_talk.exo          d7575d945e138e7f…ce44
+  一致  sample_talk.report.csv   5364524738827282…07ab1
+  一致  sample_talk.timeline.json 8d79fc8698f60921…eb22
+決定論性チェック: <span class="ok">OK（2回の出力がバイト単位で一致）</span></pre>
+        <ul class="points">
+          <li>
+            <h3>音量は整数で計算</h3>
+            <p>10ミリ秒ごとの音の大きさを整数の二乗和で求め、しきい値と比べるだけ。CPUやライブラリの違いで判定が揺れません。</p>
+          </li>
+          <li>
+            <h3>フレームは分数で</h3>
+            <p>29.97fps は 30000/1001 のまま扱い、切り捨て・切り上げを整数で計算します。小数の丸めで1フレームずれることがありません。</p>
+          </li>
+          <li>
+            <h3>AIは文字起こしだけ</h3>
+            <p>テロップ用の文字起こし（faster-whisper）だけが任意のAI段です。結果はファイルに保存し、直した字幕を使えば以降はAIなしで毎回同じテロップになります。</p>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="features">
+    <div class="wrap">
+      <div>
+        <p class="kicker">Features</p>
+        <h2>カットから<br>テロップ・SE・BGMまで</h2>
+      </div>
+      <div class="body">
+        <p>色は、それぞれの機能が AviUtl のタイムラインに置くオブジェクトの種類です。利用時間や回数の上限はなく、処理はすべて手元のPCで行います。</p>
+        <div class="groups">
+          <div class="group">
+            <h3><span class="sw video" aria-hidden="true"></span>カット</h3>
+            <ul>
+              <li>無音カット（前後の余白つき）</li>
+              <li>咳・クリックなど短い音の除去と、近い区間の結合</li>
+              <li>完全には切らずに間を詰める圧縮モード</li>
+              <li>手動で「残す区間」「切る区間」を指定</li>
+            </ul>
+          </div>
+          <div class="group">
+            <h3><span class="sw text" aria-hidden="true"></span>テロップ</h3>
+            <ul>
+              <li>文字起こしからテロップを自動配置<span class="tag">任意のAI</span></li>
+              <li>表記ゆれの辞書置換（アイフォン → iPhone）</li>
+              <li>句読点・助詞で改行、行頭禁則とぶら下げ</li>
+              <li>端をカット位置に吸着（編集点吸着）</li>
+            </ul>
+          </div>
+          <div class="group">
+            <h3><span class="sw se" aria-hidden="true"></span>SE・BGM</h3>
+            <ul>
+              <li>キーワード・長いカットの直後・章の頭に SE</li>
+              <li>BGM をループ配置し、話している間は音量を下げる</li>
+              <li>候補が重なったら優先度で決定（乱択なし）</li>
+            </ul>
+          </div>
+          <div class="group">
+            <h3><span class="sw" style="background: var(--ink-soft)" aria-hidden="true"></span>演出と操作</h3>
+            <ul>
+              <li>同じ画が続いたら拡大率を 100% / 110% で切り替え</li>
+              <li>波形とカット位置を見ながら調整できる GUI</li>
+              <li>テロップ＋SE の定番の組み合わせを1クリックで作るボタン</li>
+              <li>まとめて処理できるコマンド（CLI）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="report">
+    <div class="wrap">
+      <div>
+        <p class="kicker">Report</p>
+        <h2>切った理由が<br>全部残る。</h2>
+      </div>
+      <div class="body">
+        <p>書き出しと一緒に、どこをなぜ切ったかを測定値つきで CSV に出力します。カット区間に入っていた言葉（下の「えー」）は、テロップから外したことも記録されます。</p>
+        <div class="tablebox" role="region" aria-label="report.csv の抜粋" tabindex="0">
+          <table>
+            <thead><tr><th>種類</th><th>元の位置</th><th>理由・内容</th></tr></thead>
+            <tbody>
+              <tr><td><span class="kind cut">cut</span></td><td class="mono">00:00:00.000–00:00:00.500</td><td class="why mono">F1:leading silence max -65.6dB 500ms</td></tr>
+              <tr><td><span class="kind keep">keep</span></td><td class="mono">00:00:00.500–00:00:02.535</td><td class="why mono">speech 00:00:00.520–00:00:02.520</td></tr>
+              <tr><td><span class="kind cut">cut</span></td><td class="mono">00:00:02.535–00:00:03.303</td><td class="why mono">F1:silence max -65.5dB 767ms</td></tr>
+              <tr><td><span class="kind cut">cut</span></td><td class="mono">00:00:07.140–00:00:10.410</td><td class="why mono">F2:short_speech x1 max -14.1dB 3269ms</td></tr>
+              <tr><td><span class="kind telop">telop</span></td><td class="mono">フレーム 0–60</td><td class="why">こんにちは、今日はiPhoneをレビューします</td></tr>
+              <tr><td><span class="kind drop">dropped</span></td><td class="mono">00:00:07.600</td><td class="why">カット区間内の発話のため除外: えー</td></tr>
+              <tr><td><span class="kind se">se</span></td><td class="mono">フレーム 90–107</td><td class="why">keyword 'すごい' → wow.wav</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">付属サンプルで出力した <code>report.csv</code> の抜粋（列を一部省略）。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="start">
+    <div class="wrap">
+      <div>
+        <p class="kicker">Getting started</p>
+        <h2>使い方</h2>
+      </div>
+      <div class="body">
+        <ol class="steps">
+          <li>
+            <h3>準備する</h3>
+            <p>Python 3.11 以上と FFmpeg を入れて、<code>setup_windows.bat</code> をダブルクリック。必要なライブラリとサンプルの SE・BGM が用意されます。</p>
+          </li>
+          <li>
+            <h3>動画をドロップして確認する</h3>
+            <p><code>run_gui.bat</code> に動画をドロップ。波形の上で残す区間を確認し、しきい値を調整します。音量分布から決めた提案値も表示されます。</p>
+          </li>
+          <li>
+            <h3>書き出して AviUtl で開く</h3>
+            <p>「書き出し」で <code>.aup2</code> と報告書を作成。AviUtl2 で開いて仕上げます。従来版 AviUtl では <code>.exo</code> を読み込みます。</p>
+          </li>
+        </ol>
+<pre class="term" aria-label="コマンドでの使い方"><span class="p">$</span> detcut run 動画.mp4 -p presets/gadget_review.yaml -t both
+<span class="p">$</span> detcut analyze 動画.mp4      <span class="c"># 音量分布としきい値の提案</span>
+<span class="p">$</span> detcut transcribe 動画.mp4   <span class="c"># 文字起こしだけ（直してから使う）</span></pre>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="spec">
+    <div class="wrap">
+      <div>
+        <p class="kicker">Requirements</p>
+        <h2>動作環境</h2>
+      </div>
+      <div class="body">
+        <p>DetCut 自体は軽く、必要なスペックはほぼ「AviUtl2 が動くか」と「自動テロップを使うか」で決まります。</p>
+        <div class="tablebox" role="region" aria-label="スペックの目安" tabindex="0">
+          <table class="spec">
+            <thead><tr><th></th><th>最低限（カットのみ）</th><th>推奨（テロップも使う）</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">OS</th><td>Windows 10 64bit</td><td>Windows 11 64bit</td></tr>
+              <tr><th scope="row">CPU</th><td>AVX2 対応（Intel 第4世代 Core 以降・AMD Ryzen）</td><td>8コア以上（Core i7 第12世代 / Ryzen 7 5000番台 以降など）</td></tr>
+              <tr><th scope="row">メモリ</th><td>8GB</td><td>16GB 以上</td></tr>
+              <tr><th scope="row">GPU</th><td>ROV 対応（AviUtl2 の要件）</td><td>専用GPUがあると AviUtl2 のプレビューが快適</td></tr>
+              <tr><th scope="row">ストレージ</th><td>SSD・空き 10GB</td><td>NVMe SSD・空き 50GB 以上</td></tr>
+              <tr><th scope="row">ソフト</th><td colspan="2">Python 3.11 以上、FFmpeg、AviUtl ExEdit2（または AviUtl 1.10＋拡張編集 0.92）。自動テロップには faster-whisper</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <dl class="times">
+          <div>
+            <dt>無音カット</dt>
+            <dd>1時間の音声で初回 約15秒、2回目以降 約1秒。メモリ 約70MB <span><span class="badge measured">実測</span></span>
+              <small>クラウドの4コア 2.1GHz Linux で測定。実際の動画はファイル全体を読むので、1時間の1080p動画なら SSD で数十秒、HDD で1〜2分ほど（推定）。</small></dd>
+          </div>
+          <div>
+            <dt>自動テロップ<br><span class="note">CPU・int8</span></dt>
+            <dd>small：動画の長さの1〜2割 / medium：約半分 / large-v3：動画とほぼ同じ <span><span class="badge estimate">概算</span></span>
+              <small>faster-whisper の公開ベンチマークからの概算。large-v3 はメモリ約4GB、モデルのダウンロード約3GB。動画1本につき最初の1回だけ。</small></dd>
+          </div>
+        </dl>
+        <p class="note">CPU と GPU の条件は AviUtl2 の要件（AVX2・DirectX 11.3・ROV 対応GPU）に合わせた目安です。ROV 対応GPUは Intel 第6世代 Core 以降の内蔵GPU、GeForce GTX 900番台以降、Radeon RX Vega 以降が目安。AviUtl2 が起動するかで判断するのが確実です。AviUtl2 が動かないPCでも、従来版 AviUtl と <code>.exo</code> 出力なら使えます。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="faq">
+    <div class="wrap">
+      <div>
+        <p class="kicker">FAQ</p>
+        <h2>よくある質問</h2>
+      </div>
+      <div class="body">
+        <div class="faq">
+          <details>
+            <summary>最新の AviUtl2 で開けますか？</summary>
+            <p><code>.aup2</code> には公式の仕様書がないため、公開されている実機の保存ファイル（AviUtl2 2.00 beta53a 前後）を元に書き出しています。お使いの AviUtl2 で動画・音声・テキストを置いて保存したファイルを <code>detcut harvest</code> で読み込ませると、そのキー構成で書き出すようになります。</p>
+          </details>
+          <details>
+            <summary>AIは使いますか？</summary>
+            <p>使うのはテロップ用の文字起こし（faster-whisper）だけで、使わなくても無音カットや SE・BGM は動きます。文字起こしの結果は JSON と SRT で保存されるので、誤字を直してから使えます。</p>
+          </details>
+          <details>
+            <summary>料金はかかりますか？</summary>
+            <p>かかりません。処理はすべて手元のPCで行い、利用時間や回数の上限もありません。ソースコードは GPL-3.0 で公開しています。</p>
+          </details>
+          <details>
+            <summary>Mac や Linux でも使えますか？</summary>
+            <p>DetCut 自体は Python なので動きますが、書き出したファイルを開く AviUtl が Windows 専用です。WSL などで作る場合は、パスを <code>C:\</code> 形式に置き換える設定（<code>output.path_map</code>）があります。</p>
+          </details>
+          <details>
+            <summary>どんな動画に向いていますか？</summary>
+            <p>1人で話す動画（ガジェットレビュー、解説、トーク）の粗編集に向いています。BGM が大きく入った素材は無音の判定が難しいので、<code>detcut analyze</code> で音量分布を見てしきい値を決めてください。</p>
+          </details>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <span><b style="color:var(--ink)">DetCut</b> 0.1.0 ・ GPL-3.0</span>
+    <a href="https://github.com/kaichitti/home" target="_blank" rel="noopener">github.com/kaichitti/home</a>
+  </div>
+</footer>
+
+</div>
+
+<script>
+(() => {
+  // 付属サンプル（sample_talk.mp4）の実際の処理結果。単位はフレーム（30000/1001 fps）。
+  const FPS = 30000 / 1001;
+  const SRC = 418;                         // 元の素材の長さ
+  const KEEPS = [[15, 76, 0], [99, 214, 61], [312, 394, 176]];   // [元の開始, 元の終了, 書き出し後の開始]
+  const TELOPS = [[0, 60], [61, 118], [119, 175], [176, 222], [223, 257]];
+  const SES = [[61, 72], [90, 107], [202, 219]];
+  const SPEECH = [[0.6, 2.4], [3.4, 5.0], [5.25, 7.0], [10.5, 13.0]];  // 秒
+  const BLIP = [9.5, 9.55];
+
+  const canvas = document.getElementById("tl");
+  if (!canvas) return;
+  const ctx = canvas.getContext("2d");
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let progress = reduce ? 1 : 0;
+
+  function rand(seed) {             // 決定論的な擬似乱数（mulberry32）
+    return () => {
+      seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+      let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  function amp(t) {
+    for (const [a, b] of SPEECH) if (t >= a && t < b) {
+      const env = 0.55 + 0.45 * Math.sin(2 * Math.PI * 4 * (t - a)) ** 2;
+      return 0.86 * env;
+    }
+    if (t >= BLIP[0] && t < BLIP[1]) return 0.9;
+    return 0.03;
+  }
+  function tok(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function ease(x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+  function rr(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h);
+    ctx.fill();
+  }
+
+  function draw() {
+    const dpr = Math.max(1, window.devicePixelRatio || 1);
+    const cssW = canvas.clientWidth, cssH = canvas.clientHeight;
+    if (!cssW || !cssH) return;
+    if (canvas.width !== Math.round(cssW * dpr) || canvas.height !== Math.round(cssH * dpr)) {
+      canvas.width = Math.round(cssW * dpr); canvas.height = Math.round(cssH * dpr);
+    }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const C = {
+      ink: tok("--ink"), soft: tok("--ink-soft"), rule: tok("--rule"), keep: tok("--keep"), cut: tok("--cut"),
+      video: tok("--obj-video"), text: tok("--obj-text"), se: tok("--obj-se"),
+    };
+    const gutter = cssW < 480 ? 50 : 66;
+    const plotW = cssW - gutter - 2;
+    const x = (f) => gutter + (f / SRC) * plotW;
+    const mono = '11px "IBM Plex Mono", Consolas, monospace';
+    const sans = '11.5px "IBM Plex Sans JP", "Yu Gothic UI", "Meiryo", sans-serif';
+
+    // ルーラー（2秒ごと）
+    ctx.font = mono; ctx.fillStyle = C.soft; ctx.textBaseline = "top";
+    for (let s = 0; s <= 14; s += 2) {
+      const xx = x(s * FPS);
+      if (xx > cssW - 14) break;
+      ctx.fillRect(xx, 14, 1, 4);
+      ctx.fillText(s + "s", xx + 2, 0);
+    }
+
+    // 元の音声（波形）
+    const wy = 24, wh = 76, mid = wy + wh / 2;
+    ctx.font = sans; ctx.fillStyle = C.soft; ctx.textBaseline = "middle";
+    ctx.fillText("元の音声", 0, mid);
+    let prev = 0;
+    for (const [a, b] of KEEPS) {
+      // カット区間（斜線）
+      if (a > prev) hatch(x(prev), wy, x(a) - x(prev), wh, C.cut);
+      ctx.fillStyle = C.keep; ctx.fillRect(x(a), wy, x(b) - x(a), wh);
+      prev = b;
+    }
+    if (prev < SRC) hatch(x(prev), wy, x(SRC) - x(prev), wh, C.cut);
+    const r = rand(7);
+    ctx.fillStyle = C.ink;
+    const step = 2;
+    for (let px = 0; px < plotW; px += step) {
+      const t = (px / plotW) * SRC / FPS;
+      const h = Math.max(0.6, amp(t) * (0.55 + 0.45 * r()) * (wh / 2 - 4));
+      ctx.fillRect(gutter + px, mid - h, step - 0.6, h * 2);
+    }
+
+    // 書き出し後のタイムライン
+    const lanes = [["動画", 128, C.video], ["テロップ", 160, C.text], ["SE", 192, C.se]];
+    ctx.fillStyle = C.soft; ctx.font = sans;
+    for (const [label, y] of lanes) {
+      ctx.fillText(label, 0, y + 10);
+      ctx.fillStyle = C.rule; ctx.fillRect(gutter, y + 21, plotW, 1); ctx.fillStyle = C.soft;
+    }
+    ctx.font = mono; ctx.textBaseline = "alphabetic";
+    ctx.fillText("書き出し後のタイムライン", gutter, 120);
+
+    const p = ease(Math.min(1, Math.max(0, progress)));
+    ctx.fillStyle = C.video;
+    for (const [a, b, t0] of KEEPS) {
+      const f = a + (t0 - a) * p;
+      rr(x(f) + 0.5, 128, x(b - a) - gutter - 1, 20, 3);
+    }
+    const reveal = Math.min(1, Math.max(0, (progress - 0.75) / 0.25));
+    if (reveal > 0) {
+      ctx.globalAlpha = reveal;
+      ctx.fillStyle = C.text;
+      for (const [a, b] of TELOPS) rr(x(a) + 0.5, 160, x(b - a + 1) - gutter - 1, 20, 3);
+      ctx.fillStyle = C.se;
+      for (const [a, b] of SES) rr(x(a) + 0.5, 194, x(b - a + 1) - gutter - 1, 16, 3);
+      ctx.globalAlpha = 1;
+      // 書き出し後の終端
+      ctx.fillStyle = C.soft;
+      ctx.fillRect(x(258), 124, 1, 92);
+      ctx.font = mono; ctx.textBaseline = "top";
+      const label = "8.6s";
+      const lx = Math.min(x(258) + 4, cssW - ctx.measureText(label).width - 2);
+      ctx.fillText(label, lx, 220);
+    }
+  }
+
+  function hatch(x0, y0, w, h, color) {
+    if (w <= 0) return;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x0, y0, w, h); ctx.clip();
+    ctx.strokeStyle = color; ctx.lineWidth = 1;
+    for (let k = -h; k < w; k += 5) { ctx.beginPath(); ctx.moveTo(x0 + k, y0 + h); ctx.lineTo(x0 + k + h, y0); ctx.stroke(); }
+    ctx.restore();
+  }
+
+  function animate() {
+    if (reduce) { progress = 1; draw(); return; }
+    const delay = 700, dur = 1500;
+    const start = performance.now();
+    function frame(now) {
+      progress = Math.min(1, Math.max(0, (now - start - delay) / dur));
+      draw();
+      if (progress < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  draw();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+  if ("ResizeObserver" in window) new ResizeObserver(draw).observe(canvas);
+  else window.addEventListener("resize", draw);
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
+  animate();
+})();
+</script>

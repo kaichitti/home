@@ -29,6 +29,39 @@
 | F14 | AviUtl2 汎用プラグイン（.aux2）化 | ❌ 未実装（Phase 4・任意） | — |
 | F15 | ショートカットボタン（`.object` / `.exo` を生成） | ✅ | `shortcuts.py` |
 
+紹介ページ（LP）：[`docs/index.html`](docs/index.html)（GitHub Pages でそのまま公開できる単体のHTML）。
+編集するときは `docs/lp.fragment.html` を直してから `python tools/build_lp.py` で作り直します。
+
+## 動作環境（スペックの目安）
+
+DetCut 自体は軽く、必要なスペックはほぼ「AviUtl2 が動くか」と「自動テロップ（文字起こし）を使うか」で決まります。
+
+| | 最低限（カットのみ） | 推奨（テロップも使う） |
+|---|---|---|
+| OS | Windows 10 64bit | Windows 11 64bit |
+| CPU | AVX2 対応（Intel 第4世代 Core 以降・AMD Ryzen） | 8コア以上（Core i7 第12世代 / Ryzen 7 5000番台 以降など） |
+| メモリ | 8GB | 16GB 以上 |
+| GPU | ROV 対応（AviUtl2 の要件） | 専用GPUがあると AviUtl2 のプレビューが快適 |
+| ストレージ | SSD・空き 10GB | NVMe SSD・空き 50GB 以上 |
+
+- ソフトウェア：Python 3.11 以上、FFmpeg、AviUtl ExEdit2（`.exo` を使う場合は AviUtl 1.10＋拡張編集 0.92）。任意で faster-whisper（自動テロップ）、tkinterdnd2（GUIへのドラッグ&ドロップ）。
+- CPU と GPU の条件は AviUtl2 の要件（設計書の記載：AVX2・DirectX 11.3・ROV 対応GPU）です。
+  Celeron・Pentium の一部は AVX2 に非対応です。ROV 対応GPUの目安は Intel 第6世代 Core 以降の内蔵GPU、GeForce GTX 900番台以降、Radeon RX Vega 以降です（RX 400/500番台は非対応のはず）。
+  公式資料で確認できていないため、AviUtl2 が起動するかで判断するのが確実です。
+- メモリとストレージは、1080p の動画を AviUtl2 で編集する前提の一般的な目安です。
+- AviUtl2 が動かないPCでも、従来版 AviUtl 1.10 と `.exo` 出力の組み合わせなら使えます。
+
+### 処理時間の目安
+
+| 処理 | 目安 | 根拠 |
+|---|---|---|
+| 無音カット（解析） | 1時間の音声で初回 約15秒、2回目以降 約1秒（キャッシュ）。メモリ 約70MB | 実測（クラウドの4コア 2.1GHz Linux） |
+| 無音カット（実際の動画） | 1時間の1080p動画で SSD なら数十秒、HDD なら1〜2分 | 推定（ファイル全体を読むのでディスク速度が効く） |
+| 自動テロップ（CPU・int8） | small：動画の長さの1〜2割 / medium：約半分 / large-v3：動画とほぼ同じ（メモリ 約4GB、モデル 約3GB） | 概算（faster-whisper の公開ベンチマークから。未測定） |
+
+- 文字起こしは動画1本につき最初の1回だけです。以降はキャッシュか、直した字幕ファイルを使います。
+- PCが弱いときは `telop.asr.model` を `small` / `medium` に。`telop.asr.cpu_threads` をコア数に合わせると速くなります（結果が変わることがあるので、決めたら固定してください）。
+
 ## セットアップ（Windows）
 
 1. **Python 3.11 以上**（python.org 版。tkinter が含まれます）と **FFmpeg**（`ffmpeg` / `ffprobe` にPATHを通す）を入れる。
