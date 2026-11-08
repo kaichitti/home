@@ -57,11 +57,12 @@
         <li><a href="#trouble">こんなときに</a></li>
         <li><a href="#price">料金</a></li>
         <li><a href="#flow">修理の流れ</a></li>
+        <li><a href="#calendar">営業日</a></li>
         <li><a href="#faq">よくある質問</a></li>
         <li><a href="#access">お店の場所</a></li>
       </ul>
       <!-- 要差し替え：電話番号 -->
-      <a class="btn btn-small btn-red nav-tel" href="tel:000-0000-0000">電話する</a>
+      <a class="btn btn-small btn-blue nav-tel" href="tel:000-0000-0000">電話する</a>
     </nav>
   </div>
 </header>
@@ -78,9 +79,10 @@
           <span class="marker">まずは見せてください。</span>
         </h1>
         <p class="hero-lead">画面が割れた、電池がもたない、パソコンが立ち上がらない。<br class="pc-only">どこに頼めばいいか迷ったら、そのまま持ってきてください。<br class="pc-only">状態を見てから、直し方と金額をきちんとお伝えします。</p>
+        <a class="today-status" id="today-status" href="#calendar" hidden></a>
         <div class="hero-actions">
           <!-- 要差し替え：電話番号 -->
-          <a class="btn btn-red" href="tel:000-0000-0000">
+          <a class="btn btn-blue" href="tel:000-0000-0000">
             <svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 3.8c.6-.4 1.4-.3 1.9.3l2 2.6c.4.6.4 1.4-.1 1.9l-1.2 1.3c1 2 2.6 3.7 4.7 4.8l1.3-1.2c.5-.5 1.3-.5 1.9-.1l2.6 2c.6.5.7 1.3.3 1.9l-.9 1.4c-.6.9-1.7 1.3-2.7 1-5.6-1.6-9.9-5.9-11.5-11.5-.3-1 .1-2.1 1-2.7z"/></svg>
             電話で相談する
           </a>
@@ -194,7 +196,7 @@
   </section>
 
   <!-- ===== 料金 ===== -->
-  <!-- 要確認：以下の料金は競合店の相場をもとにした「提案値」です。実際の料金に差し替えてください。 -->
+  <!-- 料金はスプレッドシート「PiCsys ホームページ管理表」の「料金」タブから読み込みます（assets/js/sheet.js） -->
   <section class="section" id="price">
     <div class="wrap">
       <div class="section-head">
@@ -210,44 +212,15 @@
         </div>
 
         <div class="tab-panel" role="tabpanel" id="panel-phone" aria-labelledby="tab-phone">
-          <h3 class="menu-title">iPhone</h3>
-          <div class="table-scroll">
-            <table class="price-table">
-              <thead>
-                <tr><th scope="col">機種</th><th scope="col">画面</th><th scope="col">バッテリー</th></tr>
-              </thead>
-              <tbody>
-                <tr><th scope="row">iPhone SE（第2・第3世代）</th><td>8,800円〜</td><td>5,500円〜</td></tr>
-                <tr><th scope="row">iPhone 11 ／ XR</th><td>9,800円〜</td><td>5,980円〜</td></tr>
-                <tr><th scope="row">iPhone 12 ／ 12 Pro</th><td>12,800円〜</td><td>6,480円〜</td></tr>
-                <tr><th scope="row">iPhone 13 ／ 13 mini</th><td>13,800円〜</td><td>6,480円〜</td></tr>
-                <tr><th scope="row">iPhone 14 以降</th><td colspan="2" class="ask">お問い合わせください</td></tr>
-              </tbody>
-            </table>
+          <div class="menu-groups" data-price-tab="スマホ・タブレット" aria-live="polite">
+            <p class="menu-loading">料金を読み込んでいます…</p>
           </div>
-
-          <h3 class="menu-title">そのほか</h3>
-          <ul class="menu-list">
-            <li><span>Android（Galaxy・AQUOS・Pixel ほか）</span><b>お見積り</b></li>
-            <li><span>iPadの画面・バッテリー</span><b>お見積り</b></li>
-            <li><span>充電口の掃除</span><b>2,200円〜</b></li>
-            <li><span>水没したスマホの点検</span><b>3,300円〜</b></li>
-            <li><span>データの移し替え</span><b>3,300円〜</b></li>
-          </ul>
         </div>
 
         <div class="tab-panel" role="tabpanel" id="panel-pc" aria-labelledby="tab-pc" hidden>
-          <h3 class="menu-title">パソコン（お店への持ち込み）</h3>
-          <ul class="menu-list">
-            <li><span>点検・お見積り</span><b>無料</b></li>
-            <li><span>起動しない・動きが遅い（点検と軽い修理）</span><b>5,500円〜</b></li>
-            <li><span>ウイルス・不要なソフトの点検とお掃除</span><b>5,500円〜</b></li>
-            <li><span>データの取り出し・移し替え</span><b>7,700円〜</b></li>
-            <li><span>SSDへの交換（速くなります）</span><b>9,900円〜<small>＋部品代</small></b></li>
-            <li><span>Windowsの入れ直し（初期化）</span><b>9,900円〜</b></li>
-            <li><span>液晶・キーボード・バッテリーの交換</span><b>お見積り</b></li>
-            <li><span>Wi-Fi・プリンター・メールの設定</span><b>4,400円〜</b></li>
-          </ul>
+          <div class="menu-groups" data-price-tab="パソコン" aria-live="polite">
+            <p class="menu-loading">料金を読み込んでいます…</p>
+          </div>
           <p class="small">お店に持ってきていただくので、出張費はかかりません。</p>
         </div>
 
@@ -366,6 +339,57 @@
     </div>
   </section>
 
+  <!-- ===== 営業日カレンダー ===== -->
+  <!-- 営業時間とお休みはスプレッドシートの「営業時間」「お休み・時間変更」タブから読み込みます -->
+  <section class="section" id="calendar">
+    <div class="wrap">
+      <div class="section-head">
+        <p class="hand kicker">営業日カレンダー</p>
+        <h2>お店が開いている日</h2>
+        <p class="section-lead">臨時のお休みや、時間が変わる日もここでお知らせします。日付を押すと、その日の営業時間が出ます。</p>
+      </div>
+
+      <div class="cal-layout">
+        <div class="card cal-card">
+          <div class="cal-head">
+            <button class="cal-nav" type="button" data-cal-prev aria-label="前の月">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+            </button>
+            <h3 class="cal-title" id="cal-title" aria-live="polite">　</h3>
+            <button class="cal-nav" type="button" data-cal-next aria-label="次の月">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <div class="cal-grid" id="cal-grid">
+            <p class="cal-loading">読み込んでいます…</p>
+          </div>
+          <ul class="cal-legend" aria-label="カレンダーの見方">
+            <li><span class="lg lg-open"></span>営業日</li>
+            <li><span class="lg lg-closed"></span>お休み</li>
+            <li><span class="lg lg-changed"></span>時間が変わる日</li>
+            <li><span class="lg lg-today"></span>今日</li>
+          </ul>
+          <p class="cal-detail" id="cal-detail" aria-live="polite"></p>
+        </div>
+
+        <div class="cal-side">
+          <div class="card side-card">
+            <h3 class="side-title">いつもの営業時間</h3>
+            <dl class="week-hours" id="week-hours">
+              <div><dt>　</dt><dd>読み込んでいます…</dd></div>
+            </dl>
+          </div>
+          <div class="card side-card tape tape-mint">
+            <h3 class="side-title">お知らせ</h3>
+            <ul class="notice-list" id="notice-list">
+              <li class="notice-none">読み込んでいます…</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== お店の場所 ===== -->
   <section class="section section-tint" id="access">
     <div class="wrap">
@@ -389,13 +413,11 @@
             </div>
             <div>
               <dt>営業時間</dt>
-              <!-- 要差し替え -->
-              <dd><span class="fill-me">例）10:00〜19:00</span></dd>
+              <dd data-week-hours-inline>読み込んでいます…</dd>
             </div>
             <div>
               <dt>定休日</dt>
-              <!-- 要差し替え -->
-              <dd><span class="fill-me">定休日を記入</span></dd>
+              <dd data-closed-days>読み込んでいます…</dd>
             </div>
             <div>
               <dt>最寄り駅</dt>
@@ -414,7 +436,7 @@
           </div>
 
           <div class="access-actions">
-            <a class="btn btn-red" href="https://maps.app.goo.gl/6JaHxpAKbSeiwsQc9" target="_blank" rel="noopener">Googleマップで開く</a>
+            <a class="btn btn-blue" href="https://maps.app.goo.gl/6JaHxpAKbSeiwsQc9" target="_blank" rel="noopener">Googleマップで開く</a>
             <a class="btn btn-line" href="https://maps.app.goo.gl/6JaHxpAKbSeiwsQc9" target="_blank" rel="noopener">口コミを見る</a>
           </div>
         </div>
@@ -456,6 +478,8 @@
   </a>
 </div>
 
+<script src="assets/js/config.js" defer></script>
+<script src="assets/js/sheet.js" defer></script>
 <script src="assets/js/main.js" defer></script>
 </body>
 </html>

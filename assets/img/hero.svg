@@ -1,16 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 360" fill="none" stroke="#2b2824" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 360" fill="none" stroke="#1c2a3a" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
   <!-- うしろの色面 -->
-  <path d="M96 70c62-44 218-50 290 8 62 50 66 160 20 214-46 52-204 60-292 26C40 288 10 214 30 152c12-38 34-60 66-82z" fill="#f3e1b0" stroke="none"/>
+  <path d="M96 70c62-44 218-50 290 8 62 50 66 160 20 214-46 52-204 60-292 26C40 288 10 214 30 152c12-38 34-60 66-82z" fill="#d5e9f6" stroke="none"/>
 
   <!-- ノートパソコン -->
-  <path d="M40 122l200-8 8 140-200 8z" fill="#fffdf7"/>
-  <path d="M57 136l170-7 6 111-170 7z" fill="#cfe3d7" stroke-width="2.5"/>
-  <circle cx="128" cy="181" r="5" fill="#2b2824" stroke="none"/>
-  <circle cx="166" cy="179" r="5" fill="#2b2824" stroke="none"/>
+  <path d="M40 122l200-8 8 140-200 8z" fill="#fbfdff"/>
+  <path d="M57 136l170-7 6 111-170 7z" fill="#cfe9f0" stroke-width="2.5"/>
+  <circle cx="128" cy="181" r="5" fill="#1c2a3a" stroke="none"/>
+  <circle cx="166" cy="179" r="5" fill="#1c2a3a" stroke="none"/>
   <path d="M131 204c9 10 23 10 32-2"/>
-  <circle cx="112" cy="198" r="7" fill="#f2b8a2" stroke="none" opacity=".8"/>
-  <circle cx="184" cy="195" r="7" fill="#f2b8a2" stroke="none" opacity=".8"/>
-  <path d="M30 264l228-8 30 44-278 10z" fill="#ede3cf"/>
+  <circle cx="112" cy="198" r="7" fill="#f0c3c8" stroke="none" opacity=".8"/>
+  <circle cx="184" cy="195" r="7" fill="#f0c3c8" stroke="none" opacity=".8"/>
+  <path d="M30 264l228-8 30 44-278 10z" fill="#dde7ef"/>
   <path d="M60 277l176-6" stroke-dasharray="2 9" stroke-width="3.5"/>
   <path d="M120 292l52-2" stroke-width="2.5"/>
 
@@ -19,37 +19,37 @@
 
   <!-- スマホ（ひびと絆創膏） -->
   <g transform="rotate(8 340 214)">
-    <rect x="294" y="128" width="92" height="170" rx="16" fill="#2b2824"/>
-    <rect x="301" y="142" width="78" height="142" rx="9" fill="#fffdf7" stroke="none"/>
+    <rect x="294" y="128" width="92" height="170" rx="16" fill="#1c2a3a"/>
+    <rect x="301" y="142" width="78" height="142" rx="9" fill="#fbfdff" stroke="none"/>
     <path d="M309 156l20 26-9 10 24 22-6 14 22 30" stroke-width="2.2"/>
     <path d="M320 192l-9 6M344 214l14-6M338 228l-12 6" stroke-width="2"/>
     <g transform="rotate(-38 340 212)">
-      <rect x="306" y="200" width="68" height="24" rx="12" fill="#f1c04c" stroke-width="2.5"/>
-      <rect x="329" y="203" width="22" height="18" rx="3" fill="#f8de9b" stroke-width="2"/>
-      <circle cx="315" cy="209" r="1.4" fill="#2b2824" stroke="none"/>
-      <circle cx="321" cy="215" r="1.4" fill="#2b2824" stroke="none"/>
-      <circle cx="359" cy="209" r="1.4" fill="#2b2824" stroke="none"/>
-      <circle cx="365" cy="215" r="1.4" fill="#2b2824" stroke="none"/>
+      <rect x="306" y="200" width="68" height="24" rx="12" fill="#9fd3e8" stroke-width="2.5"/>
+      <rect x="329" y="203" width="22" height="18" rx="3" fill="#d8eef7" stroke-width="2"/>
+      <circle cx="315" cy="209" r="1.4" fill="#1c2a3a" stroke="none"/>
+      <circle cx="321" cy="215" r="1.4" fill="#1c2a3a" stroke="none"/>
+      <circle cx="359" cy="209" r="1.4" fill="#1c2a3a" stroke="none"/>
+      <circle cx="365" cy="215" r="1.4" fill="#1c2a3a" stroke="none"/>
     </g>
-    <rect x="326" y="134" width="28" height="4" rx="2" fill="#5d574d" stroke="none"/>
+    <rect x="326" y="134" width="28" height="4" rx="2" fill="#4d5e70" stroke="none"/>
   </g>
 
   <!-- マグカップ -->
-  <path d="M398 262h40v34c0 8-6 13-13 13h-14c-7 0-13-5-13-13z" fill="#fffdf7"/>
+  <path d="M398 262h40v34c0 8-6 13-13 13h-14c-7 0-13-5-13-13z" fill="#fbfdff"/>
   <path d="M438 270c11 0 15 6 15 12s-4 12-15 12"/>
-  <path d="M398 274h40" stroke="#2f6b57" stroke-width="5"/>
-  <path d="M411 250c-6-7 0-13-2-20M425 250c-6-7 0-13-2-20" stroke="#8b8478" stroke-width="2.5"/>
+  <path d="M398 274h40" stroke="#1f7a77" stroke-width="5"/>
+  <path d="M411 250c-6-7 0-13-2-20M425 250c-6-7 0-13-2-20" stroke="#8a9aa9" stroke-width="2.5"/>
 
   <!-- ドライバー -->
   <g transform="rotate(-5 200 326)">
-    <rect x="150" y="318" width="54" height="18" rx="9" fill="#d6532a"/>
-    <path d="M160 322v10M170 322v10" stroke="#fffdf7" stroke-width="2"/>
+    <rect x="150" y="318" width="54" height="18" rx="9" fill="#2563a8"/>
+    <path d="M160 322v10M170 322v10" stroke="#fbfdff" stroke-width="2"/>
     <path d="M204 327h62" stroke-width="5"/>
     <path d="M266 327h8" stroke-width="3"/>
   </g>
 
   <!-- きらきら -->
-  <path d="M404 116v16M396 124h16" stroke="#d6532a" stroke-width="3"/>
-  <path d="M424 150v10M419 155h10" stroke="#2f6b57" stroke-width="2.5"/>
-  <path d="M262 84l6 8M280 78l-2 10M292 94l-9 4" stroke="#2b2824" stroke-width="2.5"/>
+  <path d="M404 116v16M396 124h16" stroke="#2563a8" stroke-width="3"/>
+  <path d="M424 150v10M419 155h10" stroke="#1f7a77" stroke-width="2.5"/>
+  <path d="M262 84l6 8M280 78l-2 10M292 94l-9 4" stroke="#1c2a3a" stroke-width="2.5"/>
 </svg>
