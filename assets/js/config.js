@@ -3,21 +3,21 @@
 
 window.PICSYS_CONFIG = {
   // Googleスプレッドシートの ID（URLの「/d/」と「/edit」の間の文字）
-  // 「PiCsys ホームページ管理表」
-  sheetId: "1_tFgkhR2Ji7QfavvWUrngClReZophB8ZK7iRgy-YXOo",
+  // 「PiCsys ホームページ管理表（日付ごと）」
+  sheetId: "1peK8EUJIxmUFhEwhXOke_twD9QMolYKZg6bC8Y7wl58",
 
   // スプレッドシートのタブの名前（スプレッドシート側と同じにする）
   tabs: {
     price: "料金",
-    hours: "営業時間",
-    special: "お休み・時間変更"
+    days: "営業日",
+    patterns: "時間パターン"
   },
 
   // スプレッドシートが読めないときに使う控えのデータ
   fallback: {
     price: "data/prices.csv",
-    hours: "data/hours.csv",
-    special: "data/special-days.csv"
+    days: "data/days.csv",
+    patterns: "data/patterns.csv"
   },
 
   // カレンダーで何か月先まで見られるか

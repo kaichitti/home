@@ -457,14 +457,20 @@ button { font: inherit; color: inherit; }
   width: 1.9em; height: 1.9em; border-radius: 50%;
   font-weight: 700; font-size: .92rem;
 }
-.cal-mark { font-size: .64rem; font-weight: 700; color: var(--ink-soft); min-height: 1.1em; letter-spacing: 0; }
+.cal-mark { font-size: .62rem; font-weight: 700; color: var(--ink-soft); min-height: 1.1em; letter-spacing: -.02em; white-space: nowrap; }
 .cal-day.is-closed {
   background: repeating-linear-gradient(135deg, #e3eaf1 0 5px, #f3f6f9 5px 10px);
   border-color: #cbd6e0;
 }
 .cal-day.is-closed .cal-num { color: var(--ink-soft); }
-.cal-day.is-changed, .cal-day.is-extra { border: 2px solid var(--teal); background: #eef9f6; }
-.cal-day.is-changed .cal-mark, .cal-day.is-extra .cal-mark { color: var(--teal); }
+.cal-day.is-open .cal-mark { color: var(--teal); }
+.cal-day.is-unknown { background: transparent; border-style: dashed; }
+.cal-day.is-unknown .cal-num { color: #8a9aa9; font-weight: 500; }
+.cal-day.has-note::after {
+  /* ひとことがある日の印 */
+  content: ""; position: absolute; top: 5px; right: 5px;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--blue);
+}
 .cal-day.is-today .cal-num { background: var(--blue); color: #fff; }
 .cal-day.is-selected { box-shadow: 0 0 0 2.5px var(--ink); border-color: var(--ink); }
 .cal-day.is-past { opacity: .45; }
@@ -473,7 +479,7 @@ button { font: inherit; color: inherit; }
 .cal-legend li { display: inline-flex; align-items: center; gap: 6px; }
 .lg { width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--rule); background: var(--card); }
 .lg-closed { background: repeating-linear-gradient(135deg, #d9e2ea 0 3px, #f3f6f9 3px 6px); }
-.lg-changed { border: 2px solid var(--teal); background: #eef9f6; }
+.lg-unknown { border-style: dashed; background: transparent; }
 .lg-today { border-radius: 50%; border: 0; background: var(--blue); }
 
 .cal-detail {
@@ -488,12 +494,13 @@ button { font: inherit; color: inherit; }
 .cal-side { display: grid; gap: 28px; align-content: start; }
 .side-card { padding: 22px 20px 20px; }
 .side-title { font-size: 1.05rem; margin-bottom: 8px; }
-.week-hours div { display: grid; grid-template-columns: 5em 1fr; gap: 8px; padding: 9px 0; border-bottom: 1px dashed var(--rule); }
+.week-hours div { display: grid; grid-template-columns: 8.5em 1fr; gap: 8px; padding: 8px 6px; border-bottom: 1px dashed var(--rule); }
+.week-hours div.is-today { background: var(--sky-soft); border-radius: 8px; border-bottom-color: transparent; }
 .week-hours div:last-child { border-bottom: 0; }
 .week-hours dt { font-weight: 700; }
 .week-hours dd { margin: 0; font-weight: 700; }
 .week-hours dd small { display: block; font-weight: 500; font-size: .82rem; color: var(--ink-soft); }
-.week-hours .is-closed dd { color: var(--ink-soft); }
+.week-hours .is-closed dd, .week-hours .is-unknown dd { color: var(--ink-soft); font-weight: 500; }
 
 .notice-list li { padding: 10px 0; border-bottom: 1px dashed var(--rule); line-height: 1.6; }
 .notice-list li:last-child { border-bottom: 0; }
@@ -504,7 +511,7 @@ button { font: inherit; color: inherit; }
   background: var(--sky-soft); font-size: .86rem; font-weight: 700;
 }
 .notice-closed .notice-what { background: #e3e9ef; }
-.notice-changed .notice-what, .notice-extra .notice-what { background: var(--mint); color: #145a57; }
+.notice-open .notice-what { background: var(--mint); color: #145a57; }
 .notice-note { display: block; font-size: .88rem; color: var(--ink-soft); margin-top: 2px; }
 .notice-none { color: var(--ink-soft); font-size: .92rem; }
 
@@ -548,7 +555,7 @@ button { font: inherit; color: inherit; }
 .info div { display: grid; grid-template-columns: 6em 1fr; gap: 8px; padding: 10px 0; border-bottom: 1px dashed var(--rule); }
 .info dt { font-weight: 700; color: var(--ink-soft); font-size: .9rem; padding-top: 2px; }
 .info dd { margin: 0; line-height: 1.7; }
-.hours-line { display: block; }
+.hours-today { display: block; font-weight: 700; }
 
 .first-visit {
   margin: 22px 0;
@@ -649,7 +656,7 @@ button { font: inherit; color: inherit; }
   .cal-grid { gap: 7px; }
   .cal-day { min-height: 64px; }
   .cal-num { font-size: 1rem; }
-  .cal-mark { font-size: .72rem; }
+  .cal-mark { font-size: .74rem; }
 
   .access-grid { grid-template-columns: 1fr 1fr; align-items: stretch; }
   .access-card { padding: 30px 30px; }

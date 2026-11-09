@@ -6,7 +6,6 @@
   var CONFIG = window.PICSYS_CONFIG || {};
   var TABS = CONFIG.tabs || {};
   var WEEK = ['日', '月', '火', '水', '木', '金', '土'];
-  var WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]; // 月曜はじまりで並べるとき
 
   /* ---------- 読み込み ---------- */
 
@@ -127,6 +126,11 @@
   // "2026/12/31" "2026-12-31" "2026年12月31日" "12/31" → Date
   function parseDate(s, today) {
     s = half(s).trim();
+    // 表示形式がはずれて日付が数字（シリアル値）で届いたとき
+    if (/^\d{5}(\.\d+)?$/.test(s)) {
+      var base = new Date(1899, 11, 30);
+      return addDays(base, Math.floor(+s));
+    }
     var m = s.match(/^(\d{4})[\/\-.年](\d{1,2})[\/\-.月](\d{1,2})/);
     if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
     m = s.match(/^(\d{1,2})[\/\-.月](\d{1,2})/);
@@ -213,143 +217,107 @@
     });
   }
 
-  /* ---------- 営業日 ---------- */
+  /* ---------- 営業日（日付ごと） ---------- */
 
-  function buildSchedule(hourRows, specialRows, today) {
-    var weekly = {};
-    hourRows.forEach(function (r) {
-      var day = WEEK.indexOf((r['曜日'] || '').charAt(0));
-      if (day < 0) return;
-      var closed = /休/.test(r['営業']);
-      weekly[day] = {
-        type: closed ? 'closed' : 'open',
-        open: closed ? '' : parseTime(r['開店']),
-        close: closed ? '' : parseTime(r['閉店']),
-        note: r['ひとこと'] || ''
-      };
+  function dateKey(d) {
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  // 「時間パターン」タブと「営業日」タブから、日付ごとの営業時間を作る
+  function buildSchedule(dayRows, patternRows, today) {
+    var patterns = {};
+    patternRows.forEach(function (r) {
+      var name = (r['名前'] || '').trim();
+      if (!name) return;
+      patterns[name] = { open: parseTime(r['開店']), close: parseTime(r['閉店']) };
     });
 
-    var specials = [];
-    specialRows.forEach(function (r) {
-      var start = parseDate(r['日付'], today);
-      if (!start) return;
-      var end = parseDate(r['終了日'], today) || start;
-      if (end < start) { var t = start; start = end; end = t; }
-      var kind = r['種類'] || '休み';
-      specials.push({
-        start: start, end: end,
-        type: /休/.test(kind) ? 'closed' : (/臨時/.test(kind) ? 'extra' : 'changed'),
-        label: kind,
-        open: parseTime(r['開店']),
-        close: parseTime(r['閉店']),
-        note: r['ひとこと'] || ''
-      });
+    var days = {};
+    dayRows.forEach(function (r) {
+      var date = parseDate(r['日付'], today);
+      if (!date) return;
+      var kind = (r['営業'] || '').trim();
+      var open = parseTime(r['開店']);
+      var close = parseTime(r['閉店']);
+      var note = r['ひとこと'] || '';
+      var info;
+
+      if (/休/.test(kind)) {
+        info = { type: 'closed', open: '', close: '', label: 'お休み' };
+      } else if (kind || open || close) {
+        var p = patterns[kind] || { open: '', close: '' };
+        info = { type: 'open', open: open || p.open, close: close || p.close, label: kind };
+      } else if (note) {
+        info = { type: 'unknown', open: '', close: '', label: '' };
+      } else {
+        return; // 何も入っていない行は「未定」のまま
+      }
+      info.note = note;
+      days[dateKey(date)] = info; // 同じ日付が2行あるときは下の行が勝つ
     });
 
     function dayInfo(date) {
-      var base = weekly[date.getDay()] || { type: 'unknown', open: '', close: '', note: '' };
-      var info = { type: base.type, open: base.open, close: base.close, note: base.note, special: null };
-      specials.forEach(function (s) {
-        if (date >= s.start && date <= s.end) {
-          info.special = s;
-          info.type = s.type;
-          info.note = s.note;
-          if (s.type === 'closed') { info.open = ''; info.close = ''; }
-          else {
-            info.open = s.open || base.open;
-            info.close = s.close || base.close;
-          }
-        }
-      });
-      return info;
+      return days[dateKey(date)] || { type: 'unknown', open: '', close: '', label: '', note: '' };
     }
 
-    return { weekly: weekly, specials: specials, dayInfo: dayInfo };
-  }
-
-  // 「月〜土 10:00〜19:00」のように同じ時間の曜日をまとめる
-  function weeklyGroups(weekly) {
-    var groups = [];
-    WEEK_ORDER.forEach(function (d) {
-      var w = weekly[d];
-      if (!w) return;
-      var key = w.type + '|' + w.open + '|' + w.close + '|' + w.note;
-      var last = groups[groups.length - 1];
-      if (last && last.key === key && last.days[last.days.length - 1] === WEEK_ORDER[WEEK_ORDER.indexOf(d) - 1]) {
-        last.days.push(d);
-      } else {
-        groups.push({ key: key, days: [d], info: w });
-      }
-    });
-    return groups.map(function (g) {
-      var label = g.days.length > 2
-        ? WEEK[g.days[0]] + '〜' + WEEK[g.days[g.days.length - 1]]
-        : g.days.map(function (d) { return WEEK[d]; }).join('・');
-      return { label: label, info: g.info };
-    });
+    return { dayInfo: dayInfo };
   }
 
   function hoursText(info) {
     if (info.type === 'closed') return 'お休み';
-    if (info.type === 'unknown') return '—';
+    if (info.type === 'unknown') return '未定';
     return range(info.open, info.close) || '営業';
   }
 
-  function renderWeekly(schedule) {
-    var groups = weeklyGroups(schedule.weekly);
+  // カレンダーのマス用の短い時間（10:00〜19:00 → 10-19）
+  function shortRange(info) {
+    var s = function (t) { return t ? t.replace(/:00$/, '') : ''; };
+    if (!info.open && !info.close) return '営業';
+    return s(info.open) + '-' + s(info.close);
+  }
 
-    var dl = document.getElementById('week-hours');
-    if (dl) {
-      dl.innerHTML = '';
-      groups.forEach(function (g) {
-        var row = el('div', g.info.type === 'closed' ? 'is-closed' : '');
-        row.appendChild(el('dt', null, g.label));
-        var dd = el('dd', null, hoursText(g.info));
-        if (g.info.note) dd.appendChild(el('small', null, g.info.note));
-        row.appendChild(dd);
-        dl.appendChild(row);
-      });
-    }
-
-    var inline = document.querySelector('[data-week-hours-inline]');
-    if (inline) {
-      inline.innerHTML = '';
-      groups.filter(function (g) { return g.info.type !== 'closed'; }).forEach(function (g) {
-        inline.appendChild(el('span', 'hours-line', g.label + '　' + hoursText(g.info)));
-      });
-      if (!inline.childNodes.length) inline.textContent = 'カレンダーをご覧ください';
-    }
-
-    var closedBox = document.querySelector('[data-closed-days]');
-    if (closedBox) {
-      var closed = WEEK_ORDER.filter(function (d) {
-        return schedule.weekly[d] && schedule.weekly[d].type === 'closed';
-      }).map(function (d) { return WEEK[d] + '曜日'; });
-      closedBox.textContent = (closed.length ? closed.join('・') : 'なし') + '（臨時のお休みはカレンダーでお知らせします）';
+  // この先1週間の営業
+  function renderWeekAhead(schedule, today) {
+    var list = document.getElementById('week-ahead');
+    if (!list) return;
+    list.innerHTML = '';
+    for (var i = 0; i < 7; i++) {
+      var d = addDays(today, i), info = schedule.dayInfo(d);
+      var row = el('div', 'is-' + info.type + (i === 0 ? ' is-today' : ''));
+      var dt = el('dt', null, i === 0 ? '今日 ' + md(d) : md(d));
+      row.appendChild(dt);
+      var dd = el('dd', null, hoursText(info));
+      if (info.note) dd.appendChild(el('small', null, info.note));
+      row.appendChild(dd);
+      list.appendChild(row);
     }
   }
 
+  // 「ひとこと」が入っている日をお知らせに
   function renderNotices(schedule, today) {
     var ul = document.getElementById('notice-list');
     if (!ul) return;
-    var upcoming = schedule.specials.filter(function (s) { return s.end >= today; })
-      .sort(function (a, b) { return a.start - b.start; })
-      .slice(0, 6);
-
     ul.innerHTML = '';
-    if (!upcoming.length) {
-      ul.appendChild(el('li', 'notice-none', '今のところ、臨時のお休みや時間の変更はありません。'));
-      return;
-    }
-    upcoming.forEach(function (s) {
-      var li = el('li', 'notice-' + s.type);
-      var when = sameDay(s.start, s.end) ? md(s.start) : md(s.start) + '〜' + md(s.end);
-      li.appendChild(el('span', 'notice-date', when));
-      var what = s.type === 'closed' ? 'お休み' : s.label + '　' + range(s.open, s.close);
-      li.appendChild(el('span', 'notice-what', what));
-      if (s.note) li.appendChild(el('span', 'notice-note', s.note));
+    var count = 0;
+    for (var i = 0; i < 90 && count < 6; i++) {
+      var d = addDays(today, i), info = schedule.dayInfo(d);
+      if (!info.note) continue;
+      var li = el('li', 'notice-' + info.type);
+      li.appendChild(el('span', 'notice-date', md(d)));
+      li.appendChild(el('span', 'notice-what', hoursText(info)));
+      li.appendChild(el('span', 'notice-note', info.note));
       ul.appendChild(li);
-    });
+      count++;
+    }
+    if (!count) ul.appendChild(el('li', 'notice-none', '今のところ、お知らせはありません。'));
+  }
+
+  // アクセス欄の「営業時間」
+  function renderAccess(schedule, today) {
+    var box = document.querySelector('[data-hours-today]');
+    if (!box) return;
+    var info = schedule.dayInfo(today);
+    box.textContent = '本日 ' + hoursText(info);
   }
 
   function renderToday(schedule, now) {
@@ -358,27 +326,23 @@
     var info = schedule.dayInfo(now.date);
     var text, state, sub = '';
 
-    if (info.type === 'closed') {
-      text = '本日はお休みです'; state = 'closed';
-      // 次に開く日
-      for (var i = 1; i <= 14; i++) {
+    var nextOpen = function () {
+      for (var i = 1; i <= 21; i++) {
         var d = addDays(now.date, i), di = schedule.dayInfo(d);
-        if (di.type !== 'closed' && di.type !== 'unknown') {
-          sub = '次の営業は ' + md(d) + (di.open ? ' ' + di.open + '〜' : '');
-          break;
-        }
+        if (di.type === 'open') return '次の営業は ' + md(d) + (di.open ? ' ' + di.open + '〜' : '');
       }
+      return '';
+    };
+
+    if (info.type === 'closed') {
+      text = '本日はお休みです'; state = 'closed'; sub = nextOpen();
     } else if (info.type === 'unknown') {
       box.hidden = true; return;
     } else if (info.open && info.close) {
       var t = now.minutes;
-      if (t < minutes(info.open)) { text = '本日は ' + info.open + ' から営業します'; state = 'before'; }
+      if (t < minutes(info.open)) { text = '本日は ' + info.open + '〜' + info.close + ' 営業'; state = 'before'; }
       else if (t < minutes(info.close)) { text = 'ただいま営業中（' + info.close + ' まで）'; state = 'open'; }
-      else {
-        text = '本日の営業は終了しました'; state = 'after';
-        var tomorrow = schedule.dayInfo(addDays(now.date, 1));
-        if (tomorrow.type !== 'closed' && tomorrow.type !== 'unknown' && tomorrow.open) sub = '明日は ' + tomorrow.open + ' から営業します';
-      }
+      else { text = '本日の営業は終了しました'; state = 'after'; sub = nextOpen(); }
     } else {
       text = '本日は営業日です'; state = 'open';
     }
@@ -412,10 +376,7 @@
       var info = schedule.dayInfo(date);
       detail.textContent = '';
       detail.appendChild(el('b', null, (date.getMonth() + 1) + '月' + date.getDate() + '日（' + WEEK[date.getDay()] + '）'));
-      var txt;
-      if (info.type === 'closed') txt = 'お休み';
-      else if (info.type === 'unknown') txt = 'お問い合わせください';
-      else txt = (info.special ? info.special.label + '　' : '') + (range(info.open, info.close) || '営業');
+      var txt = info.type === 'unknown' ? '未定（お問い合わせください）' : hoursText(info);
       detail.appendChild(document.createTextNode('　' + txt));
       if (info.note) detail.appendChild(el('span', 'cal-detail-note', info.note));
       detail.setAttribute('data-type', info.type);
@@ -433,8 +394,8 @@
       });
       for (var b = 0; b < month.getDay(); b++) grid.appendChild(el('span', 'cal-blank'));
 
-      var days = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
-      for (var n = 1; n <= days; n++) {
+      var count = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate();
+      for (var n = 1; n <= count; n++) {
         (function (date) {
           var info = schedule.dayInfo(date);
           var btn = el('button', 'cal-day is-' + info.type);
@@ -442,11 +403,11 @@
           if (date < today) btn.classList.add('is-past');
           if (sameDay(date, today)) btn.classList.add('is-today');
           if (sameDay(date, selected)) btn.classList.add('is-selected');
+          if (info.note) btn.classList.add('has-note');
           btn.appendChild(el('span', 'cal-num', String(date.getDate())));
-          var mark = info.type === 'closed' ? '休' : (info.type === 'changed' || info.type === 'extra') ? (info.close ? '〜' + info.close.replace(':00', '') : '変更') : '';
+          var mark = info.type === 'closed' ? '休' : info.type === 'open' ? shortRange(info) : '';
           btn.appendChild(el('span', 'cal-mark', mark));
-          btn.setAttribute('aria-label', (date.getMonth() + 1) + '月' + date.getDate() + '日 ' +
-            (info.type === 'closed' ? 'お休み' : hoursText(info)));
+          btn.setAttribute('aria-label', (date.getMonth() + 1) + '月' + date.getDate() + '日 ' + hoursText(info));
           btn.addEventListener('click', function () {
             selected = date;
             Array.prototype.forEach.call(grid.querySelectorAll('.is-selected'), function (x) { x.classList.remove('is-selected'); });
@@ -471,20 +432,21 @@
       grid.innerHTML = '';
       grid.appendChild(el('p', 'cal-error', '営業日を読み込めませんでした。お手数ですが、お電話でご確認ください。'));
     }
-    var inline = document.querySelector('[data-week-hours-inline]');
-    if (inline) inline.textContent = 'お電話でご確認ください';
+    var box = document.querySelector('[data-hours-today]');
+    if (box) box.textContent = 'お電話でご確認ください';
   }
 
   /* ---------- はじめる ---------- */
 
   loadTab('price').then(renderPrices).catch(priceError);
 
-  Promise.all([loadTab('hours'), loadTab('special').catch(function () { return []; })])
+  Promise.all([loadTab('days'), loadTab('patterns').catch(function () { return []; })])
     .then(function (res) {
       var now = tokyoNow();
       var schedule = buildSchedule(res[0], res[1], now.date);
-      renderWeekly(schedule);
+      renderWeekAhead(schedule, now.date);
       renderNotices(schedule, now.date);
+      renderAccess(schedule, now.date);
       renderToday(schedule, now);
       setupCalendar(schedule, now.date);
     })
