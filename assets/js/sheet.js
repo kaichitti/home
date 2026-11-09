@@ -155,10 +155,17 @@
     return (d.getMonth() + 1) + '/' + d.getDate() + '（' + WEEK[d.getDay()] + '）';
   }
 
+  // 表示用の時刻（26:00 → 翌2:00）
+  function clock(t) {
+    if (!t) return '';
+    var p = t.split(':'), h = +p[0];
+    return h >= 24 ? '翌' + (h - 24) + ':' + p[1] : t;
+  }
+
   function range(open, close) {
-    if (open && close) return open + '〜' + close;
-    if (open) return open + '〜';
-    if (close) return '〜' + close;
+    if (open && close) return clock(open) + '〜' + clock(close);
+    if (open) return clock(open) + '〜';
+    if (close) return '〜' + clock(close);
     return '';
   }
 
@@ -217,14 +224,10 @@
     });
   }
 
-  /* ---------- 営業日（日付ごと） ---------- */
+  /* ---------- 営業予定（日付・期間ごと） ---------- */
 
-  function dateKey(d) {
-    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-  }
-
-  // 「時間パターン」タブと「営業日」タブから、日付ごとの営業時間を作る
-  function buildSchedule(dayRows, patternRows, today) {
+  // 「時間パターン」タブと「営業予定」タブから、日ごとの営業時間を引けるようにする
+  function buildSchedule(rows, patternRows, today) {
     var patterns = {};
     patternRows.forEach(function (r) {
       var name = (r['名前'] || '').trim();
@@ -232,16 +235,18 @@
       patterns[name] = { open: parseTime(r['開店']), close: parseTime(r['閉店']) };
     });
 
-    var days = {};
-    dayRows.forEach(function (r) {
-      var date = parseDate(r['日付'], today);
-      if (!date) return;
+    var entries = [];
+    rows.forEach(function (r, i) {
+      var start = parseDate(r['日付'], today);
+      if (!start) return;
+      var end = parseDate(r['終了日'], today) || start;
+      if (end < start) { var t = start; start = end; end = t; }
+
       var kind = (r['営業'] || '').trim();
       var open = parseTime(r['開店']);
       var close = parseTime(r['閉店']);
       var note = r['ひとこと'] || '';
       var info;
-
       if (/休/.test(kind)) {
         info = { type: 'closed', open: '', close: '', label: 'お休み' };
       } else if (kind || open || close) {
@@ -250,17 +255,28 @@
       } else if (note) {
         info = { type: 'unknown', open: '', close: '', label: '' };
       } else {
-        return; // 何も入っていない行は「未定」のまま
+        return;
       }
       info.note = note;
-      days[dateKey(date)] = info; // 同じ日付が2行あるときは下の行が勝つ
+      entries.push({ start: start, end: end, span: Math.round((end - start) / 864e5), row: i, info: info });
     });
 
-    function dayInfo(date) {
-      return days[dateKey(date)] || { type: 'unknown', open: '', close: '', label: '', note: '' };
+    // 1日だけの指定は期間の指定より優先。同じ長さなら下の行が優先
+    function entryFor(date) {
+      var best = null;
+      entries.forEach(function (e) {
+        if (date < e.start || date > e.end) return;
+        if (!best || e.span < best.span || (e.span === best.span && e.row > best.row)) best = e;
+      });
+      return best;
     }
 
-    return { dayInfo: dayInfo };
+    function dayInfo(date) {
+      var e = entryFor(date);
+      return e ? e.info : { type: 'unknown', open: '', close: '', label: '', note: '' };
+    }
+
+    return { entries: entries, dayInfo: dayInfo };
   }
 
   function hoursText(info) {
@@ -269,9 +285,14 @@
     return range(info.open, info.close) || '営業';
   }
 
-  // カレンダーのマス用の短い時間（10:00〜19:00 → 10-19）
+  // カレンダーのマス用の短い時間（11:00〜19:00 → 11-19、20:00〜26:00 → 20-翌2）
   function shortRange(info) {
-    var s = function (t) { return t ? t.replace(/:00$/, '') : ''; };
+    var s = function (t) {
+      if (!t) return '';
+      var p = t.split(':'), h = +p[0];
+      var txt = (h >= 24 ? h - 24 : h) + (p[1] === '00' ? '' : ':' + p[1]);
+      return (h >= 24 ? '翌' : '') + txt;
+    };
     if (!info.open && !info.close) return '営業';
     return s(info.open) + '-' + s(info.close);
   }
@@ -284,8 +305,7 @@
     for (var i = 0; i < 7; i++) {
       var d = addDays(today, i), info = schedule.dayInfo(d);
       var row = el('div', 'is-' + info.type + (i === 0 ? ' is-today' : ''));
-      var dt = el('dt', null, i === 0 ? '今日 ' + md(d) : md(d));
-      row.appendChild(dt);
+      row.appendChild(el('dt', null, i === 0 ? '今日 ' + md(d) : md(d)));
       var dd = el('dd', null, hoursText(info));
       if (info.note) dd.appendChild(el('small', null, info.note));
       row.appendChild(dd);
@@ -293,55 +313,60 @@
     }
   }
 
-  // 「ひとこと」が入っている日をお知らせに
+  // 「ひとこと」が入っている予定をお知らせに（期間はまとめて1行）
   function renderNotices(schedule, today) {
     var ul = document.getElementById('notice-list');
     if (!ul) return;
     ul.innerHTML = '';
-    var count = 0;
-    for (var i = 0; i < 90 && count < 6; i++) {
-      var d = addDays(today, i), info = schedule.dayInfo(d);
-      if (!info.note) continue;
-      var li = el('li', 'notice-' + info.type);
-      li.appendChild(el('span', 'notice-date', md(d)));
-      li.appendChild(el('span', 'notice-what', hoursText(info)));
-      li.appendChild(el('span', 'notice-note', info.note));
-      ul.appendChild(li);
-      count++;
+    var list = schedule.entries.filter(function (e) { return e.info.note && e.end >= today; })
+      .sort(function (a, b) { return a.start - b.start || a.row - b.row; })
+      .slice(0, 6);
+    if (!list.length) {
+      ul.appendChild(el('li', 'notice-none', '今のところ、お知らせはありません。'));
+      return;
     }
-    if (!count) ul.appendChild(el('li', 'notice-none', '今のところ、お知らせはありません。'));
+    list.forEach(function (e) {
+      var li = el('li', 'notice-' + e.info.type);
+      li.appendChild(el('span', 'notice-date', sameDay(e.start, e.end) ? md(e.start) : md(e.start) + '〜' + md(e.end)));
+      li.appendChild(el('span', 'notice-what', hoursText(e.info)));
+      li.appendChild(el('span', 'notice-note', e.info.note));
+      ul.appendChild(li);
+    });
   }
 
   // アクセス欄の「営業時間」
   function renderAccess(schedule, today) {
     var box = document.querySelector('[data-hours-today]');
     if (!box) return;
-    var info = schedule.dayInfo(today);
-    box.textContent = '本日 ' + hoursText(info);
+    box.textContent = '本日 ' + hoursText(schedule.dayInfo(today));
   }
 
   function renderToday(schedule, now) {
     var box = document.getElementById('today-status');
     if (!box) return;
     var info = schedule.dayInfo(now.date);
+    var prev = schedule.dayInfo(addDays(now.date, -1));
+    var t = now.minutes;
     var text, state, sub = '';
 
     var nextOpen = function () {
       for (var i = 1; i <= 21; i++) {
         var d = addDays(now.date, i), di = schedule.dayInfo(d);
-        if (di.type === 'open') return '次の営業は ' + md(d) + (di.open ? ' ' + di.open + '〜' : '');
+        if (di.type === 'open') return '次の営業は ' + md(d) + (di.open ? ' ' + clock(di.open) + '〜' : '');
       }
       return '';
     };
 
-    if (info.type === 'closed') {
+    if (prev.type === 'open' && prev.close && minutes(prev.close) > 1440 && t < minutes(prev.close) - 1440) {
+      // 前の日の夜の営業が、日付をまたいで続いているとき
+      text = 'ただいま営業中（' + clock(prev.close).replace('翌', '') + ' まで）'; state = 'open';
+    } else if (info.type === 'closed') {
       text = '本日はお休みです'; state = 'closed'; sub = nextOpen();
     } else if (info.type === 'unknown') {
       box.hidden = true; return;
     } else if (info.open && info.close) {
-      var t = now.minutes;
-      if (t < minutes(info.open)) { text = '本日は ' + info.open + '〜' + info.close + ' 営業'; state = 'before'; }
-      else if (t < minutes(info.close)) { text = 'ただいま営業中（' + info.close + ' まで）'; state = 'open'; }
+      if (t < minutes(info.open)) { text = '本日は ' + range(info.open, info.close) + ' 営業'; state = 'before'; }
+      else if (t < minutes(info.close)) { text = 'ただいま営業中（' + clock(info.close) + ' まで）'; state = 'open'; }
       else { text = '本日の営業は終了しました'; state = 'after'; sub = nextOpen(); }
     } else {
       text = '本日は営業日です'; state = 'open';
@@ -440,7 +465,7 @@
 
   loadTab('price').then(renderPrices).catch(priceError);
 
-  Promise.all([loadTab('days'), loadTab('patterns').catch(function () { return []; })])
+  Promise.all([loadTab('schedule'), loadTab('patterns').catch(function () { return []; })])
     .then(function (res) {
       var now = tokyoNow();
       var schedule = buildSchedule(res[0], res[1], now.date);
