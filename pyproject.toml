@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "droidfork"
+version = "0.1.0"
+description = "実機1台を雛形に、軽量な仮想Android端末をN台起動するツール（Redroid＋共有層＋差分層）"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+dependencies = []
+classifiers = [
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Environment :: Console",
+]
+
+[project.scripts]
+droidfork = "droidfork.cli:main"
+
+[tool.setuptools]
+packages = ["droidfork"]
