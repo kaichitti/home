@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "resq"
+version = "0.1.0"
+description = "来店型修理店向けデータ復旧作業ツール（復旧ビルド）"
+requires-python = ">=3.12"
+license = { text = "GPL-3.0-or-later" }
+dependencies = [
+  "typer>=0.12",
+  "rich>=13",
+  "jinja2>=3.1",
+  "pillow>=10",
+]
+
+[project.optional-dependencies]
+pdf = ["weasyprint>=60"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+resq = "resq.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["resq*"]
+exclude = ["resq_erase*"]  # 消去機能は復旧ビルドに含めない（企画書 §8.2）
+
+[tool.setuptools.package-data]
+resq = ["reports/templates/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+markers = ["slow: PhotoRec 等の外部ツールを実行する時間のかかるテスト"]
