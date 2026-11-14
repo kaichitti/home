@@ -12,16 +12,25 @@ if args == ["devices"]:
 elif args[:1] == ["reboot"]:
     st["rebooted"] = True
 elif args[:1] == ["shell"]:
-    c = args[1].split()
+    line = args[1]
+    c = line.split()
+    st.setdefault("log", []).append(line)
     if c[0] == "getprop":
         print(st["props"].get(c[1], ""))
     elif c[:2] == ["settings", "get"]:
         print(st["settings"].get(c[3], "null"))
     elif c[:2] == ["settings", "put"]:
         st["settings"][c[3]] = c[4]
-    elif c[0] == "dumpsys":
-        if "--reset" in c:
-            st["reset"] = True
-        else:
-            print(st["dumpsys"].get(c[1], ""))
+    elif c[:2] == ["settings", "list"]:
+        print("\n".join("%s=%s" % kv for kv in st["settings"].items()))
+    elif c[:2] == ["pm", "disable-user"]:
+        st.setdefault("disabled", []).append(c[-1])
+        print("Package %s new state: disabled-user" % c[-1])
+    elif c[:2] == ["pm", "enable"]:
+        st.setdefault("disabled", []).remove(c[-1])
+        print("Package %s new state: enabled" % c[-1])
+    elif line == "dumpsys batterystats --reset":
+        st["reset"] = True
+    else:
+        print(st["shell"].get(line, ""))
 json.dump(st, open(path, "w"))

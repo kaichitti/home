@@ -7,6 +7,7 @@ FOMA(3G) 停波後に電池持ちが悪くなる主な原因を ADB 経由で調
   python3 sh01j_battery.py fix             # 推奨設定を適用(確認あり、元の値を保存)
   python3 sh01j_battery.py restore         # fix 前の設定に戻す
   python3 sh01j_battery.py reset-stats     # 電池統計をリセット(修正後の効果測定用)
+  python3 sh01j_battery.py collect         # 分析用データを zip に保存(相談用)
 
 必要なもの: PC に adb (Android SDK Platform-Tools)、端末で USB デバッグ有効。
 外部ライブラリは不要です(Python 3.7 以上)。
@@ -141,10 +142,10 @@ def parse_batterystats(text):
         r["radio_types"] = types
     # 上位のウェイクロック
     wl = []
-    for name, dur in re.findall(r"Wake lock\s+(\S+(?:\s\S+)*?):\s*([0-9dhms ]+)\s*(?:realtime|\()", text):
+    for name, dur in re.findall(r"(?<!Kernel )Wake lock\s+(.+?):\s*([0-9dhms ]+?)\s*(?:partial|realtime|\()", text):
         wl.append((name, parse_duration_ms(dur)))
     kwl = []
-    for name, dur in re.findall(r"Kernel Wake lock\s+(\S+):\s*([0-9dhms ]+)\s*(?:realtime|\()", text):
+    for name, dur in re.findall(r"Kernel Wake lock\s+(\S+):\s*([0-9dhms ]+?)\s*(?:realtime|\()", text):
         kwl.append((name, parse_duration_ms(dur)))
     r["wakelocks"] = sorted(wl, key=lambda x: -x[1])[:5]
     r["kernel_wakelocks"] = sorted(kwl, key=lambda x: -x[1])[:5]
@@ -317,11 +318,10 @@ def print_findings(findings):
     fixes = [f for f in findings if f.fix]
     print()
     if fixes:
-        print("→ 修正できる項目が %d 件あります。 `python3 %s fix` で適用できます。"
+        print("→ 修正できる設定が %d 件あります。 `python3 %s fix` で適用できます。"
               % (len(fixes), os.path.basename(sys.argv[0])))
     else:
-        print("→ 自動で修正できる設定上の問題は見つかりませんでした。")
-        print("  電波の弱い場所での使用や電池の劣化が原因の可能性があります(README 参照)。")
+        print("→ 設定上の問題は見つかりませんでした。下の深掘り分析で原因を確認してください。")
 
 
 # ---------------------------------------------------------------- 修正
@@ -334,15 +334,40 @@ def confirm(msg, assume_yes):
         return False
 
 
+def load_backup():
+    if os.path.exists(BACKUP_FILE):
+        with open(BACKUP_FILE, encoding="utf-8") as fp:
+            b = json.load(fp)
+        b.setdefault("settings", [])
+        b.setdefault("disabled_packages", [])
+        return b
+    return {"time": datetime.now().isoformat(timespec="seconds"), "settings": [], "disabled_packages": []}
+
+
+def save_backup(backup):
+    with open(BACKUP_FILE, "w", encoding="utf-8") as fp:
+        json.dump(backup, fp, ensure_ascii=False, indent=2)
+
+
+def remember_setting(adb, backup, ns, key):
+    """最初に変更する前の値だけを保存する(fix を何度実行しても元の値が残る)"""
+    if any(b[0] == ns and b[1] == key for b in backup["settings"]):
+        return True
+    prev = adb.get_setting(ns, key)
+    if prev is None:
+        return False
+    backup["settings"].append([ns, key, prev])
+    return True
+
+
 def apply_fixes(adb, assume_yes=False):
     findings = diagnose(adb)
-    fixes = [f for f in findings if f.fix]
-    if not fixes:
-        print("\n修正が必要な設定はありません。")
-        return 0
-    backup = {"time": datetime.now().isoformat(timespec="seconds"),
-              "model": adb.prop("ro.product.model"), "settings": []}
-    for f in fixes:
+    backup = load_backup()
+    backup.setdefault("model", adb.prop("ro.product.model"))
+    changed = need_reboot = False
+
+    # 1. 設定の修正
+    for f in [f for f in findings if f.fix]:
         kind = f.fix[0]
         print()
         if kind == "network_mode":
@@ -351,37 +376,71 @@ def apply_fixes(adb, assume_yes=False):
             print("  注意: LTE 圏外の場所では 3G に逃げられなくなりますが、停波後は 3G 自体が無いので実質的な影響はありません。")
             if confirm("  適用しますか?", assume_yes):
                 for k in ("preferred_network_mode", "preferred_network_mode1"):
-                    prev = adb.get_setting("global", k)
-                    if prev is not None:
-                        backup["settings"].append(["global", k, prev])
+                    if remember_setting(adb, backup, "global", k):
                         adb.put_setting("global", k, LTE_ONLY)
+                changed = need_reboot = True
                 print("  → 適用しました")
         elif kind == "volte":
-            _, key, old = f.fix
             print("・VoLTE を ON にします。")
             if confirm("  適用しますか?", assume_yes):
                 for k in VOLTE_KEYS:
-                    prev = adb.get_setting("global", k)
-                    if prev is not None:
-                        backup["settings"].append(["global", k, prev])
+                    if remember_setting(adb, backup, "global", k):
                         adb.put_setting("global", k, 1)
+                changed = need_reboot = True
                 print("  → 適用しました")
         elif kind == "setting":
             _, ns, key, old, new = f.fix
             print("・%s を %s → %s に変更します。" % (f.title, old, new))
             if confirm("  適用しますか?", assume_yes):
-                backup["settings"].append([ns, key, old])
+                remember_setting(adb, backup, ns, key)
                 adb.put_setting(ns, key, new)
+                changed = True
                 print("  → 適用しました")
-    if backup["settings"]:
-        with open(BACKUP_FILE, "w", encoding="utf-8") as fp:
-            json.dump(backup, fp, ensure_ascii=False, indent=2)
+
+    # 2. 深掘り分析で見つかった原因への対処
+    from sh01j_deep import analyze, collect_raw, print_analysis
+    causes, facts = analyze(collect_raw(adb))
+    print_analysis(causes, facts)
+    for c in causes:
+        if c.kind == "app" and c.packages:
+            for pkg in c.packages:
+                print("\n・アプリ「%s」を無効化します(停止+自動起動しなくなります)。" % pkg)
+                print("  使っているアプリなら N を選び、アプリ側の設定で自動更新/通知を OFF にしてください。")
+                if confirm("  無効化しますか?", assume_yes):
+                    try:
+                        adb.shell("am force-stop %s" % pkg)
+                        out = adb.shell("pm disable-user --user 0 %s" % pkg)
+                    except AdbError as e:
+                        out = str(e)
+                    if "disabled" in out.lower():
+                        if pkg not in backup["disabled_packages"]:
+                            backup["disabled_packages"].append(pkg)
+                        changed = True
+                        print("  → 無効化しました")
+                    else:
+                        print("  → 無効化できませんでした: %s" % out.strip())
+        elif c.kind == "network":
+            vkey, volte = get_volte(adb)
+            if vkey and volte != "0":
+                print("\n・VoLTE を一度 OFF→ON にして、再起動時に登録をやり直させます。")
+                if confirm("  実行しますか?", assume_yes):
+                    remember_setting(adb, backup, "global", vkey)
+                    adb.put_setting("global", vkey, 0)
+                    adb.put_setting("global", vkey, 1)
+                    changed = need_reboot = True
+                    print("  → 実行しました")
+
+    if changed:
+        save_backup(backup)
         print("\n元の設定を %s に保存しました(restore で戻せます)。" % BACKUP_FILE)
+    else:
+        print("\n変更した項目はありません。")
+    if need_reboot:
         print("\n★ 設定をモデムに反映させるため、端末を再起動してください。")
         if confirm("今すぐ再起動しますか?", assume_yes):
             adb._run(["reboot"])
-        print("再起動後、`diagnose` で設定が「LTEのみ」になっているか確認し、"
-              "`reset-stats` → 満充電で 1〜2 日使って効果を確かめてください。")
+    if changed:
+        print("`reset-stats` → 満充電で 1〜2 日使ってから `diagnose` で効果を確かめてください。")
     return 0
 
 
@@ -389,17 +448,44 @@ def restore(adb, assume_yes=False):
     if not os.path.exists(BACKUP_FILE):
         print("バックアップ (%s) がありません。" % BACKUP_FILE)
         return 1
-    with open(BACKUP_FILE, encoding="utf-8") as fp:
-        backup = json.load(fp)
-    print("%s に保存した設定に戻します:" % backup.get("time"))
+    backup = load_backup()
+    print("%s に保存した状態に戻します:" % backup.get("time"))
     for ns, key, val in backup["settings"]:
-        print("  %s %s = %s" % (ns, key, val))
+        print("  設定 %s %s = %s" % (ns, key, val))
+    for pkg in backup["disabled_packages"]:
+        print("  アプリ %s を有効に戻す" % pkg)
     if not confirm("戻しますか?", assume_yes):
         return 1
     for ns, key, val in backup["settings"]:
         adb.put_setting(ns, key, val)
+    for pkg in backup["disabled_packages"]:
+        adb.shell("pm enable %s" % pkg)
+    os.replace(BACKUP_FILE, BACKUP_FILE + ".restored")
     print("戻しました。端末を再起動してください。")
     return 0
+
+
+def collect(adb, out_dir="."):
+    """分析用データを zip に保存(電話番号・IMSI などの長い数字は伏せ字にする)"""
+    import zipfile
+    from sh01j_deep import collect_raw
+    raw = collect_raw(adb)
+    raw["settings_global"] = adb.shell("settings list global")
+    raw["props"] = "\n".join("%s=%s" % (k, adb.prop(k)) for k in
+                             ("ro.product.model", "ro.build.version.release", "ro.build.display.id"))
+    name = os.path.join(out_dir, "sh01j_report_%s.zip" % datetime.now().strftime("%Y%m%d_%H%M"))
+    with zipfile.ZipFile(name, "w", zipfile.ZIP_DEFLATED) as z:
+        for k, v in raw.items():
+            z.writestr(k + ".txt", mask_private(v))
+    print("分析用データを保存しました: %s" % os.path.abspath(name))
+    print("電話番号や SIM の識別番号らしき長い数字は伏せ字にしていますが、共有前に中身を確認してください。")
+    return 0
+
+
+def mask_private(text):
+    text = re.sub(r"(?<![\d.])\+?\d{10,20}(?![\d.])", "<masked>", text)  # 電話番号/IMSI/ICCID/IMEI
+    text = re.sub(r"[\w.+-]+@[\w-]+\.[\w.-]+", "<mail>", text)
+    return text
 
 
 def reset_stats(adb):
@@ -426,7 +512,7 @@ def pick_device(adb):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description="SH-01J 電池持ち診断・修正ツール (FOMA 停波対策)")
-    ap.add_argument("command", choices=["diagnose", "fix", "restore", "reset-stats"], nargs="?",
+    ap.add_argument("command", choices=["diagnose", "fix", "restore", "reset-stats", "collect"], nargs="?",
                     default="diagnose")
     ap.add_argument("-y", "--yes", action="store_true", help="確認なしで適用")
     ap.add_argument("-s", "--serial", help="端末シリアル(複数接続時)")
@@ -438,7 +524,11 @@ def main(argv=None):
         pick_device(adb)
         if a.command == "diagnose":
             print_findings(diagnose(adb))
+            from sh01j_deep import analyze, collect_raw, print_analysis
+            print_analysis(*analyze(collect_raw(adb)))
             return 0
+        if a.command == "collect":
+            return collect(adb)
         if a.command == "fix":
             return apply_fixes(adb, a.yes)
         if a.command == "restore":
