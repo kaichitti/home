@@ -1,0 +1,4 @@
+# Windows 用のスクリプトは CRLF で取り出す（BOM 付き UTF-8。Windows PowerShell 5.1 と Inno Setup が日本語を正しく読むため）
+*.ps1 text eol=crlf
+*.iss text eol=crlf
+*.sh text eol=lf

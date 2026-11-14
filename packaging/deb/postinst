@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+if [ "$1" = "configure" ]; then
+    python3 -m compileall -q /usr/lib/python3/dist-packages/droidfork >/dev/null 2>&1 || true
+    # binder（Android のプロセス間通信）と overlayfs を読み込む。
+    # 読み込めたときだけ起動時の自動読み込みに登録する（モジュールが無い環境で起動時エラーを出さないため）。
+    # WSL2（専用カーネルに組み込み済み）やコンテナの中では何もしない。
+    if ! grep -qi microsoft /proc/version 2>/dev/null && [ ! -f /.dockerenv ]; then
+        if modprobe binder_linux 2>/dev/null; then
+            [ -e /etc/modules-load.d/droidfork.conf ] || printf '# DroidFork\nbinder_linux\noverlay\n' > /etc/modules-load.d/droidfork.conf
+        else
+            echo "droidfork: binder_linux を読み込めませんでした。Ubuntu では linux-modules-extra-$(uname -r) を入れてから 'sudo dpkg-reconfigure droidfork' を実行してください。" >&2
+        fi
+        modprobe overlay 2>/dev/null || true
+    fi
+    echo "droidfork: 'droidfork doctor' で環境を確認できます。docker グループに入っていない場合は 'sudo usermod -aG docker \$USER' のあと再ログインしてください。"
+fi
+exit 0

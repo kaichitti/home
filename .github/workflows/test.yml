@@ -1,0 +1,76 @@
+name: test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: テスト
+        run: python -m unittest -v
+
+  packages:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Linux 向けパッケージを作る
+        run: |
+          python -m pip install --quiet build
+          packaging/build.sh
+      - name: できたものを確かめる
+        run: |
+          dpkg-deb -I dist/droidfork_*_all.deb
+          dpkg-deb -c dist/droidfork_*_all.deb | grep -q 'dist-packages/droidfork/ui.html'
+          python3 dist/droidfork-*.pyz --version
+          python3 -m venv /tmp/venv && /tmp/venv/bin/pip install --quiet dist/droidfork-*.whl && /tmp/venv/bin/droidfork --version
+          cat dist/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: dist/
+
+  windows:
+    runs-on: windows-latest
+    needs: packages
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell スクリプトのテスト（Windows PowerShell 5.1）
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File windows\tests\wslconfig.tests.ps1
+      - name: PowerShell スクリプトのテスト（PowerShell 7）
+        shell: pwsh
+        run: pwsh -NoProfile -File windows/tests/wslconfig.tests.ps1
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-packages
+          path: dist
+      - name: インストーラを作る（カーネルは同梱せず、導入時にダウンロード）
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+          $version = (Select-String -Path droidfork/__init__.py -Pattern '__version__ = "(.+)"').Matches[0].Groups[1].Value
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$version" windows\droidfork.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Get-ChildItem dist\DroidFork-Setup-*.exe
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/DroidFork-Setup-*.exe

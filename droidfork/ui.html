@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DroidFork 管理画面</title>
+<style>
+:root {
+  --bg: #f5f6f8; --panel: #ffffff; --text: #1d2330; --muted: #5d6677; --line: #dfe3ea;
+  --accent: #2563eb; --accent-text: #ffffff; --ok: #15803d; --ok-bg: #dcfce7; --warn: #a16207; --warn-bg: #fef3c7;
+  --ng: #b91c1c; --ng-bg: #fee2e2; --idle: #475569; --idle-bg: #e2e8f0; --code: #0f172a; --code-text: #e2e8f0;
+  --shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 1px 8px rgba(15, 23, 42, .04);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f141c; --panel: #171e29; --text: #e5e9f0; --muted: #9aa5b8; --line: #2a3446;
+    --accent: #5b8cff; --accent-text: #0b1020; --ok: #4ade80; --ok-bg: #14321f; --warn: #fbbf24; --warn-bg: #3a2c0b;
+    --ng: #f87171; --ng-bg: #3b1515; --idle: #a8b3c7; --idle-bg: #253044; --code: #0a0e14; --code-text: #d7dde8;
+    --shadow: none;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.6 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif; }
+header { display: flex; align-items: center; gap: 12px; padding: 12px 20px; background: var(--panel);
+  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; flex-wrap: wrap; }
+header h1 { font-size: 18px; margin: 0; letter-spacing: .02em; }
+header .ver { color: var(--muted); font-size: 12px; }
+header .spacer { flex: 1; }
+main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; padding: 16px 20px 40px; max-width: 1480px; margin: 0 auto; }
+@media (max-width: 1100px) {
+  main { grid-template-columns: minmax(0, 1fr); padding: 12px 16px 32px; display: flex; flex-direction: column; gap: 0; }
+  main > .col { display: contents; }
+  /* 狭い画面では「台を増やす」を先頭に、「処理の状況」を最後に */
+  #banner { order: 0; } #card-new { order: 1; } #card-inst { order: 2; } #card-tpl { order: 3; } #card-apk { order: 4; }
+  #card-snap { order: 5; } #card-sched { order: 6; } #card-stats { order: 7; } #card-jobs { order: 8; }
+}
+section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow);
+  padding: 14px 16px; margin-bottom: 16px; min-width: 0; }
+section.card h2 { font-size: 15px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+section.card h2 .count { color: var(--muted); font-weight: normal; font-size: 13px; }
+.toolbar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+.toolbar .sep { width: 1px; height: 22px; background: var(--line); margin: 0 4px; }
+button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--text); border-radius: 7px;
+  padding: 5px 11px; cursor: pointer; white-space: nowrap; }
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+button.danger { color: var(--ng); }
+button:disabled { opacity: .45; cursor: default; }
+button.small { padding: 2px 8px; font-size: 12px; }
+input, select { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; min-width: 0; }
+input[type=number] { width: 80px; }
+input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--accent); }
+label.field { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+label.field > input, label.field > select { color: var(--text); font-size: 14px; }
+.form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; white-space: nowrap; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; }
+td.mono, .mono { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; font-size: 12px; }
+tr.selected td { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.b-ok { color: var(--ok); background: var(--ok-bg); } .b-warn { color: var(--warn); background: var(--warn-bg); }
+.b-ng { color: var(--ng); background: var(--ng-bg); } .b-idle { color: var(--idle); background: var(--idle-bg); }
+.empty { color: var(--muted); padding: 14px 4px; }
+.muted { color: var(--muted); }
+.hint { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+.pill { font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.pill.ok { color: var(--ok); border-color: var(--ok); } .pill.ng { color: var(--ng); border-color: var(--ng); }
+pre.log { background: var(--code); color: var(--code-text); border-radius: 8px; padding: 10px 12px; margin: 8px 0 0;
+  max-height: 340px; overflow: auto; font-size: 12px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+.jobs { list-style: none; padding: 0; margin: 0; }
+.jobs li { display: flex; gap: 8px; align-items: center; padding: 5px 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.jobs li:hover, .jobs li.active { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.jobs li .t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.result { margin-top: 10px; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 13px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; }
+#toast { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 20; max-width: min(460px, calc(100vw - 32px)); }
+#toast div { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 8px;
+  padding: 10px 14px; box-shadow: 0 4px 18px rgba(0,0,0,.15); white-space: pre-wrap; }
+#toast div.err { border-left-color: var(--ng); }
+#toast div.okk { border-left-color: var(--ok); }
+details summary { cursor: pointer; color: var(--muted); font-size: 13px; margin: 4px 0; }
+.banner { background: var(--ng-bg); color: var(--ng); border-radius: 8px; padding: 10px 14px; margin-bottom: 16px; display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>DroidFork</h1>
+  <span class="ver" id="version"></span>
+  <span class="spacer"></span>
+  <span class="pill" id="pill-docker">Docker</span>
+  <span class="pill" id="pill-adb">adb</span>
+  <span class="pill" id="pill-wsl" hidden>WSL2</span>
+  <button id="btn-doctor">環境チェック</button>
+</header>
+<main>
+  <div class="col">
+    <div class="banner" id="banner"></div>
+
+    <section class="card" id="card-inst" aria-labelledby="h-inst">
+      <h2 id="h-inst">インスタンス <span class="count" id="inst-count"></span></h2>
+      <div class="toolbar" id="inst-toolbar">
+        <button class="primary" data-act="start">起動</button>
+        <button data-act="stop">停止</button>
+        <button data-act="restart">再起動</button>
+        <span class="sep"></span>
+        <button data-act="screen">画面を開く</button>
+        <button data-act="snapshot">スナップショット保存</button>
+        <button data-act="limit">上限を変更</button>
+        <button data-act="ids">識別子を確認</button>
+        <span class="sep"></span>
+        <button class="danger" data-act="reset">リセット</button>
+        <button class="danger" data-act="rm">削除</button>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th><input type="checkbox" id="inst-all" aria-label="すべて選択"></th><th>ID</th><th>状態</th><th>テンプレート</th>
+          <th>ADB</th><th>シリアル</th><th>画面</th><th>上限</th><th>前回起動</th></tr></thead>
+        <tbody id="inst-body"></tbody>
+      </table></div>
+      <div class="result" id="ids-result"></div>
+    </section>
+
+    <section class="card" id="card-tpl" aria-labelledby="h-tpl">
+      <h2 id="h-tpl">テンプレート（雛形） <span class="count" id="tpl-count"></span></h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>名前</th><th>状態</th><th>Android</th><th>画面</th><th>アプリ</th><th>台数</th><th>取り込み元</th><th></th></tr></thead>
+        <tbody id="tpl-body"></tbody>
+      </table></div>
+      <details id="capture-box">
+        <summary>実機から取り込む</summary>
+        <div id="usb-box" hidden>
+          <p class="hint">WSL2 では、先に実機を Windows から WSL へつなぎます（初回は Windows の権限確認が出ます）。</p>
+          <div class="table-wrap"><table><thead><tr><th>BUSID</th><th>機器</th><th>状態</th><th></th></tr></thead><tbody id="usb-body"></tbody></table></div>
+        </div>
+        <p class="hint" id="device-hint"></p>
+        <div class="form">
+          <label class="field">取り込み元<select id="cap-serial"></select></label>
+          <label class="field">テンプレート名（省略可）<input id="cap-name" placeholder="機種名から自動"></label>
+          <label class="field">取り込むアプリ（省略可）<input id="cap-include" placeholder="com.example.*"></label>
+          <label class="field">除くアプリ（省略可）<input id="cap-exclude" placeholder="*.game"></label>
+          <button class="primary" id="btn-capture">取り込む</button>
+          <button id="btn-capture-build">取り込んで雛形まで作る</button>
+        </div>
+      </details>
+    </section>
+
+    <section class="card" id="card-apk" aria-labelledby="h-apk">
+      <h2 id="h-apk">APK の一括導入</h2>
+      <div class="form">
+        <label class="field">APK ファイル<input type="file" id="apk-files" accept=".apk" multiple></label>
+        <label class="field" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="apk-split"> 選んだファイルを1つのアプリ（分割APK）として入れる</label>
+        <button class="primary" id="btn-install">起動中の台へ導入</button>
+      </div>
+      <p class="hint">インスタンスを選んでいればその台へ、選んでいなければ起動中のすべての台へ入れます。</p>
+    </section>
+
+    <section class="card" id="card-snap" aria-labelledby="h-snap">
+      <h2 id="h-snap">スナップショット <span class="count" id="snap-count"></span></h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>名前</th><th>テンプレート</th><th>保存元</th><th>日時</th><th>メモ</th><th></th></tr></thead>
+        <tbody id="snap-body"></tbody>
+      </table></div>
+      <p class="hint">「選んだ台へ戻す」では、保存元以外の台は Android ID を作り直します（識別子を複製しないため）。</p>
+    </section>
+
+    <section class="card" id="card-sched" aria-labelledby="h-sched">
+      <h2 id="h-sched">スケジュール</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>ID</th><th>状態</th><th>曜日</th><th>時刻</th><th>動作</th><th>対象</th><th>前回</th><th></th></tr></thead>
+        <tbody id="sched-body"></tbody>
+      </table></div>
+      <div class="form" style="margin-top:10px">
+        <label class="field">時刻<input type="time" id="sc-at" value="09:00"></label>
+        <label class="field">曜日<select id="sc-days"><option value="weekdays">平日</option><option value="daily">毎日</option><option value="weekends">土日</option></select></label>
+        <label class="field">動作<select id="sc-action"><option value="start">起動</option><option value="stop">停止</option><option value="restart">再起動</option><option value="reset">リセット</option></select></label>
+        <label class="field">対象<select id="sc-target"></select></label>
+        <button id="btn-sched-add">予定を追加</button>
+      </div>
+      <p class="hint">予定を自動で実行するには、端末で一度 <span class="mono">droidfork schedule install</span> を実行してください（Windows 版は設定済み）。</p>
+    </section>
+
+    <section class="card" id="card-stats" aria-labelledby="h-stats">
+      <h2 id="h-stats">実測（PoC）</h2>
+      <div class="toolbar"><button id="btn-stats">ディスク増分とメモリを測る</button></div>
+      <div id="stats-result"></div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card" id="card-new" aria-labelledby="h-new">
+      <h2 id="h-new">台を増やす</h2>
+      <div class="form">
+        <label class="field" style="flex:1 1 100%">テンプレート<select id="cr-template"></select></label>
+        <label class="field">台数<input type="number" id="cr-count" min="1" max="200" value="3"></label>
+        <label class="field">画面の倍率<select id="cr-scale"><option value="1">等倍</option><option value="0.75">0.75</option><option value="0.5">0.5（省メモリ）</option></select></label>
+        <label class="field">FPS<select id="cr-fps"><option value="">既定</option><option value="30">30</option><option value="15">15（省メモリ）</option></select></label>
+        <label class="field">CPU上限<input type="number" id="cr-cpus" min="0.1" step="0.5" placeholder="なし"></label>
+        <label class="field">メモリ上限<input id="cr-memory" placeholder="例 2g" size="6"></label>
+        <label class="field" style="flex-direction:row;align-items:center;gap:6px"><input type="checkbox" id="cr-start" checked> 作成後に起動</label>
+        <button class="primary" id="btn-create" style="flex:1 1 100%">作成する</button>
+      </div>
+      <p class="hint">複製はディスクをコピーしないので一瞬で終わります。テンプレートがまだ無いときは「実機から取り込む」を使ってください。</p>
+    </section>
+
+    <section class="card" id="card-jobs" aria-labelledby="h-jobs">
+      <h2 id="h-jobs">処理の状況</h2>
+      <ul class="jobs" id="jobs"></ul>
+      <pre class="log" id="job-log" aria-live="polite">操作を選ぶと、ここに進行状況が出ます。</pre>
+    </section>
+  </div>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+"use strict";
+const params = new URLSearchParams(location.search);
+let token = params.get("token") || "";
+try { if (token) sessionStorage.setItem("df-token", token); else token = sessionStorage.getItem("df-token") || ""; } catch (e) {}
+if (params.has("token")) history.replaceState(null, "", location.pathname);
+
+const $ = (id) => document.getElementById(id);
+function h(tag, attrs, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v === false || v == null) continue;
+    if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "class") el.className = v;
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of children.flat()) if (c != null) el.append(c instanceof Node ? c : String(c));
+  return el;
+}
+function toast(text, kind) {
+  const el = h("div", {class: kind || ""}, text);
+  $("toast").append(el);
+  setTimeout(() => el.remove(), kind === "err" ? 12000 : 5000);
+}
+async function api(path, opts) {
+  opts = opts || {};
+  const headers = Object.assign({"X-DroidFork-Token": token}, opts.json ? {"Content-Type": "application/json"} : {}, opts.headers || {});
+  const res = await fetch(path, {method: opts.method || "GET", headers, body: opts.json ? JSON.stringify(opts.json) : opts.body});
+  let data;
+  try { data = await res.json(); } catch (e) { data = {ok: false, error: "HTTP " + res.status}; }
+  if (!res.ok || data.ok === false) throw new Error((data.error || "エラー") + (data.hint ? "\n" + data.hint : ""));
+  return data;
+}
+
+let state = null;
+const selected = new Set();
+let activeJob = null, logNext = 0;
+const jobCallbacks = {};
+
+function badge(text, kind) { return h("span", {class: "badge b-" + kind}, text); }
+function stateKind(s) { return s === "running" ? "ok" : (s === "exited" || s === "dead") ? "ng" : (s === "created" || s === "restarting") ? "warn" : "idle"; }
+function tplKind(s) { return s === "sealed" ? "ok" : s === "failed" ? "ng" : s === "building" ? "warn" : "idle"; }
+
+async function runJob(action, p, onDone) {
+  try {
+    const {job} = await api("/api/jobs", {method: "POST", json: {action, params: p || {}}});
+    if (onDone) jobCallbacks[job.id] = onDone;
+    selectJob(job.id);
+    refresh();
+  } catch (e) { toast(e.message, "err"); }
+}
+function selectJob(id) { activeJob = id; logNext = 0; $("job-log").textContent = ""; renderJobs(); pollJob(); }
+async function pollJob() {
+  if (!activeJob) return;
+  const id = activeJob;
+  try {
+    const d = await api(`/api/jobs/${id}?since=${logNext}`);
+    if (id !== activeJob) return;
+    if (d.log.length) { $("job-log").textContent += d.log.join("\n") + "\n"; $("job-log").scrollTop = 1e9; }
+    logNext = d.next;
+    if (d.job.status === "queued" || d.job.status === "running") { setTimeout(pollJob, 800); return; }
+    if (d.next === 0) $("job-log").textContent = d.job.status === "done" ? "完了しました（表示する出力はありません）。\n" : "";
+    if (d.job.status === "failed") {
+      $("job-log").textContent += "\nエラー: " + d.job.error + (d.job.hint ? "\nヒント: " + d.job.hint : "") + "\n";
+      if (jobCallbacks[id]) { toast(d.job.title + " に失敗しました\n" + d.job.error, "err"); }
+    } else if (jobCallbacks[id]) {
+      toast(d.job.title + " が終わりました", "okk");
+    }
+    const cb = jobCallbacks[id]; delete jobCallbacks[id];
+    if (cb && d.job.status === "done") cb(d.result);
+    refresh();
+  } catch (e) { setTimeout(pollJob, 2000); }
+}
+
+function renderJobs() {
+  const ul = $("jobs"); ul.replaceChildren();
+  const jobs = (state && state.jobs) || [];
+  if (!jobs.length) { ul.append(h("li", {class: "muted"}, "まだ処理はありません")); return; }
+  for (const j of jobs.slice(0, 8)) {
+    const kind = j.status === "done" ? "ok" : j.status === "failed" ? "ng" : "warn";
+    const label = {queued: "待機", running: "実行中", done: "完了", failed: "失敗"}[j.status];
+    ul.append(h("li", {class: j.id === activeJob ? "active" : "", onclick: () => selectJob(j.id)},
+      badge(label, kind), h("span", {class: "t"}, j.title), h("span", {class: "muted mono"}, (j.created_at || "").slice(11, 19))));
+  }
+}
+
+function render() {
+  $("version").textContent = "v" + state.version;
+  $("pill-docker").className = "pill " + (state.host.docker ? "ok" : "ng");
+  $("pill-docker").textContent = state.host.docker ? "Docker 接続中" : "Docker 未接続";
+  $("pill-adb").className = "pill " + (state.host.adb ? "ok" : "ng");
+  $("pill-adb").textContent = state.host.adb ? "adb 使用可" : "adb なし";
+  $("pill-wsl").hidden = !state.host.wsl;
+  const banner = $("banner");
+  if (!state.host.docker) { banner.style.display = "block"; banner.textContent = "Docker に接続できません。「環境チェック」で原因と対処を確認してください。"; }
+  else banner.style.display = "none";
+
+  // インスタンス
+  const ids = new Set(state.instances.map(i => i.id));
+  for (const s of [...selected]) if (!ids.has(s)) selected.delete(s);
+  const running = state.instances.filter(i => i.state === "running").length;
+  $("inst-count").textContent = `${state.instances.length} 台（起動中 ${running} 台）`;
+  const body = $("inst-body"); body.replaceChildren();
+  if (!state.instances.length) body.append(h("tr", {}, h("td", {colspan: 9, class: "empty"}, "インスタンスはまだありません。右の「台を増やす」から作成できます。")));
+  for (const i of state.instances) {
+    const cb = h("input", {type: "checkbox", "aria-label": i.id + " を選択", onchange: (e) => { e.target.checked ? selected.add(i.id) : selected.delete(i.id); render(); }});
+    cb.checked = selected.has(i.id);
+    body.append(h("tr", {class: selected.has(i.id) ? "selected" : ""},
+      h("td", {}, cb), h("td", {class: "mono"}, i.id), h("td", {}, badge(i.state_label, stateKind(i.state))),
+      h("td", {}, i.template), h("td", {class: "mono"}, i.addr, i.adb_state ? h("span", {class: "muted"}, " " + i.adb_state) : null),
+      h("td", {class: "mono"}, i.serialno), h("td", {}, i.display), h("td", {}, i.limits),
+      h("td", {}, i.last_boot_seconds ? Math.round(i.last_boot_seconds) + "秒" : "-")));
+  }
+  $("inst-all").checked = state.instances.length > 0 && selected.size === state.instances.length;
+  for (const b of $("inst-toolbar").querySelectorAll("button")) b.disabled = selected.size === 0 || (b.dataset.act === "snapshot" && selected.size !== 1);
+
+  // テンプレート
+  $("tpl-count").textContent = state.templates.length ? state.templates.length + " 個" : "";
+  const tb = $("tpl-body"); tb.replaceChildren();
+  if (!state.templates.length) tb.append(h("tr", {}, h("td", {colspan: 8, class: "empty"}, "テンプレートはまだありません。下の「実機から取り込む」から作成します。")));
+  for (const t of state.templates) {
+    const actions = h("td", {},
+      t.state !== "sealed" ? h("button", {class: "small primary", onclick: () => runJob("template_build", {name: t.name, force: t.state === "failed"})}, "雛形を作成") : null, " ",
+      h("button", {class: "small", onclick: () => { const n = prompt(`「${t.name}」を元にした新しいテンプレートの名前`, t.name + "-v2"); if (n) runJob("template_clone", {source: t.name, name: n}); }}, "複製"), " ",
+      h("button", {class: "small danger", onclick: () => {
+        const extra = t.instances ? `\nこのテンプレートの ${t.instances} 台とスナップショットも削除されます。` : "";
+        if (confirm(`テンプレート「${t.name}」を削除しますか？${extra}`)) runJob("template_rm", {name: t.name, force: true});
+      }}, "削除"));
+    tb.append(h("tr", {title: (t.notes || []).join("\n")},
+      h("td", {class: "mono"}, t.name), h("td", {}, badge(t.state_label, tplKind(t.state))), h("td", {}, t.android),
+      h("td", {}, t.display), h("td", {}, t.packages + (t.failed ? `（失敗 ${t.failed}）` : "")), h("td", {}, t.instances),
+      h("td", {}, t.source), actions));
+  }
+  fillSelect($("cr-template"), state.templates.filter(t => t.state === "sealed").map(t => [t.name, t.name]), "作成済みのテンプレートがありません");
+  fillSelect($("sc-target"), [["@all", "すべての台"], ...state.templates.map(t => ["tpl:" + t.name, "テンプレート " + t.name])], null);
+
+  // 実機・USB
+  fillSelect($("cap-serial"), state.devices.map(d => [d.serial, `${d.model || d.serial}（${d.state}）`]), "実機が見つかりません");
+  $("device-hint").textContent = state.devices.length ? "" : "実機を USB でつなぎ、端末側で「USB デバッグ」を許可してください。";
+  $("usb-box").hidden = !state.host.wsl;
+  const ub = $("usb-body"); ub.replaceChildren();
+  for (const d of state.usb || []) {
+    ub.append(h("tr", {}, h("td", {class: "mono"}, d.busid), h("td", {}, d.name, d.looks_android ? " " : null, d.looks_android ? badge("Android?", "ok") : null),
+      h("td", {}, d.state_label),
+      h("td", {}, d.state.toLowerCase().startsWith("attached") ? "" : h("button", {class: "small", onclick: () => runJob("usb_attach", {busid: d.busid})}, "WSLへつなぐ"))));
+  }
+
+  // スナップショット
+  $("snap-count").textContent = state.snapshots.length ? state.snapshots.length + " 個" : "";
+  const sb = $("snap-body"); sb.replaceChildren();
+  if (!state.snapshots.length) sb.append(h("tr", {}, h("td", {colspan: 6, class: "empty"}, "インスタンスを1台選んで「スナップショット保存」で作れます。")));
+  for (const s of state.snapshots) {
+    sb.append(h("tr", {}, h("td", {class: "mono"}, s.name), h("td", {}, s.template), h("td", {class: "mono"}, s.source),
+      h("td", {}, (s.created_at || "").replace("T", " ").slice(0, 16)), h("td", {}, s.note || ""),
+      h("td", {},
+        h("button", {class: "small", onclick: () => { if (confirm(`${s.source} を「${s.name}」の状態に戻しますか？今の差分は消えます。`)) runJob("snapshot_restore", {name: s.name}); }}, "保存元へ戻す"), " ",
+        h("button", {class: "small", disabled: selected.size === 0, onclick: () => { if (confirm(`選んだ ${selected.size} 台を「${s.name}」の状態にしますか？今の差分は消えます。`)) runJob("snapshot_restore", {name: s.name, ids: [...selected]}); }}, "選んだ台へ戻す"), " ",
+        h("button", {class: "small danger", onclick: () => { if (confirm(`スナップショット「${s.name}」を削除しますか？`)) runJob("snapshot_rm", {names: [s.name]}); }}, "削除"))));
+  }
+
+  // スケジュール
+  const scb = $("sched-body"); scb.replaceChildren();
+  if (!state.schedules.length) scb.append(h("tr", {}, h("td", {colspan: 8, class: "empty"}, "予定はありません。")));
+  for (const s of state.schedules) {
+    scb.append(h("tr", {}, h("td", {class: "mono"}, s.id), h("td", {}, badge(s.enabled ? "有効" : "無効", s.enabled ? "ok" : "idle")),
+      h("td", {}, s.days_label), h("td", {class: "mono"}, s.at), h("td", {}, s.action_label), h("td", {}, s.target_label),
+      h("td", {class: "muted"}, s.last_run ? s.last_run.replace("T", " ").slice(0, 16) + " " + (s.last_result || "") : "-"),
+      h("td", {}, h("button", {class: "small", onclick: () => runJob("schedule_toggle", {id: s.id, enabled: !s.enabled})}, s.enabled ? "無効にする" : "有効にする"), " ",
+        h("button", {class: "small danger", onclick: () => runJob("schedule_rm", {id: s.id})}, "削除"))));
+  }
+  renderJobs();
+}
+function fillSelect(sel, items, emptyText) {
+  const prev = sel.value; sel.replaceChildren();
+  if (!items.length && emptyText) { sel.append(h("option", {value: ""}, emptyText)); sel.disabled = true; return; }
+  sel.disabled = false;
+  for (const [v, t] of items) sel.append(h("option", {value: v}, t));
+  if (items.some(([v]) => v === prev)) sel.value = prev;
+}
+
+async function refresh() {
+  try { state = await api("/api/state"); render(); }
+  catch (e) {
+    const banner = $("banner"); banner.style.display = "block";
+    banner.textContent = e.message.includes("トークン") ? e.message : "管理画面のサーバーに接続できません: " + e.message;
+  }
+}
+
+// ---- 操作 ----
+$("inst-all").addEventListener("change", (e) => { selected.clear(); if (e.target.checked) state.instances.forEach(i => selected.add(i.id)); render(); });
+$("inst-toolbar").addEventListener("click", (e) => {
+  const act = e.target.dataset && e.target.dataset.act; if (!act) return;
+  const ids = [...selected];
+  if (act === "reset" && !confirm(`${ids.length} 台の差分（アプリ内データ・ログインなど）を消して雛形の状態に戻しますか？`)) return;
+  if (act === "rm" && !confirm(`${ids.length} 台を削除しますか？差分も消えます。`)) return;
+  if (act === "snapshot") {
+    const note = prompt(`${ids[0]} の今の状態を保存します。メモ（省略可）`, ""); if (note === null) return;
+    return runJob("snapshot_create", {id: ids[0], note});
+  }
+  if (act === "limit") {
+    const cpus = prompt("CPU の上限（例 1.5。空欄で変更しない、0 で解除）", ""); if (cpus === null) return;
+    const memory = prompt("メモリの上限（例 2g。空欄で変更しない、0 で解除）", ""); if (memory === null) return;
+    return runJob("limit", {ids, cpus: cpus && cpus !== "0" ? cpus : null, memory: memory && memory !== "0" ? memory : null,
+      clear_cpus: cpus === "0", clear_memory: memory === "0"});
+  }
+  if (act === "ids") return runJob("ids", {ids}, renderIds);
+  runJob(act, {ids});
+});
+function renderIds(rows) {
+  const box = $("ids-result"); box.replaceChildren();
+  if (!rows || !rows.length) { box.append(h("p", {class: "hint"}, "起動中の台がありません。")); return; }
+  const dup = rows.some(r => r.duplicates.length);
+  box.append(h("p", {class: "hint"}, dup ? "重複した識別子があります。テンプレートの封印が効いていない可能性があります。" : "すべての台で識別子が重複していません。"),
+    h("div", {class: "table-wrap"}, h("table", {}, h("thead", {}, h("tr", {}, ["ID", "機種名", "シリアル", "Android ID", "MAC", "判定"].map(t => h("th", {}, t)))),
+      h("tbody", {}, rows.map(r => h("tr", {}, h("td", {class: "mono"}, r.id), h("td", {}, r.model), h("td", {class: "mono"}, r.serialno),
+        h("td", {class: "mono"}, r.android_id), h("td", {class: "mono"}, r.mac),
+        h("td", {}, r.duplicates.length ? badge("重複: " + r.duplicates.join(","), "ng") : badge("OK", "ok"))))))));
+}
+$("btn-create").addEventListener("click", () => {
+  const template = $("cr-template").value;
+  if (!template) { toast("作成済みのテンプレートを選んでください。", "err"); return; }
+  runJob("create", {template, count: $("cr-count").value, scale: $("cr-scale").value, fps: $("cr-fps").value,
+    cpus: $("cr-cpus").value, memory: $("cr-memory").value, start: $("cr-start").checked});
+});
+function captureParams() {
+  const split = (v) => v.split(",").map(s => s.trim()).filter(Boolean);
+  return {serial: $("cap-serial").value, name: $("cap-name").value.trim(), include: split($("cap-include").value), exclude: split($("cap-exclude").value)};
+}
+$("btn-capture").addEventListener("click", () => runJob("capture", captureParams()));
+$("btn-capture-build").addEventListener("click", () => {
+  const p = captureParams();
+  runJob("capture", p, (name) => runJob("template_build", {name}));
+});
+$("btn-install").addEventListener("click", async () => {
+  const files = [...$("apk-files").files];
+  if (!files.length) { toast("APK ファイルを選んでください。", "err"); return; }
+  const btn = $("btn-install"); btn.disabled = true;
+  try {
+    const paths = [];
+    for (const f of files) {
+      btn.textContent = `送信中… ${f.name}`;
+      const d = await api("/api/upload?name=" + encodeURIComponent(f.name), {method: "POST", body: f, headers: {"Content-Type": "application/octet-stream"}});
+      paths.push(d.path);
+    }
+    await runJob("install", {files: paths, split: $("apk-split").checked, ids: [...selected]});
+    $("apk-files").value = "";
+  } catch (e) { toast(e.message, "err"); }
+  finally { btn.disabled = false; btn.textContent = "起動中の台へ導入"; }
+});
+$("btn-sched-add").addEventListener("click", () => {
+  const target = $("sc-target").value;
+  const p = {at: $("sc-at").value, days: $("sc-days").value, action: $("sc-action").value};
+  if (target === "@all") p.all = true; else if (target.startsWith("tpl:")) p.template = target.slice(4);
+  runJob("schedule_add", p);
+});
+$("btn-stats").addEventListener("click", () => runJob("stats", {}, renderStats));
+$("btn-doctor").addEventListener("click", () => runJob("doctor", {}, (checks) => {
+  const ng = checks.filter(c => c.status === "NG");
+  toast(ng.length ? `NG が ${ng.length} 件あります:\n` + ng.map(c => `・${c.name}: ${c.hint || c.detail}`).join("\n") : "環境に問題は見つかりませんでした。", ng.length ? "err" : "okk");
+}));
+function fmt(n) {
+  if (n == null) return "不明";
+  const u = ["B", "KiB", "MiB", "GiB", "TiB"]; let i = 0;
+  while (Math.abs(n) >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return (i ? n.toFixed(1) : Math.round(n)) + " " + u[i];
+}
+function renderStats(d) {
+  const s = d.summary, box = $("stats-result"); box.replaceChildren();
+  const ratio = s.full_copy_data_total ? Math.round(s.actual_data_total / s.full_copy_data_total * 100) : null;
+  const rows = [
+    ["台数", `${s.instances} 台（起動中 ${s.running} 台）`],
+    ["1台あたりディスク増分", `平均 ${fmt(s.avg_diff_size)} / 最大 ${fmt(s.max_diff_size)}`],
+    ["1台あたりメモリ", `平均 ${fmt(s.avg_mem)}（起動中のみ）`],
+    ["起動時間", s.avg_boot_seconds ? `平均 ${Math.round(s.avg_boot_seconds)} 秒` : "不明"],
+    ["データ領域の合計", `${fmt(s.actual_data_total)}（丸ごとコピーした場合 ${fmt(s.full_copy_data_total)}${ratio != null ? "、" + ratio + "%" : ""}）`],
+    ["ホストのメモリ", s.host_mem_total ? `合計 ${fmt(s.host_mem_total)} / 空き ${fmt(s.host_mem_available)}` + (s.more_instances_estimate != null ? ` → あと約 ${s.more_instances_estimate} 台` : "") : "不明"],
+    ["共有部分", [...d.images.map(i => `イメージ ${fmt(i.size)}`), ...d.templates.map(t => `雛形 ${t.name} ${fmt(t.base_size)}`)].join(" / ") || "-"],
+  ];
+  box.append(h("dl", {class: "kv"}, rows.flatMap(([k, v]) => [h("dt", {}, k), h("dd", {}, v)])));
+}
+
+if (!token) {
+  const banner = $("banner"); banner.style.display = "block";
+  banner.textContent = "トークンがありません。droidfork ui を起動したときに表示された URL から開いてください。";
+} else {
+  refresh();
+  setInterval(() => { if (!document.hidden) refresh(); }, 4000);
+}
+</script>
+</body>
+</html>

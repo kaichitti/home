@@ -1,0 +1,9 @@
+[Unit]
+Description=DroidFork のスケジュール実行（ユーザー %i）
+After=docker.service
+Wants=docker.service
+
+[Service]
+Type=oneshot
+User=%i
+ExecStart=/usr/bin/droidfork -q schedule run-due

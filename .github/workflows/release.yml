@@ -1,0 +1,90 @@
+name: release
+
+# v で始まるタグ（例: v0.2.0）を push すると、すべての配布物を作って GitHub のリリースに載せる
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m unittest
+      - name: タグと版が一致するか確かめる
+        run: |
+          version="$(python3 -c 'import droidfork; print(droidfork.__version__)')"
+          [ "v$version" = "${GITHUB_REF_NAME}" ] || { echo "タグ ${GITHUB_REF_NAME} と droidfork/__init__.py の版 $version が違います"; exit 1; }
+
+  packages:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          python -m pip install --quiet build
+          packaging/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: dist/
+
+  kernel:
+    needs: test
+    uses: ./.github/workflows/wsl-kernel.yml
+
+  windows:
+    needs: [packages, kernel]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-packages
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: wsl-kernel-*
+          path: dist/wsl-kernel
+          merge-multiple: true
+      - name: インストーラを作る（カーネルを同梱）
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) { choco install innosetup -y --no-progress }
+          $version = "${env:GITHUB_REF_NAME}".TrimStart("v")
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DAppVersion=$version" windows\droidfork.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: dist/DroidFork-Setup-*.exe
+
+  publish:
+    needs: [packages, kernel, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+      - name: リリースを作る
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd assets
+          rm -f SHA256SUMS
+          sha256sum -- * | grep -v '\.sha256$' > SHA256SUMS
+          ls -la
+          gh release create "${GITHUB_REF_NAME}" --title "DroidFork ${GITHUB_REF_NAME}" --generate-notes -- *
