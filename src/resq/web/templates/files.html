@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ case.id }} ファイル{% endblock %}
+{% block body %}
+<h1><a href="/cases/{{ case.id }}">{{ case.id }}</a> 復旧ファイル</h1>
+<p class="muted">納品するファイルにチェックを入れて保存します。ランク外（上書き・破損）は表示しません。</p>
+<form method="post" action="/cases/{{ case.id }}/select">
+<table>
+  <tr><th></th><th>#</th><th>ランク</th><th>ファイル名 ／ 元の場所</th><th>種類</th><th class="num">サイズ</th><th>確認結果</th><th>手法</th></tr>
+  {% for f in files %}
+  <tr>
+    <td><input type="checkbox" name="id" value="{{ f.id }}" {% if f.selected %}checked{% endif %} style="width:auto"></td>
+    <td>{{ f.id }}</td><td><span class="badge">{{ f.rank }}</span></td>
+    <td>{{ f.name }}<div class="muted mono">{{ f.orig_path or "（元のフォルダ不明）" }}</div></td>
+    <td>{{ f.kind }}</td><td class="num">{{ f.size|bytes }}</td><td>{{ f.verify }}</td><td>{{ f.method }}</td>
+  </tr>
+  {% endfor %}
+</table>
+<p><button>選択を保存</button></p>
+</form>
+{% endblock %}

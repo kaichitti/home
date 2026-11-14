@@ -94,6 +94,25 @@ CREATE TABLE IF NOT EXISTS recovered_files (
   alt_names  TEXT,
   selected   INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS certificates (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_id    TEXT REFERENCES cases(id),
+  kind       TEXT NOT NULL,
+  number     TEXT NOT NULL UNIQUE,
+  issued_at  TEXT NOT NULL,
+  path       TEXT NOT NULL,
+  sha256     TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS deliveries (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  case_id    TEXT NOT NULL REFERENCES cases(id),
+  delivered_at TEXT NOT NULL,
+  target     TEXT NOT NULL,
+  files      INTEGER NOT NULL,
+  bytes      INTEGER NOT NULL,
+  manifest_sha256 TEXT NOT NULL,
+  note_path  TEXT
+);
 CREATE TABLE IF NOT EXISTS events (
   id        INTEGER PRIMARY KEY AUTOINCREMENT,
   case_id   TEXT,

@@ -28,7 +28,7 @@ include = ["resq*"]
 exclude = ["resq_erase*"]  # 消去機能は復旧ビルドに含めない（企画書 §8.2）
 
 [tool.setuptools.package-data]
-resq = ["reports/templates/*.html"]
+resq = ["reports/templates/*.html", "reports/templates/*.css", "web/templates/*.html", "web/static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>納品書 {{ case.id }}</title>
+<style>{% include "_base.css" %}</style></head>
+<body>
+<h1>納品書（データ復旧）</h1>
+<div class="meta">案件番号 {{ case.id }} ／ 発行 {{ issued }}</div>
+<table>
+  <tr><th>お客様</th><td>{{ case.customer }} 様</td></tr>
+  <tr><th>納品フォルダ</th><td>{{ folder }}</td></tr>
+  <tr><th>ファイル数</th><td>{{ count }} 件</td></tr>
+  <tr><th>合計サイズ</th><td>{{ total|bytes }}</td></tr>
+  <tr><th>照合</th><td>コピー後に全ファイルの SHA-256 を照合し、すべて一致しました。</td></tr>
+  <tr><th>一覧ファイルのハッシュ</th><td class="mono">納品ファイル一覧.csv  SHA-256: {{ manifest_sha }}</td></tr>
+  {% if case.price_cap %}<tr><th>ご提示上限額</th><td>{{ "{:,}".format(case.price_cap) }} 円（税込）</td></tr>{% endif %}
+</table>
+
+<h2>内訳</h2>
+<table>
+  <tr><th>ランク</th><th>件数</th><th>サイズ</th></tr>
+  {% for rank, d in by_rank|dictsort %}
+  <tr><td>{{ rank }}</td><td class="num">{{ d.count }}</td><td class="num">{{ d.bytes|bytes }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>納品ファイル（先頭 {{ files|length }} 件）</h2>
+<table>
+  <tr><th>相対パス</th><th>サイズ</th><th>SHA-256（先頭 16 桁）</th></tr>
+  {% for f in files %}
+  <tr><td>{{ f.path }}</td><td class="num">{{ f.size|bytes }}</td><td class="mono">{{ f.sha256[:16] }}</td></tr>
+  {% endfor %}
+</table>
+{% if more %}<p class="note">ほか {{ more }} 件は「納品ファイル一覧.csv」に記載しています。</p>{% endif %}
+
+<p class="note">
+  納品後も、お預かりした媒体と作業データは同意書に定めた保管期間ののち、暗号化領域ごと消去し、消去証明書を発行します。
+  納品データは別の場所にもバックアップを取ってください。
+</p>
+<div class="sign"><div>担当 {{ operator }}</div><div>受領印</div></div>
+</body></html>

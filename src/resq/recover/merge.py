@@ -74,7 +74,7 @@ def merge(case) -> dict:
             if not f.is_file():
                 continue
             r = V.validate(f, Path(c.orig_path).name if c.orig_path else None)
-            items.append(Item(man.stage if man.stage != "COM" else stage_dir_name, man.image_id, c,
+            items.append(Item(stage_dir_name if man.stage in ("COM", "MOB") else man.stage, man.image_id, c,
                               sha256_file(f), f.stat().st_size, r))
 
     groups: dict[str, list[Item]] = defaultdict(list)

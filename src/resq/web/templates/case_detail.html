@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}{{ case.id }}{% endblock %}
+{% block body %}
+<h1>{{ case.id }} <span class="badge">{{ case.status }}</span></h1>
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+<div class="card grid">
+  <div><label>お客様</label>{{ case.customer }}</div>
+  <div><label>連絡先</label>{{ case.contact or "—" }}</div>
+  <div><label>受付</label>{{ case.received_at[:16].replace("T", " ") }}</div>
+  <div><label>上限額</label>{{ "{:,} 円".format(case.price_cap) if case.price_cap else "—" }}</div>
+  <div><label>保管期限</label>{{ case.retention_until or "—" }}</div>
+  <div><label>同意書</label>{% for s in consents %}版 {{ s.form_version }} ／ {{ s.id_method }} ／ {{ s.ownership }}{% else %}<span class="error">未記録</span>{% endfor %}</div>
+</div>
+
+<h2>状態の変更</h2>
+<div class="card">
+  {% for t in transitions %}
+  <form class="inline" method="post" action="/cases/{{ case.id }}/status">
+    <input type="hidden" name="new_status" value="{{ t }}"><button class="sub">→ {{ t }}</button></form>
+  {% else %}<span class="muted">これ以上の状態変更はありません</span>{% endfor %}
+</div>
+
+<h2>お預かり媒体</h2>
+<table>
+  <tr><th>#</th><th>種別</th><th>メーカー / 型番</th><th>シリアル</th><th>症状</th></tr>
+  {% for d in devices %}
+  <tr><td>{{ d.id }}</td><td>{{ d.kind }}</td><td>{{ d.maker or "" }} {{ d.model or "" }}</td><td class="mono">{{ d.serial or "—" }}</td><td>{{ d.symptom or "—" }}</td></tr>
+  {% endfor %}
+</table>
+<form method="post" action="/cases/{{ case.id }}/devices" class="card grid" style="margin-top:8px">
+  <div><label>種別 *</label><input name="kind" required></div>
+  <div><label>メーカー</label><input name="maker"></div><div><label>型番</label><input name="model"></div>
+  <div><label>シリアル</label><input name="serial"></div><div><label>症状</label><input name="symptom"></div>
+  <div style="align-self:end"><button>媒体を追加</button></div>
+</form>
+
+<h2>診断</h2>
+<div class="card">
+  {% if diag %}
+  <span class="badge v-{{ diag.verdict }}">{{ diag.verdict }}</span> {{ diag.level }}
+  <ul>{% for r in diag.reasons %}<li>{{ r }}</li>{% endfor %}{% for w in diag.warnings %}<li style="color:var(--warn)">{{ w }}</li>{% endfor %}</ul>
+  {% else %}<span class="muted">未診断（作業機で <code>resq diagnose … --case {{ case.id }}</code>）</span>{% endif %}
+</div>
+
+<h2>イメージ</h2>
+<table>
+  <tr><th>#</th><th>取得元</th><th class="num">サイズ</th><th>SHA-256</th><th class="num">読めなかった領域</th></tr>
+  {% for i in images %}
+  <tr><td>{{ i.id }}</td><td class="mono">{{ i.source }}</td><td class="num">{{ i.size|bytes }}</td>
+      <td class="mono">{{ i.sha256 or "（未完了）" }}</td><td class="num">{{ (i.unreadable_bytes or 0)|bytes }}</td></tr>
+  {% else %}<tr><td colspan="5" class="muted">まだありません</td></tr>{% endfor %}
+</table>
+
+<h2>復旧（段ごとの検出件数）</h2>
+<table>
+  <tr><th>段</th><th>手法</th><th class="num">検出</th><th class="num">単独で検出</th><th>完了</th></tr>
+  {% for s in stages %}
+  <tr><td>{{ s.stage }}</td><td>{{ s.label }}</td><td class="num">{{ s.found if s.found is not none else "—" }}</td>
+      <td class="num">{{ s.unique_found if s.unique_found is not none else "—" }}</td><td>{{ (s.finished_at or "")[:16].replace("T"," ") }}</td></tr>
+  {% else %}<tr><td colspan="5" class="muted">まだありません</td></tr>{% endfor %}
+</table>
+
+<h2>復旧ファイル</h2>
+<div class="card">
+  {% for r in "ABCDUX" %}{% if r in ranks %}<span class="badge" style="margin-right:6px">{{ r }}: {{ ranks[r][0] }} 件{% if ranks[r][1] %}（選択 {{ ranks[r][1] }}）{% endif %}</span>{% endif %}{% endfor %}
+  {% if ranks %}<p><a class="btn" href="/cases/{{ case.id }}/files">ファイル一覧・納品対象の選択</a>
+  <form class="inline" method="post" action="/cases/{{ case.id }}/catalog"><button class="sub">顧客向け一覧を作成</button></form></p>
+  {% else %}<span class="muted">まだありません</span>{% endif %}
+</div>
+
+<h2>帳票</h2>
+<div class="card">
+  {% for kind, label in [("catalog_pdf","復旧ファイル一覧 PDF"),("catalog_html","復旧ファイル一覧 HTML"),("delivery_note","納品書"),("certificate","消去証明書")] %}
+  {% if kind in downloads %}<a class="btn" href="/cases/{{ case.id }}/download/{{ kind }}">{{ label }}</a> {% endif %}
+  {% endfor %}
+  {% if not downloads %}<span class="muted">まだありません</span>{% endif %}
+  {% for d in deliveries %}<p class="muted">納品 {{ d.delivered_at[:16].replace("T"," ") }}：{{ d.files }} 件 {{ d.bytes|bytes }}</p>{% endfor %}
+  {% for c in certs %}<p class="muted">証明書 {{ c.number }}（{{ c.kind }}）SHA-256 <span class="mono">{{ c.sha256 }}</span></p>{% endfor %}
+</div>
+
+<h2>操作ログ（新しい順 30 件）</h2>
+<table>
+  <tr><th>日時</th><th>操作</th><th>rc</th><th>内容</th></tr>
+  {% for e in events %}
+  <tr><td>{{ e.ts[:19].replace("T"," ") }}</td><td>{{ e.op }}</td><td>{{ e.rc if e.rc is not none else "" }}</td><td class="mono">{{ (e.command or "")[:120] }}</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}案件一覧{% endblock %}
+{% block body %}
+<h1>案件一覧</h1>
+<table>
+  <tr><th>案件番号</th><th>受付</th><th>お客様</th><th>状態</th><th class="num">上限額</th><th>保管期限</th></tr>
+  {% for c in cases %}
+  <tr>
+    <td><a href="/cases/{{ c.id }}">{{ c.id }}</a></td>
+    <td>{{ c.received_at[:16].replace("T", " ") }}</td>
+    <td>{{ c.customer }}</td>
+    <td><span class="badge">{{ c.status }}</span></td>
+    <td class="num">{{ "{:,}".format(c.price_cap) if c.price_cap else "—" }}</td>
+    <td>{{ c.retention_until or "—" }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" class="muted">案件はまだありません。<a href="/cases/new">新規受付</a>から登録します。</td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

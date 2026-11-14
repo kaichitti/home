@@ -101,6 +101,36 @@ def assert_writable_target(target: str | os.PathLike, *, case_dir: Path,
     return t
 
 
+def assert_delivery_target(target: str | os.PathLike, *, case_dir: Path, sources: list[str],
+                           required_bytes: int) -> Path:
+    """納品先（新品の USB・外付け HDD のマウント先）の検査。
+
+    - デバイスそのものではなく、マウント済みのディレクトリであること
+    - 案件の作業領域の中ではないこと
+    - 原本（顧客媒体）と同じ物理ディスクではないこと
+    - 空き容量が納品サイズ×1.1 以上あること
+    """
+    raw = str(target)
+    if raw.startswith("/dev/") or is_device(raw):
+        raise SafetyError(f"納品先にデバイスは指定できません（マウント先のディレクトリを指定）: {raw}")
+    t = Path(raw).resolve()
+    if not t.is_dir():
+        raise SafetyError(f"納品先のディレクトリがありません: {t}")
+    if _within(t, case_dir.resolve()):
+        raise SafetyError("納品先が作業領域の中です。納品用メディアのマウント先を指定してください")
+    td = physical_disk(t)
+    for src in sources:
+        if is_device(src):
+            sd = physical_disk(src)
+            if sd is None or td is None or sd == td:
+                raise SafetyError(f"納品先が原本（{src}）と同じ物理ディスク上にあるか、判定できません")
+    free = shutil.disk_usage(t).free
+    need = int(required_bytes * SPACE_FACTOR)
+    if free < need:
+        raise SafetyError(f"納品先の空き容量不足: 空き {free:,} B < 必要 {need:,} B")
+    return t
+
+
 def source_size(source: str | os.PathLike, ctx: audit.AuditContext | None = None) -> int:
     src = str(source)
     if is_device(src):
