@@ -136,7 +136,8 @@ def new_fat(path: Path, mb: int = FS_MB) -> None:
 
 def put_files(img: Path, files: dict[str, bytes], tmp: Path, offset: int = 0) -> None:
     target = f"{img}@@{offset}" if offset else str(img)
-    dirs = sorted({str(Path(p).parent) for p in files if str(Path(p).parent) != "."})
+    dirs = sorted({str(a) for p in files for a in Path(p).parents if str(a) != "."},
+                  key=lambda d: (d.count("/"), d))
     for d in dirs:
         sh("mmd", "-i", target, f"::/{d}")
     for rel, data in files.items():
@@ -196,7 +197,13 @@ def fx_quickformat(tmp: Path) -> dict:
     files = content_set("quickformat")
     new_fat(img)
     put_files(img, files, tmp)
-    # クイックフォーマット＝管理情報だけ作り直す。データ領域は残る。
+    quick_format_fat(img, tmp)
+    return {"file": img.name, "scenario": "クイックフォーマット後",
+            "files": entries(files, set(files))}
+
+
+def quick_format_fat(img: Path, tmp: Path) -> None:
+    # クイックフォーマット＝管理情報（ブートセクタ・FAT・ルートディレクトリ）だけ作り直す。データ領域は残る。
     # mkfs.vfat -C は新規ファイル専用のため、別ファイルに作った FS のメタデータ領域だけを書き戻す
     fresh = tmp / "fresh.img"
     sh("mkfs.vfat", "-C", "-F", "32", "-s", "1", "-n", "NEWVOL", "-i", "5E6F7A8B",
@@ -213,7 +220,193 @@ def fx_quickformat(tmp: Path) -> dict:
     raw[root_off:root_off + 512] = f[root_off:root_off + 512]
     img.write_bytes(raw)
     fresh.unlink()
-    return {"file": img.name, "scenario": "クイックフォーマット後",
+
+
+def fx_qf_nested(tmp: Path) -> dict:
+    """入れ子フォルダ＋長いファイル名（LFN）の FAT32 をクイックフォーマット。
+
+    ルートディレクトリは作り直されるため、最上位フォルダ名（DCIM / Documents）は失われるが、
+    サブフォルダの中身と、サブフォルダ内のフォルダ名（100RESQ 等）は残骸として残る。
+    """
+    img = OUT / "qf_nested.img"
+    rng = random.Random(f"{SEED}-qfn")
+    files = {
+        "DCIM/100RESQ/Family Trip 01.jpg": make_jpeg(rng, 320, 240),
+        "DCIM/100RESQ/IMG_0002.JPG": make_jpeg(rng, 300, 200),
+        "DCIM/101RESQ/IMG_0101.JPG": make_jpeg(rng, 280, 210),
+        "Documents/Work/Estimate 2026.pdf": make_pdf("estimate 2026", 12000),
+        "Documents/memo notes.docx": make_docx(rng, "memo nested", 200),
+        "KEEP.PDF": make_pdf("qf nested keep", 4000),
+    }
+    new_fat(img)
+    put_files(img, files, tmp)
+    quick_format_fat(img, tmp)
+    return {"file": img.name, "scenario": "入れ子フォルダ＋LFN をクイックフォーマット",
+            "files": entries(files, set(files))}
+
+
+def fx_hiword(tmp: Path) -> dict:
+    """FAT32 で削除時に開始クラスタの上位 16 ビットが消される状況（Windows の FAT32 削除動作）。
+
+    大きなファイルで前半を埋め、写真の開始クラスタを 65536 以上に置く。削除後、ディレクトリ
+    エントリの上位ワード（オフセット 20-21）を 0 にする。名前は残るが、位置情報だけでは中身に届かない。
+    """
+    img = OUT / "hiword.img"
+    rng = random.Random(f"{SEED}-hiword")
+    filler = (b"RESQ-FILLER-" * 3_000_000)[: 34 * 1024 * 1024]
+    photos = {
+        "DCIM/IMG_0201.JPG": make_jpeg(rng, 320, 240),
+        "DCIM/IMG_0202.JPG": make_jpeg(rng, 300, 220),
+        "DCIM/IMG_0203.JPG": make_jpeg(rng, 340, 250),
+    }
+    new_fat(img)
+    put_files(img, {"FILLER.BIN": filler}, tmp)
+    put_files(img, photos, tmp)
+    del_files(img, list(photos))
+    raw = bytearray(img.read_bytes())
+    cleared = 0
+    for rel in photos:
+        stem, ext = Path(rel).name.split(".")
+        short = (stem.ljust(8)[:8] + ext.ljust(3)[:3]).encode()
+        needle = b"\xe5" + short[1:]
+        pos = raw.find(needle)
+        while pos >= 0:
+            if pos % 32 == 0:
+                hi = struct.unpack_from("<H", raw, pos + 20)[0]
+                assert hi > 0, "写真の開始クラスタが 65536 未満（フィクスチャ設計の前提が崩れている）"
+                struct.pack_into("<H", raw, pos + 20, 0)
+                cleared += 1
+                break
+            pos = raw.find(needle, pos + 1)
+    assert cleared == len(photos), cleared
+    img.write_bytes(raw)
+    return {"file": img.name, "scenario": "FAT32 削除で開始クラスタ上位ワード消失",
+            "filler": "FILLER.BIN", "files": entries(photos, set(photos))}
+
+
+def fx_ntfs_qf(tmp: Path) -> dict:
+    """NTFS（ルート直下のファイル）を作り、同じ設定で再フォーマット（mkntfs -Q）する。
+
+    新しい $MFT はシステムファイル分しか持たないため、旧ユーザーファイルの MFT レコード（64 番以降）は
+    残骸として残るが、ファイルシステムからは見えなくなる。
+    """
+    img = OUT / "ntfs_qf.img"
+    rng = random.Random(f"{SEED}-ntfs")
+    files = {
+        "Holiday Photo.jpg": make_jpeg(rng, 360, 270),
+        "IMG_0301.JPG": make_jpeg(rng, 300, 200),
+        "Report 2026.pdf": make_pdf("ntfs report", 20000),
+        "memo.docx": make_docx(rng, "ntfs memo", 300),
+        "note.txt": "resq ntfs resident note\n".encode() * 8,  # 小さいファイル＝MFT 内に常駐
+    }
+    if img.exists():
+        img.unlink()
+    with img.open("wb") as fh:
+        fh.truncate(32 * 1024 * 1024)
+    mk = ["mkntfs", "-F", "-Q", "-q", "-s", "512", "-c", "4096", "-p", "0", "-H", "0", "-S", "0"]
+    sh(*mk, "-L", "RESQFIX", str(img))
+    for rel, data in files.items():
+        src = tmp / ("ntfs_" + rel.replace(" ", "_"))
+        src.write_bytes(data)
+        sh("ntfscp", "-f", "-q", str(img), str(src), rel)
+        src.unlink()
+    sh(*mk, "-L", "NEWVOL", str(img))
+    return {"file": img.name, "scenario": "NTFS 再フォーマット（クイック）",
+            "files": entries(files, set(files))}
+
+
+# ---------------------------------------------------------------- exFAT（エントリを直接書き込む）
+def _exfat_name_hash(name: str) -> int:
+    h = 0
+    for b in name.upper().encode("utf-16-le"):
+        h = (((h << 15) | (h >> 1)) & 0xFFFF) + b & 0xFFFF
+    return h
+
+
+def _exfat_entry_set(name: str, first_cluster: int, length: int, is_dir: bool, deleted: bool) -> bytes:
+    nname = (len(name) + 14) // 15
+    f = bytearray(32)
+    f[0] = 0x85
+    f[1] = 1 + nname
+    struct.pack_into("<H", f, 4, 0x10 if is_dir else 0x20)
+    s = bytearray(32)
+    s[0] = 0xC0
+    s[1] = 0x03  # AllocationPossible | NoFatChain（連続配置）
+    s[3] = len(name)
+    struct.pack_into("<H", s, 4, _exfat_name_hash(name))
+    struct.pack_into("<Q", s, 8, length)
+    struct.pack_into("<I", s, 20, first_cluster)
+    struct.pack_into("<Q", s, 24, length)
+    parts = [bytes(f), bytes(s)]
+    u = name.encode("utf-16-le")
+    for i in range(nname):
+        n = bytearray(32)
+        n[0] = 0xC1
+        chunk = u[i * 30:(i + 1) * 30]
+        n[2:2 + len(chunk)] = chunk
+        parts.append(bytes(n))
+    blob = bytearray(b"".join(parts))
+    chk = 0
+    for i, b in enumerate(blob):
+        if i in (2, 3):
+            continue
+        chk = ((((chk << 15) | (chk >> 1)) & 0xFFFF) + b) & 0xFFFF
+    struct.pack_into("<H", blob, 2, chk)
+    if deleted:
+        for i in range(0, len(blob), 32):
+            blob[i] &= 0x7F
+    return bytes(blob)
+
+
+def fx_exfat_deleted(tmp: Path) -> dict:
+    """mkfs.exfat で作った exFAT に、削除済みのフォルダ・ファイルのエントリとデータを直接配置する。
+
+    （root なしで exFAT にファイルを書き込む手段がないため。構造は exFAT 仕様どおり）
+    """
+    img = OUT / "exfat_deleted.img"
+    rng = random.Random(f"{SEED}-exfat")
+    files = {
+        "DCIM/IMG_0401.JPG": make_jpeg(rng, 320, 240),
+        "DCIM/Birthday Party.jpg": make_jpeg(rng, 300, 220),
+        "Contract Draft.pdf": make_pdf("exfat contract", 9000),
+    }
+    if img.exists():
+        img.unlink()
+    with img.open("wb") as fh:
+        fh.truncate(32 * 1024 * 1024)
+    sh("mkfs.exfat", "-c", "4096", "-L", "RESQFIX", str(img))
+    raw = bytearray(img.read_bytes())
+    bps = 1 << raw[0x6C]
+    cs = bps << raw[0x6D]
+    heap = struct.unpack_from("<I", raw, 0x58)[0] * bps
+    root = struct.unpack_from("<I", raw, 0x60)[0]
+
+    def coff(c: int) -> int:
+        return heap + (c - 2) * cs
+
+    next_cluster = 200
+    dir_cluster = next_cluster
+    next_cluster += 1
+    dir_entries = b""
+    root_entries = b""
+    for rel, data in files.items():
+        first = next_cluster
+        raw[coff(first):coff(first) + len(data)] = data
+        next_cluster += (len(data) + cs - 1) // cs
+        name = Path(rel).name
+        es = _exfat_entry_set(name, first, len(data), False, True)
+        if rel.startswith("DCIM/"):
+            dir_entries += es
+        else:
+            root_entries += es
+    raw[coff(dir_cluster):coff(dir_cluster) + len(dir_entries)] = dir_entries
+    root_entries = _exfat_entry_set("DCIM", dir_cluster, cs, True, True) + root_entries
+    # ルートの空きエントリ（type 0x00）の位置に追記
+    r = coff(root)
+    pos = next(i for i in range(r, r + cs, 32) if raw[i] == 0x00)
+    raw[pos:pos + len(root_entries)] = root_entries
+    img.write_bytes(raw)
+    return {"file": img.name, "scenario": "exFAT 削除（フォルダごと）",
             "files": entries(files, set(files))}
 
 
@@ -280,6 +473,10 @@ def main() -> int:
             "overwrite": fx_overwrite(tmp),
             "quickformat": fx_quickformat(tmp),
             "parttable": fx_parttable(tmp),
+            "qf_nested": fx_qf_nested(tmp),
+            "hiword": fx_hiword(tmp),
+            "ntfs_qf": fx_ntfs_qf(tmp),
+            "exfat_deleted": fx_exfat_deleted(tmp),
         },
         "corrupt": fx_corrupt(),
     }

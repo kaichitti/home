@@ -29,7 +29,7 @@ from . import image as image_mod
 from . import intake
 from .cases import TRANSITIONS, create_case, get_case, open_workspace
 from .errors import ResqError
-from .recover import STAGES
+from .recover import STAGES, stage_label
 from .recover import ingest as ingest_mod
 from .recover import merge as merge_mod
 from .recover import pipeline
@@ -242,7 +242,7 @@ def events(case_id: str, limit: int = 50):
 def _print_report(rep: dict) -> None:
     t = Table("段", "手法", "検出", "単独で検出")
     for st, v in rep.get("stages", {}).items():
-        t.add_row(st, STAGES.get("COM" if st.startswith("COM") else st, st), str(v["found"]), str(v["unique"]))
+        t.add_row(st, stage_label(st), str(v["found"]), str(v["unique"]))
     console.print(t)
     console.print("ランク: " + "  ".join(f"{k}={v}" for k, v in rep["ranks"].items()))
     for v in rep.get("volumes", []):

@@ -19,13 +19,16 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # ---------------------------------------------------------------- フィクスチャ
 def test_fixtures_and_expected_json(fixtures, expected):
-    assert set(expected["images"]) >= {"deleted", "overwrite", "quickformat", "parttable"}
+    base = {"deleted", "overwrite", "quickformat", "parttable"}
+    assert set(expected["images"]) >= base | {"qf_nested", "hiword", "ntfs_qf", "exfat_deleted"}
     for name, img in expected["images"].items():
         p = fixtures / img["file"]
         assert p.is_file(), name
         assert hashlib.sha256(p.read_bytes()).hexdigest() == img["image_sha256"]
         kinds = {f["type"] for f in img["files"]}
-        assert {"jpg", "pdf", "docx"} <= kinds
+        assert "jpg" in kinds
+        if name in base:
+            assert {"jpg", "pdf", "docx"} <= kinds
     states = {f["state"] for f in expected["images"]["deleted"]["files"]}
     assert states == {"present", "deleted"}
     assert any(f["state"] == "overwritten" for f in expected["images"]["overwrite"]["files"])

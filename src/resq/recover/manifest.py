@@ -6,6 +6,18 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 
+PARTIAL_PREFIX = "…/"          # 上位フォルダが不明なパス
+LOST_DIR = "不明フォルダ"        # 名前の分からないフォルダ（残骸スキャンで所在だけ分かる）
+
+
+def has_folder_info(path: str | None) -> bool:
+    """フォルダ名が少なくとも 1 つ分かっているか（フォルダ構造付きで戻ったか）。"""
+    if not path or "/" not in path:
+        return False
+    parts = path.split("/")[:-1]
+    return any(p and p != "…" and not p.startswith(LOST_DIR) for p in parts)
+
+
 @dataclass
 class Candidate:
     stored: str                 # 案件ディレクトリからの相対パス

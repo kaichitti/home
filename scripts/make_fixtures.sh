@@ -3,7 +3,7 @@
 # 実デバイスには触れない。すべて通常ファイルに対する操作。
 set -euo pipefail
 cd "$(dirname "$0")/.."
-for t in mkfs.vfat mcopy mdel mmd python3; do
-  command -v "$t" >/dev/null || { echo "missing: $t (apt install dosfstools mtools)"; exit 1; }
+for t in mkfs.vfat mcopy mdel mmd mkntfs ntfscp mkfs.exfat python3; do
+  command -v "$t" >/dev/null || { echo "missing: $t (apt install dosfstools mtools ntfs-3g exfatprogs)"; exit 1; }
 done
 exec python3 scripts/fixturegen.py "$@"

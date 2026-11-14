@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 
 from .. import audit, safety
-from .manifest import Candidate, Manifest
+from .manifest import PARTIAL_PREFIX, Candidate, Manifest
 
 FLS_LINE = re.compile(r"^(\S)/(\S)\s+(\*\s+)?([\d-]+)(\(realloc\))?:\t(.*)$")
 ORPHAN = "$OrphanFiles/"
@@ -35,13 +35,15 @@ def _is_regular(row: dict) -> bool:
     return row["meta_type"] == "r" or (row["name_type"] in ("r", "-") and row["meta_type"] in ("r", "-"))
 
 
-def run(case, image_id: int, image: Path, volumes: list[dict], stage_dir: Path) -> Manifest:
+def extract(case, image: Path, volumes: list[dict], out_dir: Path, *, method: str = "TSK",
+            op: str = "recover.S2") -> list[Candidate]:
+    """各ボリュームの全エントリ（削除済み含む）を取り出し、候補の一覧を返す。"""
     ctx = case.ctx
-    man = Manifest(stage="S2", image_id=image_id, method="TSK")
+    cands: list[Candidate] = []
     for vol in volumes:
         off = vol["offset"]
-        vdir = stage_dir / f"vol{off}"
-        out = audit.run(["fls", "-r", "-p", "-o", str(off), image], op="recover.S2.fls", ctx=ctx, check=False)
+        vdir = out_dir / f"vol{off}"
+        out = audit.run(["fls", "-r", "-p", "-o", str(off), image], op=f"{op}.fls", ctx=ctx, check=False)
         rows = [r for r in parse_fls(out.stdout) if _is_regular(r)]
         for r in rows:
             if r["realloc"]:
@@ -54,11 +56,19 @@ def run(case, image_id: int, image: Path, volumes: list[dict], stage_dir: Path) 
                 dest = dest.with_name(f"{dest.name}~{r['inode']}")
             safety.assert_writable_target(dest, case_dir=case.dir, source=image)
             dest.parent.mkdir(parents=True, exist_ok=True)
-            audit.run(["icat", "-r", "-o", str(off), image, r["inode"]], op="recover.S2.icat", ctx=ctx,
+            audit.run(["icat", "-r", "-o", str(off), image, r["inode"]], op=f"{op}.icat", ctx=ctx,
                       stdout_path=dest, check=False, ok_codes=(0, 1))
-            man.candidates.append(Candidate(
-                stored=str(dest.relative_to(case.dir)), method="TSK", orig_path=rel,
+            # 孤立エントリ：親フォルダが一部だけ分かる場合は「…/」で上位不明を示す
+            orig = (PARTIAL_PREFIX + rel) if (orphan and "/" in rel) else rel
+            cands.append(Candidate(
+                stored=str(dest.relative_to(case.dir)), method=method, orig_path=orig,
                 path_known=not orphan, deleted=r["deleted"], volume_offset=off,
                 extra={"inode": r["inode"], "fstype": vol.get("fstype")}))
+    return cands
+
+
+def run(case, image_id: int, image: Path, volumes: list[dict], stage_dir: Path) -> Manifest:
+    man = Manifest(stage="S2", image_id=image_id, method="TSK")
+    man.candidates = extract(case, image, volumes, stage_dir)
     man.write(stage_dir)
     return man

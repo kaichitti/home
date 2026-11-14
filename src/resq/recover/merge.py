@@ -17,7 +17,7 @@ from pathlib import Path
 from .. import validate as V
 from ..db import now
 from ..hashing import sha256_file
-from .manifest import Candidate, Manifest
+from .manifest import Candidate, Manifest, has_folder_info
 
 RANK_ORDER = "ABCDUX"
 STATUS_SCORE = {V.OK: 3, V.UNVERIFIED: 2, V.PARTIAL: 1, V.BROKEN: 0, V.ZERO: -1, V.EMPTY: -2}
@@ -37,12 +37,12 @@ def rank_for(item: Item) -> str:
     s = item.result.status
     if s in V.NOT_RECOVERED:
         return "X"
+    if item.cand.extra.get("thumbnail"):
+        return "D"
     if s == V.PARTIAL:
         return "C"
     if s == V.UNVERIFIED:
         return "U"
-    if item.cand.extra.get("thumbnail"):
-        return "D"
     return "A" if item.cand.named else "B"
 
 
@@ -51,6 +51,7 @@ def _score(item: Item) -> tuple:
     return (
         STATUS_SCORE.get(item.result.status, 0),
         1 if c.path_known else 0,
+        1 if has_folder_info(c.orig_path) else 0,
         1 if c.named else 0,
         (c.orig_path or "").count("/"),   # フォルダ階層が深い＝パス情報が多い
         len(c.orig_path or ""),
@@ -96,7 +97,7 @@ def merge(case) -> dict:
         name = Path(c.orig_path).name if c.orig_path else Path(c.stored).name
         alt = sorted({m.cand.orig_path for m in members if m.cand.orig_path and m.cand.orig_path != c.orig_path})
         rows.append(dict(
-            case_id=case.id, image_id=best.image_id, orig_path=c.orig_path if c.path_known else None,
+            case_id=case.id, image_id=best.image_id, orig_path=c.orig_path if (c.path_known or has_folder_info(c.orig_path)) else None,
             name=name, size=best.size, kind=best.result.kind, verify=best.result.status, rank=rank,
             sha256=sha, method=c.method, stage=best.stage, stored_path=c.stored,
             deleted=None if c.deleted is None else int(c.deleted), img_offset=c.img_offset,

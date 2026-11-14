@@ -7,7 +7,7 @@ from pathlib import Path
 
 from . import reports
 from . import validate as V
-from .recover import STAGES
+from .recover import stage_label
 
 RANK_LABEL = {
     "A": "名前・フォルダ付きで開けるファイル",
@@ -84,8 +84,7 @@ def build(case, *, pdf: bool = True, revalidate: bool = True) -> dict:
     if rep_path.exists():
         rep = json.loads(rep_path.read_text())
         for st, v in rep.get("stages", {}).items():
-            key = "COM" if st.startswith("COM") else st
-            stages.append(dict(stage=st, label=STAGES.get(key, st), **v))
+            stages.append(dict(stage=st, label=stage_label(st), **v))
 
     html, pdf_path = reports.render(
         "catalog.html", out_dir / "list.html", pdf=pdf,

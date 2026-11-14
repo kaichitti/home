@@ -1,4 +1,8 @@
-"""多段復旧の実行制御（S1 → S2 → S5 → S8）。"""
+"""多段復旧の実行制御（企画書 §3.8）。
+
+  S1 パーティション探索 → S2 削除エントリ(TSK) → S3 残骸スキャン → S4 シャドウコピー
+  → S5 カービング(PhotoRec) → S6 名前の付け直し → S7 サムネイル → S8 統合・検証
+"""
 from __future__ import annotations
 
 from pathlib import Path
@@ -8,9 +12,11 @@ from .. import safety
 from ..db import now
 from ..image import get_image
 from . import merge as merge_mod
-from . import partitions, photorec, tsk
+from . import partitions, photorec, remnants, rename, thumbs, tsk, vss
+from .manifest import Manifest
 
-DEFAULT_STAGES = ("S1", "S2", "S5")
+DEFAULT_STAGES = ("S1", "S2", "S3", "S4", "S5", "S6", "S7")
+NEEDS_VOLUMES = {"S1", "S2", "S3", "S4"}
 
 
 def run(case, *, image_id: int | None = None, stages: tuple[str, ...] = DEFAULT_STAGES,
@@ -31,25 +37,51 @@ def run(case, *, image_id: int | None = None, stages: tuple[str, ...] = DEFAULT_
         case.db.insert("stage_runs", case_id=case.id, image_id=iid, stage=stage, method=method,
                        started_at=started, finished_at=now(), found=found, out_dir=str(out), note=note)
 
+    def step(name: str) -> bool:
+        if name in stages:
+            if on_stage:
+                on_stage(name)
+            return True
+        return False
+
     volumes: list[dict] = []
-    if "S1" in stages or "S2" in stages:
-        on_stage and on_stage("S1")
+    if NEEDS_VOLUMES & set(stages):
+        if on_stage:
+            on_stage("S1")
         d, t = stage_dir("S1"), now()
         volumes = partitions.find_volumes(image, d, case.ctx, use_testdisk=use_testdisk)
         record("S1", "mmls+TestDisk+bootscan", t, len(volumes), d,
                ", ".join(f"{v['fstype']}@{v['offset']}" for v in volumes))
-    if "S2" in stages:
-        on_stage and on_stage("S2")
+    if step("S2"):
         d, t = stage_dir("S2"), now()
         m = tsk.run(case, iid, image, volumes, d)
         record("S2", "TSK", t, len(m.candidates), d)
-    if "S5" in stages:
-        on_stage and on_stage("S5")
+    if step("S3"):
+        d, t = stage_dir("S3"), now()
+        m = remnants.run(case, iid, image, volumes, d)
+        record("S3", "残骸スキャン", t, len(m.candidates), d)
+    if step("S4"):
+        d, t = stage_dir("S4"), now()
+        m = vss.run(case, iid, image, volumes, d)
+        record("S4", "VSS", t, len(m.candidates), d, str(m.info))
+    s5: Manifest | None = None
+    if step("S5"):
         d, t = stage_dir("S5"), now()
-        m = photorec.run(case, iid, image, d)
-        record("S5", "PhotoRec", t, len(m.candidates), d)
+        s5 = photorec.run(case, iid, image, d)
+        record("S5", "PhotoRec", t, len(s5.candidates), d)
+    if step("S6"):
+        d, t = stage_dir("S6"), now()
+        if s5 is None and (base / "S5" / "manifest.json").exists():
+            s5 = Manifest.read(base / "S5" / "manifest.json")
+        m = rename.run(case, iid, base / "S3", s5 or Manifest("S5", iid, "PhotoRec"), d)
+        record("S6", "名前の付け直し", t, len(m.candidates), d)
+    if step("S7"):
+        d, t = stage_dir("S7"), now()
+        m = thumbs.run(case, iid, thumbs.collect_sources(case), d)
+        record("S7", "サムネイル", t, len(m.candidates), d)
 
-    on_stage and on_stage("S8")
+    if on_stage:
+        on_stage("S8")
     report = merge_mod.merge(case)
     report["volumes"] = volumes
     case.advance("復旧済")

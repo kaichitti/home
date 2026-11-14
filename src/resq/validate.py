@@ -164,15 +164,37 @@ def _check_mp4(path: Path) -> Result:
     return Result("", OK) if b"moov" in data else Result("", PARTIAL, "moov ボックスがない（再生できない可能性）")
 
 
+# 拡張子から期待される種別。中身のシグネチャと一致しなければ「別データで上書き」とみなす
+EXT_KIND = {
+    "jpg": "jpg", "jpeg": "jpg", "jpe": "jpg", "png": "png", "gif": "gif", "tif": "tif", "tiff": "tif",
+    "webp": "webp", "pdf": "pdf", "docx": "docx", "xlsx": "xlsx", "pptx": "pptx", "zip": "zip",
+    "doc": "ole", "xls": "ole", "ppt": "ole", "mp4": "mp4", "m4v": "mp4", "mov": "mov",
+    "heic": "heic", "mp3": "mp3", "wav": "wav", "avi": "avi",
+}
+_ZIP_FAMILY = {"zip", "docx", "xlsx", "pptx"}
+
+
+def _signature_kind(head: bytes) -> str:
+    return detect_kind(head, "")
+
+
 def validate(path: Path, name: str | None = None) -> Result:
     size = path.stat().st_size
     with open(path, "rb") as fh:
         head = fh.read(64)
-    kind = detect_kind(head, name or path.name)
+    fname = name or path.name
+    kind = detect_kind(head, fname)
     if size == 0:
         return Result(kind, EMPTY, "0 バイト")
     if _all_zero(path):
         return Result(kind, ZERO, "中身がすべてゼロ（上書き済み）")
+    expected = EXT_KIND.get(Path(fname).suffix.lower().lstrip("."))
+    if expected:
+        sig = _signature_kind(head)
+        same = sig == expected or (expected in _ZIP_FAMILY and sig in _ZIP_FAMILY | {"zip"})
+        if not same:
+            return Result(expected, BROKEN,
+                          f"拡張子（{expected}）と中身（{sig}）が一致しない：別のデータで上書きされている可能性")
     if kind in IMAGE_KINDS:
         r = _check_image(path)
     elif kind == "pdf":
