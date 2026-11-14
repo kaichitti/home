@@ -151,6 +151,13 @@ def run_checks(app: "App") -> list[Check]:
     else:
         checks.append(Check("scrcpy", WARN, "見つかりません（画面表示を使うときだけ必要）", "sudo apt install scrcpy"))
 
+    if wsl:
+        if app.runner.which(cfg.usbipd):
+            checks.append(Check("USB接続（usbipd-win）", OK, "実機を WSL へつなげます（droidfork usb）"))
+        else:
+            checks.append(Check("USB接続（usbipd-win）", WARN, "見つかりません（実機からの取り込みに必要）",
+                                "Windows の PowerShell で winget install usbipd を実行してください。"))
+
     # メモリ
     mem = meminfo(probe)
     if mem.get("MemTotal"):

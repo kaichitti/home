@@ -46,6 +46,9 @@ class Config:
     adb: str = "adb"
     docker: str = "docker"
     scrcpy: str = "scrcpy"
+    usbipd: str = "usbipd.exe"          # WSL2 で実機をつなぐとき（Windows 側の usbipd-win）
+    helper_image: str = "debian:bookworm-slim"  # スナップショットの複製に使う小さなイメージ
+    ui_port: int = 8765
 
     @property
     def templates_dir(self) -> Path:
@@ -62,6 +65,18 @@ class Config:
     @property
     def config_path(self) -> Path:
         return self.home / "config.json"
+
+    @property
+    def snapshots_dir(self) -> Path:
+        return self.home / "snapshots"
+
+    @property
+    def schedules_path(self) -> Path:
+        return self.home / "schedules.json"
+
+    @property
+    def uploads_dir(self) -> Path:
+        return self.home / "uploads"
 
     def to_dict(self) -> dict:
         data = asdict(self)
@@ -139,6 +154,8 @@ def validate(cfg: Config) -> None:
         raise bad("adb_port_base", "1024〜65535 の範囲に収まるようにしてください。")
     if not (1 <= cfg.fps <= 120):
         raise bad("fps", "1〜120 にしてください。")
+    if not (1024 <= cfg.ui_port <= 65535):
+        raise bad("ui_port", "1024〜65535 にしてください。")
     for dns in cfg.dns:
         if not re.match(r"^[0-9A-Fa-f:.]+$", dns):
             raise DroidForkError(f"設定 dns の値が正しくありません: {dns!r}", hint="IPアドレスで指定してください。")

@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import contextlib
+import re
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -70,6 +71,79 @@ def container_states(app: "App") -> dict[str, str]:
     return app.docker.containers(INSTANCE_LABEL)
 
 
+# ---- CPU・メモリの上限（企画書5章 v2） ----
+
+MEMORY_RE = re.compile(r"^[0-9]+(\.[0-9]+)?[kmg]?$", re.IGNORECASE)
+MIN_MEMORY_BYTES = 768 * 1024**2
+
+
+def parse_memory(text: str | None) -> str | None:
+    """"2g" "1536m" のような docker 形式を検査して小文字に揃える。"""
+    if text is None:
+        return None
+    value = text.strip().lower().removesuffix("b")
+    if not MEMORY_RE.match(value):
+        raise DroidForkError(f"メモリの上限「{text}」を読めません。", hint="2g、1536m のように指定してください。")
+    return value
+
+
+def memory_bytes(value: str) -> int:
+    unit = value[-1] if value[-1] in "kmg" else ""
+    number = float(value[:-1] if unit else value)
+    return int(number * {"": 1, "k": 1024, "m": 1024**2, "g": 1024**3}[unit])
+
+
+def check_cpus(cpus: float | None) -> float | None:
+    if cpus is not None and not 0.1 <= cpus <= 64:
+        raise DroidForkError("--cpus は 0.1〜64 で指定してください。")
+    return cpus
+
+
+def _warn_small_memory(app: "App", memory: str | None) -> None:
+    if memory and memory_bytes(memory) < MIN_MEMORY_BYTES:
+        app.console.warn(f"メモリの上限 {memory} は小さすぎて Android が起動しない可能性があります（目安 1g 以上）。")
+
+
+def set_limits(
+    app: "App",
+    instances: Sequence[Instance],
+    *,
+    cpus: float | None = None,
+    memory: str | None = None,
+    clear_cpus: bool = False,
+    clear_memory: bool = False,
+) -> dict[str, str]:
+    """上限を変える。起動中の台にはすぐ反映し（docker update）、解除は次回の起動から効く。"""
+    check_cpus(cpus)
+    memory = parse_memory(memory)
+    _warn_small_memory(app, memory)
+    states = container_states(app)
+    results = {}
+    for inst in instances:
+        if cpus is not None:
+            inst.cpus = cpus
+        if memory is not None:
+            inst.memory = memory
+        if clear_cpus:
+            inst.cpus = None
+        if clear_memory:
+            inst.memory = None
+        app.store.save_instance(inst)
+        note = "次回の起動から反映"
+        if states.get(container_name(inst.id)) == "running" and (cpus is not None or memory is not None):
+            args = ["update"]
+            if cpus is not None:
+                args += ["--cpus", f"{cpus:g}"]
+            if memory is not None:
+                args += ["--memory", memory, "--memory-swap", "-1"]
+            r = app.docker.cmd(*args, container_name(inst.id), check=False, timeout=60)
+            note = "反映しました" if r.ok else f"起動中の反映に失敗（次回の起動から反映）: {r.output.strip().splitlines()[-1] if r.output.strip() else r.returncode}"
+            if clear_cpus or clear_memory:
+                note += "（解除は次回の起動から）"
+        results[inst.id] = note
+    return results
+
+
 # ---- 複製 ----
 
 def _allocate_port(app: "App", taken: set[int]) -> int:
@@ -90,7 +164,11 @@ def create_instances(
     *,
     scale: float = 1.0,
     fps: int | None = None,
+    cpus: float | None = None,
+    memory: str | None = None,
 ) -> list[Instance]:
+    check_cpus(cpus)
+    memory = parse_memory(memory)
     if not 1 <= count <= MAX_CREATE:
         raise DroidForkError(f"台数は 1〜{MAX_CREATE} で指定してください。")
     if not 0.2 <= scale <= 1.0:
@@ -104,6 +182,7 @@ def create_instances(
             hint=f"`droidfork template build {tpl.name}` で作成してください。",
         )
     app.docker.ensure_daemon()
+    _warn_small_memory(app, memory)
     display = tpl.display.with_fps(fps).scaled(scale)
 
     created: list[Instance] = []
@@ -124,6 +203,8 @@ def create_instances(
                 mac=new_mac(macs),
                 display=display,
                 created_at=now_iso(),
+                cpus=cpus,
+                memory=memory,
             )
             ports.add(inst.adb_port)
             serials.add(inst.serialno)
@@ -180,6 +261,8 @@ def instance_run_spec(app: "App", inst: Instance, tpl: Template, image: str, use
         ],
         boot_args=boot_args(options),
         mac=inst.mac,
+        cpus=inst.cpus,
+        memory=inst.memory,
     )
 
 
@@ -325,11 +408,12 @@ def instance_rows(app: "App", instances: Sequence[Instance]) -> list[list[str]]:
         addr = instance_addr(app, inst)
         adb_state = adb_states.get(addr, "未接続") if state == "running" else "-"
         boot = f"{inst.last_boot_seconds:.0f}秒" if inst.last_boot_seconds else "-"
-        rows.append([inst.id, inst.template, label, addr, adb_state, inst.serialno, inst.display.label(), boot])
+        rows.append([inst.id, inst.template, label, addr, adb_state, inst.serialno, inst.display.label(),
+                     inst.limits_label(), boot])
     return rows
 
 
-INSTANCE_HEADERS = ["ID", "テンプレート", "状態", "ADB", "ADB状態", "シリアル", "画面", "前回起動"]
+INSTANCE_HEADERS = ["ID", "テンプレート", "状態", "ADB", "ADB状態", "シリアル", "画面", "上限", "前回起動"]
 
 
 def running(app: "App", instances: Sequence[Instance]) -> list[Instance]:

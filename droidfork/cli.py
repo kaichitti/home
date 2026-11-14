@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shlex
 import sys
 from pathlib import Path
@@ -11,18 +12,25 @@ from typing import Callable, Sequence
 
 from . import __version__
 from .app import App
-from .capture import capture, new_template
+from .capture import add_apks, capture, clone_template, new_template, remove_apk
 from .config import load_config
 from .hostcheck import NG, run_checks
 from .instances import (
     INSTANCE_HEADERS, bulk_install, collect_ids, connect_instances, create_instances, instance_rows,
-    open_screens, remove_instances, reset_instances, select_instances, start_instances, stop_instances,
+    open_screens, remove_instances, reset_instances, select_instances, set_limits, start_instances,
+    stop_instances,
 )
+from .schedule import (
+    ACTIONS, add_schedule, install_timer, linger_hint, list_schedules, remove_schedule, run_due,
+    set_enabled, uninstall_timer,
+)
+from .snapshots import create_snapshot, remove_snapshots, restore_snapshot, snapshot_volume_name
+from .usb import attach as usb_attach, detach as usb_detach, list_devices as usb_list
 from .redroid import adb_address, container_name
 from .stats import collect_stats, render_stats
 from .store import TEMPLATE_STATE_LABELS
 from .template import build_template, failure_hint, remove_template
-from .util import Console, DroidForkError, Runner, format_table
+from .util import Console, DroidForkError, Runner, format_bytes, format_table
 
 EPILOG = """\
 基本の流れ（3ステップ）:
@@ -190,7 +198,8 @@ def cmd_template_rm(app: App, args: argparse.Namespace) -> int:
 
 
 def cmd_create(app: App, args: argparse.Namespace) -> int:
-    created = create_instances(app, args.template_name, args.count, scale=args.scale, fps=args.fps)
+    created = create_instances(app, args.template_name, args.count, scale=args.scale, fps=args.fps,
+                               cpus=args.cpus, memory=args.memory)
     app.console.step(f"{len(created)} 台を作成しました（ディスクはコピーしていません）")
     print_instances(app, created)
     app.console.print(f"次の手順: droidfork start -t {args.template_name}")
@@ -206,7 +215,8 @@ def cmd_up(app: App, args: argparse.Namespace) -> int:
                       exclude=args.exclude or (), android=args.android)
     if not tpl.sealed:
         tpl = build_template(app, tpl.name, force=tpl.state == "failed")
-    created = create_instances(app, tpl.name, args.count, scale=args.scale, fps=args.fps)
+    created = create_instances(app, tpl.name, args.count, scale=args.scale, fps=args.fps,
+                               cpus=args.cpus, memory=args.memory)
     app.console.step(f"{len(created)} 台を作成しました。起動します")
     results = start_instances(app, created, wait=not args.no_wait, timeout=args.timeout)
     code = print_start_results(app, results)
@@ -317,6 +327,194 @@ def cmd_stats(app: App, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_limit(app: App, args: argparse.Namespace) -> int:
+    if args.cpus is None and args.memory is None and not args.no_cpus and not args.no_memory:
+        rows = [[i.id, f"{i.cpus:g}" if i.cpus else "-", i.memory or "-"] for i in _targets(app, args, default_all=True)]
+        app.console.print(format_table(["ID", "CPU上限", "メモリ上限"], rows))
+        return 0
+    results = set_limits(app, _targets(app, args), cpus=args.cpus, memory=args.memory,
+                         clear_cpus=args.no_cpus, clear_memory=args.no_memory)
+    app.console.print(format_table(["ID", "結果"], [[k, v] for k, v in results.items()]))
+    return 0
+
+
+def cmd_template_clone(app: App, args: argparse.Namespace) -> int:
+    tpl = clone_template(app, args.source, args.name)
+    app.console.print(f"テンプレート「{tpl.name}」を作りました（アプリ {len(tpl.packages)} 個）。"
+                      f"次の手順: droidfork template build {tpl.name}")
+    return 0
+
+
+def cmd_template_add_apk(app: App, args: argparse.Namespace) -> int:
+    entries = add_apks(app, args.name, [Path(p) for p in args.apks])
+    app.console.print(f"{len(entries)} 個のアプリを追加しました: {', '.join(e.name for e in entries)}")
+    app.console.print(f"反映するには: droidfork template build {args.name} --force")
+    return 0
+
+
+def cmd_template_rm_apk(app: App, args: argparse.Namespace) -> int:
+    remove_apk(app, args.name, args.package)
+    app.console.print(f"アプリ「{args.package}」を外しました。反映するには: droidfork template build {args.name} --force")
+    return 0
+
+
+def cmd_snapshot_create(app: App, args: argparse.Namespace) -> int:
+    snap = create_snapshot(app, app.store.load_instance(args.id), args.name, args.note)
+    app.console.print(f"スナップショット「{snap.name}」を保存しました（{snap.source} の差分）。")
+    return 0
+
+
+def cmd_snapshot_list(app: App, args: argparse.Namespace) -> int:
+    snaps = app.store.list_snapshots(template=args.template)
+    if not snaps:
+        app.console.print("スナップショットはまだありません。`droidfork snapshot create <ID>` で保存できます。")
+        return 0
+    try:
+        sizes = app.docker.volume_sizes()
+    except DroidForkError:
+        sizes = {}
+    rows = [[s.name, s.template, s.source, s.created_at, format_bytes(sizes.get(snapshot_volume_name(s.name))), s.note or ""]
+            for s in snaps]
+    app.console.print(format_table(["名前", "テンプレート", "保存元", "日時", "サイズ", "メモ"], rows))
+    return 0
+
+
+def cmd_snapshot_restore(app: App, args: argparse.Namespace) -> int:
+    snap = app.store.load_snapshot(args.snapshot)
+    if args.ids or args.template or args.all:
+        targets = _targets(app, args)
+    else:
+        targets = [app.store.load_instance(snap.source)]
+    others = [t.id for t in targets if t.id != snap.source]
+    message = f"{len(targets)} 台（{', '.join(t.id for t in targets)}）の今の差分を、スナップショット「{snap.name}」で置き換えます。"
+    if others:
+        message += " 保存元以外の台では Android ID を作り直します。"
+    app.confirm(message + "よろしいですか？", args.yes)
+    results = restore_snapshot(app, snap, targets)
+    app.console.print(f"{len(targets)} 台に戻しました。")
+    return print_start_results(app, results) if results else 0
+
+
+def cmd_snapshot_rm(app: App, args: argparse.Namespace) -> int:
+    snaps = [app.store.load_snapshot(n) for n in dict.fromkeys(args.names)]
+    app.confirm(f"スナップショット {len(snaps)} 個を削除します。よろしいですか？", args.yes)
+    app.docker.ensure_daemon()
+    remove_snapshots(app, snaps)
+    app.console.print(f"{len(snaps)} 個を削除しました。")
+    return 0
+
+
+def cmd_schedule_add(app: App, args: argparse.Namespace) -> int:
+    s = add_schedule(app, action=args.action, at=args.at, days=args.days, template=args.template,
+                     ids=args.ids, all_=args.all)
+    app.console.print(f"予定 {s.id} を追加しました: {s.days_label()} {s.at} に {s.target_label()} を{ACTIONS[s.action]}")
+    if not app.cfg.schedules_path.with_name(".timer-installed").exists():
+        app.console.print("予定を自動で実行するには `droidfork schedule install` を一度実行してください。")
+    return 0
+
+
+def cmd_schedule_list(app: App, args: argparse.Namespace) -> int:
+    items = list_schedules(app)
+    if not items:
+        app.console.print("予定はありません。`droidfork schedule add --at 09:00 --action start -t <テンプレート>` で追加できます。")
+        return 0
+    rows = [[s.id, "有効" if s.enabled else "無効", s.days_label(), s.at, ACTIONS[s.action], s.target_label(),
+             f"{s.last_run or '-'} {s.last_result or ''}".strip()] for s in items]
+    app.console.print(format_table(["ID", "状態", "曜日", "時刻", "動作", "対象", "前回"], rows))
+    return 0
+
+
+def cmd_schedule_rm(app: App, args: argparse.Namespace) -> int:
+    for sid in args.schedule_ids:
+        remove_schedule(app, sid)
+    app.console.print(f"{len(args.schedule_ids)} 件の予定を削除しました。")
+    return 0
+
+
+def cmd_schedule_enable(app: App, args: argparse.Namespace) -> int:
+    set_enabled(app, args.schedule_id, args.enabled)
+    app.console.print(f"予定 {args.schedule_id} を{'有効' if args.enabled else '無効'}にしました。")
+    return 0
+
+
+def cmd_schedule_run_due(app: App, args: argparse.Namespace) -> int:
+    if not args.loop:
+        run_due(app)
+        return 0
+    app.console.step("予定の確認を続けます（Ctrl+C で終了）")
+    while True:
+        try:
+            run_due(app)
+        except DroidForkError as exc:
+            app.console.warn(str(exc))
+        app.sleep(30)
+
+
+def cmd_schedule_install(app: App, args: argparse.Namespace) -> int:
+    unit_dir = install_timer(app)
+    app.cfg.schedules_path.parent.mkdir(parents=True, exist_ok=True)
+    app.cfg.schedules_path.with_name(".timer-installed").write_text(str(unit_dir))
+    app.console.print(f"1分ごとに予定を確認するタイマーを登録しました（{unit_dir}）。")
+    hint = linger_hint()
+    if hint:
+        app.console.print(hint)
+    return 0
+
+
+def cmd_schedule_uninstall(app: App, args: argparse.Namespace) -> int:
+    uninstall_timer(app)
+    app.cfg.schedules_path.with_name(".timer-installed").unlink(missing_ok=True)
+    app.console.print("タイマーを止めました（予定そのものは残っています）。")
+    return 0
+
+
+def cmd_usb_list(app: App, args: argparse.Namespace) -> int:
+    devices = usb_list(app)
+    if not devices:
+        app.console.print("USB機器が見つかりません。")
+        return 0
+    rows = [[d.busid, d.vid_pid, d.name, d.state_label, "○" if d.looks_android else ""] for d in devices]
+    app.console.print(format_table(["BUSID", "VID:PID", "機器", "状態", "Android?"], rows))
+    app.console.print("実機をつなぐには: droidfork usb attach <BUSID>")
+    return 0
+
+
+def cmd_usb_attach(app: App, args: argparse.Namespace) -> int:
+    device = usb_attach(app, args.busid)
+    app.console.print(f"{device.name} を WSL へつなぎました。`droidfork devices` で確認できます。")
+    return 0
+
+
+def cmd_usb_detach(app: App, args: argparse.Namespace) -> int:
+    usb_detach(app, args.busid)
+    app.console.print(f"{args.busid} を Windows へ戻しました。")
+    return 0
+
+
+def cmd_ui(app: App, args: argparse.Namespace) -> int:
+    from .config import LOOPBACK_BINDS
+    from .ui import make_server, serve
+    from .usb import open_url
+
+    host = args.host
+    port = args.port or app.cfg.ui_port
+    token = args.token or os.environ.get("DROIDFORK_UI_TOKEN") or None
+    if host not in LOOPBACK_BINDS:
+        app.console.warn(f"管理画面を {host} で公開します。同じネットワークの他の機器からも開けます（トークンは必要）。")
+    try:
+        server = make_server(app.with_console, host, port, token)
+    except OSError as exc:
+        raise DroidForkError(f"ポート {port} で待ち受けできません: {exc}", hint="--port で別の番号を指定してください。") from None
+    shown = "127.0.0.1" if host in ("0.0.0.0", "::", "") else host
+    url = f"http://{shown}:{server.port}/?token={server.state.token}"
+    app.console.print(f"管理画面: {url}")
+    app.console.print("終了するには Ctrl+C を押してください。")
+    if args.open:
+        open_url(app, url)
+    serve(server, app.console)
+    return 0
+
+
 def cmd_config(app: App, args: argparse.Namespace) -> int:
     app.console.print(f"# 設定ファイル: {app.cfg.config_path}")
     data = app.cfg.to_dict()
@@ -345,6 +543,8 @@ def _add_display_options(p: argparse.ArgumentParser) -> None:
     p.add_argument("--scale", type=float, default=1.0,
                    help="解像度とDPIの倍率（0.2〜1.0）。0.5 にするとメモリを節約できます")
     p.add_argument("--fps", type=int, help="画面の更新頻度（既定: 設定の fps）")
+    p.add_argument("--cpus", type=float, help="1台あたりのCPU上限（例: 1.5）")
+    p.add_argument("--memory", help="1台あたりのメモリ上限（例: 2g）")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -406,9 +606,21 @@ def build_parser() -> argparse.ArgumentParser:
     tp.add_argument("--timezone", help="タイムゾーン（例: Asia/Tokyo）")
     tp.add_argument("--apk", action="append", metavar="PATH", help="APK、または分割APKのフォルダ（複数可）")
     tp.set_defaults(handler=cmd_template_new)
+    tp = tsub.add_parser("clone", help="既存のテンプレートを元に新しいテンプレートを作る（版の管理）")
+    tp.add_argument("source")
+    tp.add_argument("name")
+    tp.set_defaults(handler=cmd_template_clone)
+    tp = tsub.add_parser("add-apk", help="テンプレートにAPKを追加する（作り直しが必要）")
+    tp.add_argument("name")
+    tp.add_argument("apks", nargs="+", metavar="APK", help="APK、または分割APKのフォルダ")
+    tp.set_defaults(handler=cmd_template_add_apk)
+    tp = tsub.add_parser("rm-apk", help="テンプレートからアプリを外す（作り直しが必要）")
+    tp.add_argument("name")
+    tp.add_argument("package")
+    tp.set_defaults(handler=cmd_template_rm_apk)
     tp = tsub.add_parser("rm", help="削除する")
     tp.add_argument("name")
-    tp.add_argument("--force", action="store_true", help="使っているインスタンスも一緒に削除する")
+    tp.add_argument("--force", action="store_true", help="使っているインスタンスとスナップショットも一緒に削除する")
     tp.add_argument("-y", "--yes", action="store_true", help="確認しない")
     tp.set_defaults(handler=cmd_template_rm)
 
@@ -462,6 +674,78 @@ def build_parser() -> argparse.ArgumentParser:
 
     p = add("stats", cmd_stats, "ディスク増分・メモリ使用量を実測する（PoC用）")
     p.add_argument("--json", action="store_true", help="JSONで出力する（記録用）")
+
+    p = add("limit", cmd_limit, "台ごとのCPU・メモリ上限を表示・変更する")
+    _add_selection(p)
+    p.add_argument("--cpus", type=float, help="CPUの上限（例: 1.5）")
+    p.add_argument("--memory", help="メモリの上限（例: 2g）")
+    p.add_argument("--no-cpus", action="store_true", help="CPUの上限を外す")
+    p.add_argument("--no-memory", action="store_true", help="メモリの上限を外す")
+
+    snap_parser = add("snapshot", None, "スナップショット（台の状態の保存と復元）", aliases=["snap"])
+    ssub = snap_parser.add_subparsers(dest="snapshot_command", metavar="<操作>")
+    snap_parser.set_defaults(handler=lambda app, args: (snap_parser.print_help(), 0)[1])
+    sp = ssub.add_parser("create", help="台の今の状態（差分）を保存する")
+    sp.add_argument("id", metavar="ID")
+    sp.add_argument("--name", help="名前（既定: ID-日時）")
+    sp.add_argument("--note", help="メモ")
+    sp.set_defaults(handler=cmd_snapshot_create)
+    sp = ssub.add_parser("list", aliases=["ls"], help="一覧")
+    sp.add_argument("-t", "--template", help="このテンプレートのものだけ")
+    sp.set_defaults(handler=cmd_snapshot_list)
+    sp = ssub.add_parser("restore", help="保存した状態に戻す（既定は保存元の台。同じテンプレートの別の台にも戻せる）")
+    sp.add_argument("snapshot")
+    _add_selection(sp)
+    sp.add_argument("-y", "--yes", action="store_true", help="確認しない")
+    sp.set_defaults(handler=cmd_snapshot_restore)
+    sp = ssub.add_parser("rm", help="削除する")
+    sp.add_argument("names", nargs="+", metavar="NAME")
+    sp.add_argument("-y", "--yes", action="store_true", help="確認しない")
+    sp.set_defaults(handler=cmd_snapshot_rm)
+
+    sched_parser = add("schedule", None, "スケジュール起動（決まった時刻に起動・停止など）")
+    csub = sched_parser.add_subparsers(dest="schedule_command", metavar="<操作>")
+    sched_parser.set_defaults(handler=lambda app, args: (sched_parser.print_help(), 0)[1])
+    cp = csub.add_parser("add", help="予定を追加する")
+    cp.add_argument("--at", required=True, help="時刻（例: 09:00）")
+    cp.add_argument("--action", required=True, choices=list(ACTIONS), help="start / stop / restart / reset")
+    cp.add_argument("--days", default="daily", help="daily / weekdays / weekends / mon-fri / mon,wed,fri（既定: daily）")
+    _add_selection(cp)
+    cp.set_defaults(handler=cmd_schedule_add)
+    cp = csub.add_parser("list", aliases=["ls"], help="一覧")
+    cp.set_defaults(handler=cmd_schedule_list)
+    cp = csub.add_parser("rm", help="削除する")
+    cp.add_argument("schedule_ids", nargs="+", metavar="ID")
+    cp.set_defaults(handler=cmd_schedule_rm)
+    for name, enabled in (("enable", True), ("disable", False)):
+        cp = csub.add_parser(name, help="有効にする" if enabled else "無効にする")
+        cp.add_argument("schedule_id", metavar="ID")
+        cp.set_defaults(handler=cmd_schedule_enable, enabled=enabled)
+    cp = csub.add_parser("run-due", help="時刻が来た予定を実行する（タイマーから呼ぶ）")
+    cp.add_argument("--loop", action="store_true", help="30秒ごとに確認し続ける")
+    cp.set_defaults(handler=cmd_schedule_run_due)
+    cp = csub.add_parser("install", help="予定を自動で実行するタイマー（systemd）を登録する")
+    cp.set_defaults(handler=cmd_schedule_install)
+    cp = csub.add_parser("uninstall", help="タイマーを止める")
+    cp.set_defaults(handler=cmd_schedule_uninstall)
+
+    usb_parser = add("usb", None, "WSL2: 実機を Windows から WSL へつなぐ（usbipd-win）")
+    usub = usb_parser.add_subparsers(dest="usb_command", metavar="<操作>")
+    usb_parser.set_defaults(handler=lambda app, args: (usb_parser.print_help(), 0)[1])
+    up_ = usub.add_parser("list", aliases=["ls"], help="Windows につながった USB 機器を一覧する")
+    up_.set_defaults(handler=cmd_usb_list)
+    up_ = usub.add_parser("attach", help="機器を WSL へつなぐ（初回は Windows の権限確認が出ます）")
+    up_.add_argument("busid", metavar="BUSID")
+    up_.set_defaults(handler=cmd_usb_attach)
+    up_ = usub.add_parser("detach", help="機器を Windows へ戻す")
+    up_.add_argument("busid", metavar="BUSID")
+    up_.set_defaults(handler=cmd_usb_detach)
+
+    p = add("ui", cmd_ui, "ブラウザで使う管理画面を起動する")
+    p.add_argument("--host", default="127.0.0.1", help="待ち受けるアドレス（既定: 127.0.0.1）")
+    p.add_argument("--port", type=int, help="ポート（既定: 設定の ui_port = 8765）")
+    p.add_argument("--token", help="URL のトークンを固定する（既定: 起動ごとに生成。環境変数 DROIDFORK_UI_TOKEN でも可）")
+    p.add_argument("--open", action="store_true", help="ブラウザで開く")
 
     add("config", cmd_config, "現在の設定を表示する")
     return parser

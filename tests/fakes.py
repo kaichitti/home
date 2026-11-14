@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import io
 import json
@@ -216,7 +217,11 @@ class FakeWorld:
         self.passthrough_calls: list[list[str]] = []
         self.binaries = {"adb", "docker", "scrcpy"}
         self.docker_up = True
-        self.registry = {IMAGE_REF: (IMAGE_ID, 2_100_000_000)}
+        self.registry = {IMAGE_REF: (IMAGE_ID, 2_100_000_000), "debian:bookworm-slim": ("sha256:" + "d" * 64, 80_000_000)}
+        self.usb_devices = [
+            ["1-4", "18d1:4ee7", "Pixel 7a", "Not shared"],
+            ["2-1", "046d:c52b", "USB 入力デバイス", "Not shared"],
+        ]
         self.local_images: dict[str, tuple[str, int]] = {}
         self.volumes: dict[str, dict] = {}
         self.containers: dict[str, FakeContainer] = {}
@@ -250,6 +255,16 @@ class FakeWorld:
                 rc, out, err = self.adb(argv[1:])
             elif prog == "docker":
                 rc, out, err = self.docker(argv[1:])
+            elif prog == "systemctl":
+                rc, out, err = 0, "", ""
+            elif prog == "usbipd.exe":
+                rc, out, err = self.usbipd(argv[1:])
+            elif prog == "powershell.exe":
+                busid = argv[-1].split("'--busid','")[1].split("'")[0]
+                for d in self.usb_devices:
+                    if d[0] == busid:
+                        d[3] = "Shared"
+                rc, out, err = 0, "", ""
             else:
                 rc, out, err = 127, "", "unknown"
         result = CommandResult(argv, rc, out, err)
@@ -329,6 +344,23 @@ class FakeWorld:
             return 0, "adbd is already running as root\n", ""
         return 1, "", "unsupported"
 
+    # ---- usbipd-win ----
+    def usbipd(self, args: list[str]) -> tuple[int, str, str]:
+        if args[0] == "list":
+            rows = "".join(f"{b:<7}{v}  {n:<40}  {s}\n" for b, v, n, s in self.usb_devices)
+            return 0, "Connected:\nBUSID  VID:PID    DEVICE                                    STATE\n" + rows + "\nPersisted:\nGUID  DEVICE\n", ""
+        busid = args[args.index("--busid") + 1]
+        for d in self.usb_devices:
+            if d[0] == busid:
+                if args[0] == "attach":
+                    if d[3] == "Not shared":
+                        return 1, "", "usbipd: error: Device is not shared; run 'usbipd bind' first."
+                    d[3] = "Attached - Ubuntu"
+                elif args[0] == "detach":
+                    d[3] = "Shared"
+                return 0, "", ""
+        return 1, "", "usbipd: error: There is no device with busid"
+
     # ---- docker ----
     def docker(self, args: list[str]) -> tuple[int, str, str]:
         if not self.docker_up:
@@ -375,6 +407,16 @@ class FakeWorld:
             return 0, "", ""
         if cmd == "logs":
             return 0, "init: starting service 'zygote'...\n", ""
+        if cmd == "update":
+            name = args[-1]
+            c = self.containers.get(name)
+            if c is None:
+                return 1, "", f"No such container: {name}"
+            if "--cpus" in args:
+                c.cpus = args[args.index("--cpus") + 1]
+            if "--memory" in args:
+                c.memory = args[args.index("--memory") + 1]
+            return 0, name + "\n", ""
         if cmd == "stats":
             names = args[4:]
             return 0, "".join(f"{n}\t812.5MiB / 15.6GiB\t3.20%\n" for n in names
@@ -413,12 +455,24 @@ class FakeWorld:
     def _run(self, args: list[str]) -> tuple[int, str, str]:
         name = labels = bind = port = mac = None
         labels, mounts = {}, []
-        privileged = False
+        privileged = remove = False
+        cpus = memory = None
         i = 0
         while i < len(args) and args[i].startswith("-"):
             flag = args[i]
             if flag == "-d":
                 i += 1
+            elif flag == "--rm":
+                remove = True
+                i += 1
+            elif flag == "--network":
+                i += 2
+            elif flag == "--cpus":
+                cpus = args[i + 1]
+                i += 2
+            elif flag == "--memory":
+                memory = args[i + 1]
+                i += 2
             elif flag == "--privileged":
                 privileged = True
                 i += 1
@@ -445,6 +499,10 @@ class FakeWorld:
                 return 1, "", f"unknown flag {flag}"
         image, boot_args = args[i], args[i + 1:]
         assert privileged, "Redroid には --privileged が必要"
+        if not any(image in (r, iid) for r, (iid, _) in self.local_images.items()):
+            return 125, "", f"Unable to find image '{image}' locally"
+        if remove:
+            return self._helper(mounts, boot_args)
         if name in self.containers:
             return 125, "", f'Conflict. The container name "/{name}" is already in use'
         if not any(image in (r, iid) for r, (iid, _) in self.local_images.items()):
@@ -455,10 +513,27 @@ class FakeWorld:
         for vol, _, _ in mounts:
             self.volumes.setdefault(vol, {"labels": {}, "data": {}})
         c = FakeContainer(self, name, image, labels, bind, port, mounts, mac, boot_args)
+        c.cpus, c.memory = cpus, memory
         if name in self.crash_on_start:
             c.state = "exited"
         self.containers[name] = c
         return 0, secrets.token_hex(32) + "\n", ""
+
+
+    def _helper(self, mounts: list, command: list[str]) -> tuple[int, str, str]:
+        """スナップショット用の複製（cp -a /src/. /dst/ と、ID ファイルの削除）を模擬する。"""
+        by_target = {target: vol for vol, target, _ in mounts}
+        script = command[-1]
+        assert script.startswith("cp -a /src/. /dst/"), script
+        src = self.volumes[by_target["/src"]]["data"]
+        dst = self.volumes.setdefault(by_target["/dst"], {"labels": {}, "data": {}})["data"]
+        dst.update(copy.deepcopy(src))
+        if "settings_ssaid.xml" in script:
+            dst.pop(SSAID_FILE, None)
+        if "settings_secure.xml" in script:
+            for key in [k for k in dst if k.startswith("settings/secure/")]:
+                del dst[key]
+        return 0, "", ""
 
 
 class FakeHost:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import sys
 import time
 from dataclasses import dataclass, field
@@ -41,6 +42,11 @@ class App:
         self.docker = Docker(self.runner, self.cfg.docker)
         self.adb = Adb(self.runner, self.cfg.adb)
         self.store = Store(self.cfg)
+
+    def with_console(self, console: Console) -> "App":
+        """出力先だけを差し替えた App（管理画面のジョブごとにログを分けるため）。"""
+        runner = Runner(console) if type(self.runner) is Runner else self.runner
+        return dataclasses.replace(self, console=console, runner=runner)
 
     def confirm(self, prompt: str, assume_yes: bool) -> None:
         """取り消せない操作の前に確認する。対話できないときは --yes を求める。"""

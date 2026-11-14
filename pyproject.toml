@@ -1,14 +1,14 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "droidfork"
-version = "0.1.0"
+dynamic = ["version"]
 description = "実機1台を雛形に、軽量な仮想Android端末をN台起動するツール（Redroid＋共有層＋差分層）"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {file = "LICENSE"}
+license-files = ["LICENSE"]
 dependencies = []
 classifiers = [
     "Operating System :: POSIX :: Linux",
@@ -21,3 +21,9 @@ droidfork = "droidfork.cli:main"
 
 [tool.setuptools]
 packages = ["droidfork"]
+
+[tool.setuptools.dynamic]
+version = {attr = "droidfork.__version__"}
+
+[tool.setuptools.package-data]
+droidfork = ["ui.html"]

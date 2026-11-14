@@ -80,6 +80,16 @@ class Instance:
     created_at: str
     last_started_at: str | None = None
     last_boot_seconds: float | None = None
+    cpus: float | None = None      # CPU の上限（台数ごと。None は無制限）
+    memory: str | None = None      # メモリの上限（例 "2g"。None は無制限）
+
+    def limits_label(self) -> str:
+        parts = []
+        if self.cpus:
+            parts.append(f"{self.cpus:g}CPU")
+        if self.memory:
+            parts.append(self.memory)
+        return "/".join(parts) or "-"
 
     def to_dict(self) -> dict:
         data = asdict(self)
@@ -92,6 +102,24 @@ class Instance:
         d["display"] = Display.from_dict(d["display"])
         known = {f.name for f in fields(cls)}
         return cls(**{k: v for k, v in d.items() if k in known})
+
+
+@dataclass
+class Snapshot:
+    """インスタンスの差分層を保存したもの。同じテンプレートのインスタンスへ戻せる。"""
+    name: str
+    template: str
+    source: str              # 保存元のインスタンスID
+    created_at: str
+    note: str | None = None
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "Snapshot":
+        known = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in data.items() if k in known})
 
 
 class Store:
@@ -168,3 +196,35 @@ class Store:
 
     def remove_instance_file(self, instance_id: str) -> None:
         self.instance_file(instance_id).unlink(missing_ok=True)
+
+    # ---- スナップショット ----
+
+    def snapshot_file(self, name: str) -> Path:
+        return self.cfg.snapshots_dir / f"{name}.json"
+
+    def snapshot_exists(self, name: str) -> bool:
+        return self.snapshot_file(name).exists()
+
+    def load_snapshot(self, name: str) -> Snapshot:
+        path = self.snapshot_file(name)
+        if not path.exists():
+            raise DroidForkError(
+                f"スナップショット「{name}」が見つかりません。",
+                hint="`droidfork snapshot list` で一覧を確認できます。",
+            )
+        return Snapshot.from_dict(read_json(path))
+
+    def save_snapshot(self, snapshot: Snapshot) -> None:
+        write_json(self.snapshot_file(snapshot.name), snapshot.to_dict())
+
+    def list_snapshots(self, template: str | None = None) -> list[Snapshot]:
+        root = self.cfg.snapshots_dir
+        if not root.exists():
+            return []
+        items = [Snapshot.from_dict(read_json(p)) for p in root.glob("*.json") if not p.name.startswith(".")]
+        if template is not None:
+            items = [s for s in items if s.template == template]
+        return sorted(items, key=lambda s: (s.template, s.created_at, s.name))
+
+    def remove_snapshot_file(self, name: str) -> None:
+        self.snapshot_file(name).unlink(missing_ok=True)

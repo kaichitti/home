@@ -275,6 +275,26 @@ def apk_groups(paths: Sequence[Path]) -> list[tuple[str, list[Path]]]:
     return [_apk_group(Path(p)) for p in paths]
 
 
+def _store_apk_groups(apk_root: Path, groups: Sequence[tuple[str, list[Path]]], used: set[str]) -> list[PackageEntry]:
+    """手元のAPKを雛形のフォルダへ写す。名前が重なったら _2, _3 … を付ける。"""
+    entries = []
+    for label, files in groups:
+        pkg = re.sub(r"[^A-Za-z0-9_.]", "_", label) or "app"
+        base, n = pkg, 2
+        while pkg in used:
+            pkg, n = f"{base}_{n}", n + 1
+        used.add(pkg)
+        dest = apk_root / pkg
+        dest.mkdir(parents=True)
+        names = []
+        for i, f in enumerate(files):
+            target = f.name if APK_NAME_RE.match(f.name) else f"part{i}.apk"
+            shutil.copy2(f, dest / target)
+            names.append(target)
+        entries.append(PackageEntry(name=pkg, files=names, source="local"))
+    return entries
+
+
 def new_template(
     app: "App",
     name: str,
@@ -304,24 +324,75 @@ def new_template(
     )
     staging = _staging_dir(app, name)
     try:
-        used: set[str] = set()
-        for label, files in groups:
-            pkg = re.sub(r"[^A-Za-z0-9_.]", "_", label) or "app"
-            base, n = pkg, 2
-            while pkg in used:
-                pkg, n = f"{base}_{n}", n + 1
-            used.add(pkg)
-            dest = staging / "apks" / pkg
-            dest.mkdir(parents=True)
-            names = []
-            for i, f in enumerate(files):
-                target = f.name if APK_NAME_RE.match(f.name) else f"part{i}.apk"
-                shutil.copy2(f, dest / target)
-                names.append(target)
-            template.packages.append(PackageEntry(name=pkg, files=names, source="local"))
+        template.packages.extend(_store_apk_groups(staging / "apks", groups, set()))
         _commit(app, staging, template)
     except BaseException:
         shutil.rmtree(staging, ignore_errors=True)
         raise
     app.console.step(f"テンプレート「{name}」を定義しました（Android {version}、アプリ {len(template.packages)} 個）")
     return template
+
+
+# ---- テンプレートの複数管理（企画書5章 v2） ----
+
+def clone_template(app: "App", source: str, name: str) -> Template:
+    """既存のテンプレートを元に新しいテンプレートを作る（APKと設定を引き継ぎ、作成はやり直す）。"""
+    src = app.store.load_template(source)
+    _check_new_name(app, name)
+    staging = _staging_dir(app, name)
+    try:
+        if app.store.apk_dir(source).exists():
+            shutil.copytree(app.store.apk_dir(source), staging / "apks")
+        clone = Template(
+            name=name, state="captured", created_at=now_iso(),
+            android_version=src.android_version, android_sdk=src.android_sdk, display=src.display,
+            locale=src.locale, timezone=src.timezone, settings=dict(src.settings),
+            packages=list(src.packages), source=dict(src.source),
+            notes=[f"テンプレート「{source}」から複製しました。"],
+        )
+        _commit(app, staging, clone)
+    except BaseException:
+        shutil.rmtree(staging, ignore_errors=True)
+        raise
+    return clone
+
+
+def _editable(app: "App", name: str) -> Template:
+    tpl = app.store.load_template(name)
+    users = app.store.list_instances(template=name)
+    if tpl.sealed and users:
+        raise DroidForkError(
+            f"テンプレート「{name}」はインスタンス {len(users)} 台が使っているため変更できません。",
+            hint=f"`droidfork template clone {name} <新しい名前>` で複製してから変更してください。",
+        )
+    if tpl.state == "building":
+        raise DroidForkError(f"テンプレート「{name}」は作成中です。")
+    return tpl
+
+
+def _mark_changed(tpl: Template) -> None:
+    if tpl.sealed:
+        tpl.state = "captured"
+        tpl.notes.append("内容を変更したため、作り直しが必要です（droidfork template build）。")
+
+
+def add_apks(app: "App", name: str, paths: Sequence[Path]) -> list[PackageEntry]:
+    tpl = _editable(app, name)
+    groups = apk_groups(paths)
+    entries = _store_apk_groups(app.store.apk_dir(name), groups, {p.name for p in tpl.packages})
+    tpl.packages.extend(entries)
+    _mark_changed(tpl)
+    app.store.save_template(tpl)
+    return entries
+
+
+def remove_apk(app: "App", name: str, package: str) -> None:
+    tpl = _editable(app, name)
+    if package not in {p.name for p in tpl.packages}:
+        raise DroidForkError(f"テンプレート「{name}」にアプリ「{package}」はありません。",
+                             hint=f"`droidfork template show {name}` で確認できます。")
+    tpl.packages = [p for p in tpl.packages if p.name != package]
+    tpl.install_results.pop(package, None)
+    shutil.rmtree(app.store.apk_dir(name) / package, ignore_errors=True)
+    _mark_changed(tpl)
+    app.store.save_template(tpl)

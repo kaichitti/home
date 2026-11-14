@@ -1,0 +1,9 @@
+[Unit]
+Description=DroidFork のスケジュール確認（ユーザー %i、1分ごと）
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

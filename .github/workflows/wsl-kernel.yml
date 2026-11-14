@@ -1,0 +1,44 @@
+name: wsl-kernel
+
+# binder を組み込んだ WSL2 カーネルを作る（30〜60分かかるため、手動かリリース時だけ動かす）
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "WSL2-Linux-Kernel のタグ（空なら最新）"
+        required: false
+        default: ""
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - name: ビルドに必要なものを入れる
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq build-essential flex bison bc libssl-dev libelf-dev dwarves cpio python3
+          if [ "${{ matrix.arch }}" = arm64 ]; then sudo apt-get install -y -qq gcc-aarch64-linux-gnu; fi
+      - name: カーネルを作る
+        env:
+          ARCH: ${{ matrix.arch }}
+          OUT: ${{ github.workspace }}/dist/wsl-kernel
+          WORK: ${{ runner.temp }}/wsl-kernel
+        run: windows/kernel/build-kernel.sh "${{ inputs.tag }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wsl-kernel-${{ matrix.arch }}
+          path: dist/wsl-kernel/

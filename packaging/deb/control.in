@@ -1,0 +1,17 @@
+Package: droidfork
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.10), docker.io | docker-ce | moby-engine, adb | android-tools-adb
+Recommends: scrcpy, android-sdk-platform-tools-common
+Maintainer: @MAINTAINER@
+Homepage: @HOMEPAGE@
+Description: 実機1台を雛形に、軽量な仮想Android端末をN台起動する
+ USB でつないだ Android 端末のアプリ構成と画面・地域設定を取り込み、
+ コンテナ型 Android（Redroid）で指定した台数の仮想端末を起動します。
+ 全台が1つの雛形（共有層）を読み取り専用で参照し、各台は差分だけを
+ 持つため、台数を増やしてもディスクの増分を小さく抑えられます。
+ .
+ ブラウザの管理画面（droidfork ui）、スナップショット、台ごとの
+ CPU・メモリ上限、スケジュール起動に対応しています。

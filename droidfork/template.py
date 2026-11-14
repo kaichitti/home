@@ -224,17 +224,21 @@ def seal(app: "App", addr: str, tpl: Template) -> None:
 def remove_template(app: "App", name: str, *, force: bool = False) -> int:
     """テンプレートを削除する。戻り値は一緒に削除したインスタンスの台数。"""
     from .instances import remove_instances  # 循環 import を避ける
+    from .snapshots import remove_snapshots
 
     app.store.load_template(name)
     users = app.store.list_instances(template=name)
-    if users and not force:
+    snapshots = app.store.list_snapshots(template=name)
+    if (users or snapshots) and not force:
         raise DroidForkError(
-            f"テンプレート「{name}」を使うインスタンスが {len(users)} 台あります。",
-            hint="インスタンスごと削除する場合は --force を付けてください。",
+            f"テンプレート「{name}」を使うインスタンスが {len(users)} 台、スナップショットが {len(snapshots)} 個あります。",
+            hint="一緒に削除する場合は --force を付けてください。",
         )
     app.docker.ensure_daemon()
     if users:
         remove_instances(app, users)
+    if snapshots:
+        remove_snapshots(app, snapshots)
     app.docker.remove([build_container_name(name)])
     app.docker.volume_rm(base_volume_name(name))
     app.store.remove_template_files(name)

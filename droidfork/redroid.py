@@ -141,6 +141,8 @@ class RunSpec:
     mounts: list[Mount]
     boot_args: list[str]
     mac: str | None = None
+    cpus: float | None = None
+    memory: str | None = None
 
 
 def docker_run_args(spec: RunSpec) -> list[str]:
@@ -150,6 +152,10 @@ def docker_run_args(spec: RunSpec) -> list[str]:
     args += ["-p", f"{spec.bind_host}:{spec.host_port}:{ADB_PORT_IN_CONTAINER}"]
     if spec.mac:
         args += ["--mac-address", spec.mac]
+    if spec.cpus:
+        args += ["--cpus", f"{spec.cpus:g}"]
+    if spec.memory:
+        args += ["--memory", spec.memory]
     for m in spec.mounts:
         args += ["-v", f"{m.volume}:{m.target}" + (":ro" if m.readonly else "")]
     args.append(spec.image)
