@@ -39,7 +39,7 @@ def test_catalog_distinguishes_ranks(case, fixtures):
     ING.ingest(case, fixtures / "corrupt", engine="DMDE")
     M.merge(case)
     res = catalog.build(case, pdf=True)
-    html = Path(res["html"]).read_text()
+    html = Path(res["html"]).read_text(encoding="utf-8")
     ranks = res["ranks"]
     assert ranks["A"] == 3                       # good.jpg / good.pdf / good.docx
     assert ranks["C"] >= 2                       # truncated.jpg / truncated.pdf（＋broken.docx）

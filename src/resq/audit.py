@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import locale
 import os
 import shlex
 import subprocess
@@ -29,6 +30,8 @@ FORBIDDEN_PROGRAMS = frozenset({
 FORBIDDEN_PREFIXES = ("mkfs", "fsck.", "mkswap")
 
 REDACTED = "***"
+# 外部ツールの出力はOSの既定の文字コードで出る（Linux は UTF-8、日本語 Windows は cp932 等）
+TOOL_ENCODING = locale.getencoding()
 
 
 class EventSink(Protocol):
@@ -113,11 +116,11 @@ def run(argv: Sequence[str | os.PathLike], *, op: str, ctx: AuditContext | None 
                 proc = subprocess.run(args, cwd=cwd, timeout=timeout, stdout=out,
                                       stderr=subprocess.PIPE, input=input_text.encode() if input_text else None)
             result = subprocess.CompletedProcess(args, proc.returncode, b"", proc.stderr)
-            err_text = proc.stderr.decode(errors="replace")
+            err_text = proc.stderr.decode(TOOL_ENCODING, errors="replace")
         elif stream is not None:
             proc = subprocess.Popen(args, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                     stdin=subprocess.PIPE if input_text else subprocess.DEVNULL,
-                                    text=True, errors="replace")
+                                    text=True, encoding=TOOL_ENCODING, errors="replace")
             if input_text:
                 assert proc.stdin
                 proc.stdin.write(input_text)
@@ -131,7 +134,7 @@ def run(argv: Sequence[str | os.PathLike], *, op: str, ctx: AuditContext | None 
             result = subprocess.CompletedProcess(args, proc.returncode, "".join(chunks), "")
         else:
             result = subprocess.run(args, cwd=cwd, timeout=timeout, capture_output=True, text=True,
-                                    errors="replace", input=input_text)
+                                    encoding=TOOL_ENCODING, errors="replace", input=input_text)
             err_text = result.stderr or ""
         rc = result.returncode
     except FileNotFoundError as e:

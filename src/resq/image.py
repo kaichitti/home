@@ -112,11 +112,11 @@ def acquire(case: Case, source: str, *, device_id: int | None = None, accept_ris
         first += ["-s", str(max_bytes)]
     audit.run([*first, source, img, mapf], op="image.pass1", ctx=ctx, allow_device=is_dev, stream=stream)
 
-    status = parse_mapfile(mapf.read_text())
+    status = parse_mapfile(mapf.read_text(encoding="utf-8"))
     if max_bytes is None and status.unreadable > 0 and retry_passes > 0:
         audit.run(["ddrescue", *common, "-r", str(retry_passes), source, img, mapf], op="image.retry",
                   ctx=ctx, allow_device=is_dev, stream=stream)
-        status = parse_mapfile(mapf.read_text())
+        status = parse_mapfile(mapf.read_text(encoding="utf-8"))
 
     complete = status.untried == 0 and status.size >= size
     if complete:

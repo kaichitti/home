@@ -7,6 +7,7 @@
 """
 from __future__ import annotations
 
+import locale
 import os
 import shlex
 import subprocess
@@ -26,7 +27,7 @@ def station_id() -> str | None:
     """このマシンが消去ステーションならその ID。マーカーと環境変数の両方が一致したときだけ。"""
     env = os.environ.get("RESQ_ERASE_STATION_ID")
     try:
-        marker = STATION_MARKER.read_text().strip()
+        marker = STATION_MARKER.read_text(encoding="utf-8").strip()
     except OSError:
         return None
     return env if env and env == marker else None
@@ -68,7 +69,8 @@ def run(argv: Sequence[str], *, ledger: Ledger, op: str, media_id: int | None = 
     elif os.path.basename(args[0]) not in READ_ONLY_PROGRAMS | ERASE_PROGRAMS:
         raise EraseRefused(f"許可されていないコマンドです: {args[0]}")
     try:
-        p = subprocess.run(args, capture_output=True, text=True, errors="replace", timeout=timeout)
+        p = subprocess.run(args, capture_output=True, text=True, encoding=locale.getencoding(),
+                           errors="replace", timeout=timeout)
     except FileNotFoundError:
         ledger.event(op, f"not found: {shown}", media_id=media_id, rc=127)
         raise

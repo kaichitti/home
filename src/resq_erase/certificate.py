@@ -138,7 +138,7 @@ def export_verification_list(ledger: Ledger, out_dir: Path) -> tuple[Path, Path]
             for r in ledger.all("SELECT number, issued_at, sha256 FROM certificates ORDER BY id")]
     out_dir.mkdir(parents=True, exist_ok=True)
     j = out_dir / "certificates.json"
-    j.write_text(json.dumps(rows, ensure_ascii=False, indent=1))
+    j.write_text(json.dumps(rows, ensure_ascii=False, indent=1), encoding="utf-8")
     h = out_dir / "index.html"
     h.write_text(_env().get_template("verify_page.html").render(rows=rows), encoding="utf-8")
     return j, h

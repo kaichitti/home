@@ -129,6 +129,6 @@ def merge(case) -> dict:
         if row:
             case.db.execute("UPDATE stage_runs SET found=?, unique_found=? WHERE id=?",
                             v["found"], v["unique"], row["id"])
-    (case.sub("stages") / "stage_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
+    (case.sub("stages") / "stage_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     case.db.add_event(case.id, "recover.S8.merge", json.dumps(ranks), 0)
     return report

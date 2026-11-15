@@ -31,7 +31,7 @@ def run(case, image_id: int, s3_dir: Path, s5_manifest: Manifest, stage_dir: Pat
         man.info["note"] = "S3 の結果がないため実行しませんでした"
         man.write(stage_dir)
         return man
-    rep = json.loads(rep_path.read_text())
+    rep = json.loads(rep_path.read_text(encoding="utf-8"))
 
     exact: dict[int, list[dict]] = defaultdict(list)
     lo16: dict[tuple[int, int], list[dict]] = defaultdict(list)

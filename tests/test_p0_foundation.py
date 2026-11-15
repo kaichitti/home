@@ -53,7 +53,7 @@ def test_audit_logs_and_redacts(case):
     secret = "123456-654321-111111-222222-333333-444444-555555-666666"
     r = audit.run(["echo", f"key={secret}"], op="test.secret", ctx=case.ctx, secrets=[secret])
     assert secret not in r.stdout
-    logs = (case.dir / "logs" / "events.jsonl").read_text() + case.ws.log_path.read_text()
+    logs = (case.dir / "logs" / "events.jsonl").read_text(encoding="utf-8") + case.ws.log_path.read_text(encoding="utf-8")
     assert "test.secret" in logs and secret not in logs
     rows = case.db.all("SELECT command FROM events WHERE case_id=? AND op='test.secret'", case.id)
     assert rows and all(secret not in r["command"] for r in rows)
@@ -138,12 +138,12 @@ def test_safe_join_blocks_traversal(tmp_path):
 def test_hook_blocks_device_commands(cmd, rc):
     hook = ROOT / ".claude" / "hooks" / "block_devices.py"
     p = subprocess.run([sys.executable, str(hook)], input=json.dumps({"tool_input": {"command": cmd}}),
-                       text=True, capture_output=True)
+                       text=True, encoding="utf-8", capture_output=True)
     assert p.returncode == rc
 
 
 def test_settings_deny_list():
-    s = json.loads((ROOT / ".claude" / "settings.json").read_text())
+    s = json.loads((ROOT / ".claude" / "settings.json").read_text(encoding="utf-8"))
     deny = s["permissions"]["deny"]
     for needle in ("Bash(sudo *)", "Bash(dd *)", "Bash(mkfs*)", "Bash(nvme *)", "Bash(nwipe *)"):
         assert needle in deny
@@ -151,7 +151,7 @@ def test_settings_deny_list():
 
 def test_recovery_build_excludes_erase_package():
     # 復旧ビルド（pyproject.toml）は resq_erase を含めない。実際のホイール内容は test_erase.py で確認
-    text = (ROOT / "pyproject.toml").read_text()
+    text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
     assert 'exclude = ["resq_erase*"]' in text
 
 

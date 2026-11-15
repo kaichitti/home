@@ -26,7 +26,7 @@ def fixtures() -> Path:
 
 @pytest.fixture(scope="session")
 def expected(fixtures) -> dict:
-    return json.loads((fixtures / "expected.json").read_text())
+    return json.loads((fixtures / "expected.json").read_text(encoding="utf-8"))
 
 
 @pytest.fixture

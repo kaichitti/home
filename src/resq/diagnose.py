@@ -109,7 +109,7 @@ def evaluate_smart(data: dict, diag: Diagnosis) -> None:
 
 def load_smart(source: str, smart_json: Path | None, ctx: audit.AuditContext | None) -> dict | None:
     if smart_json is not None:
-        return json.loads(Path(smart_json).read_text())
+        return json.loads(Path(smart_json).read_text(encoding="utf-8"))
     if not safety.is_device(source):
         return None  # イメージファイルには SMART がない
     # smartctl の終了コードはビットマスク（ディスク状態の警告でも非 0）なので rc はここで判定しない

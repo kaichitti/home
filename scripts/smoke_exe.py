@@ -72,8 +72,8 @@ def main() -> int:
         mock.mkdir()
         (mock / "lsblk.json").write_text(json.dumps({"blockdevices": [
             {"name": "sdb", "serial": "SMOKE-HDD-0001", "model": "TEST HDD", "size": 1000204886016, "tran": "sata",
-             "rota": True, "rm": False, "type": "disk"}]}))
-        (mock / "hdparm_N.txt").write_text(" max sectors   = 1953525168/1953525168, HPA is disabled\n")
+             "rota": True, "rm": False, "type": "disk"}]}), encoding="utf-8")
+        (mock / "hdparm_N.txt").write_text(" max sectors   = 1953525168/1953525168, HPA is disabled\n", encoding="utf-8")
         run("resq-erase", "register", "--serial", "SMOKE-HDD-0001", "--kind", "HDD", "--requester", "動作確認",
             "--origin", "法人", "--consent-doc", "No.1")
         out = run("resq-erase", "erase", "SMOKE-HDD-0001", "--mock-dir", str(mock))

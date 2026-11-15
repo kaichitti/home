@@ -482,7 +482,7 @@ def main() -> int:
     }
     for v in expected["images"].values():
         v["image_sha256"] = sha256((OUT / v["file"]).read_bytes())
-    (OUT / "expected.json").write_text(json.dumps(expected, ensure_ascii=False, indent=2))
+    (OUT / "expected.json").write_text(json.dumps(expected, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.rmdir()
     print(f"fixtures written to {OUT}")
     return 0

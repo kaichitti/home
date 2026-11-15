@@ -30,7 +30,7 @@ def _fake_bin(tmp_path, monkeypatch, name: str, body: str) -> Path:
     d = tmp_path / "fakebin"
     d.mkdir(exist_ok=True)
     p = d / name
-    p.write_text("#!/usr/bin/env bash\n" + textwrap.dedent(body))
+    p.write_text("#!/usr/bin/env bash\n" + textwrap.dedent(body), encoding="utf-8")
     p.chmod(0o755)
     monkeypatch.setenv("PATH", f"{d}:{__import__('os').environ['PATH']}")
     return p
@@ -88,10 +88,10 @@ def test_unlock_never_leaks_key(registered, tmp_path, monkeypatch):
     rec = _fake_cryptsetup(tmp_path, monkeypatch)
     dev = unlock.unlock(case, iid, KEY.replace("-", " "))
     assert dev == f"/dev/mapper/resq-{case.id}-img{iid}-dec"
-    args = (Path(f"{rec}.args")).read_text()
+    args = (Path(f"{rec}.args")).read_text(encoding="utf-8")
     assert "--readonly" in args and "--key-file=-" in args
     assert all(k not in args for k in _key_variants()), "キーをコマンドラインに載せない"
-    assert Path(f"{rec}.stdin").read_text() == KEY, "キーは標準入力で渡す"
+    assert Path(f"{rec}.stdin").read_text(encoding="utf-8") == KEY, "キーは標準入力で渡す"
     everything = _all_text(case.ws.root)
     dump = "\n".join(case.db.conn.iterdump())
     for k in _key_variants():

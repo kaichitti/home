@@ -191,7 +191,7 @@ def test_refusals(lg, tmp_path):
     # 復旧案件のシリアル（resq export-serials から同期）
     _register(lg, "RECOVERY-CASE-9", "HDD")
     export = tmp_path / "serials.json"
-    export.write_text(json.dumps({"serials": [{"serial": "RECOVERY-CASE-9", "case_id": "R2611-0003"}]}))
+    export.write_text(json.dumps({"serials": [{"serial": "RECOVERY-CASE-9", "case_id": "R2611-0003"}]}), encoding="utf-8")
     assert lg.sync_blocked_from_resq(export) == 1
     with pytest.raises(EraseRefused, match="R2611-0003"):
         R.plan(lg, "RECOVERY-CASE-9", p, P.select_method, lsblk=LSBLK)
@@ -245,7 +245,7 @@ def test_executor_classification_and_station_marker(lg, monkeypatch, tmp_path):
         ex.run(["rm", "-rf", "/"], ledger=lg, op="t")
     # マーカーと環境変数が一致しないと消去ステーションとみなさない
     marker = tmp_path / "marker"
-    marker.write_text("ST-01\n")
+    marker.write_text("ST-01\n", encoding="utf-8")
     monkeypatch.setattr(ex, "STATION_MARKER", marker)
     monkeypatch.setenv("RESQ_ERASE_STATION_ID", "ST-02")
     assert ex.station_id() is None
@@ -331,7 +331,7 @@ def test_certificate_and_tamper_detection(lg, tmp_path):
     tampered = bytearray(data)
     tampered[len(tampered) // 2] ^= 0x01
     assert not C.verify_document(lg, r["number"], bytes(tampered))
-    html = Path(r["path"]).with_suffix(".html").read_text()
+    html = Path(r["path"]).with_suffix(".html").read_text(encoding="utf-8")
     assert "NIST SP 800-88 Rev.2 の区分" in html and "認証を示すものではありません" in html
     assert "回収 0 件" in html and "data:image/png;base64" in html  # QR
     assert "絶対" not in html
@@ -350,7 +350,7 @@ def test_verification_page_has_no_personal_data(lg, tmp_path):
     mid = _passed_media(lg, tmp_path, "SECRET-SERIAL-77")
     r = C.issue(lg, mid, pdf=False)
     j, h = C.export_verification_list(lg, tmp_path / "public")
-    text = j.read_text() + h.read_text()
+    text = j.read_text(encoding="utf-8") + h.read_text(encoding="utf-8")
     assert r["number"] in text and r["sha256"] in text
     assert "SECRET-SERIAL-77" not in text and "山田商事" not in text
 
@@ -367,7 +367,7 @@ def test_destroy_requires_photo(lg, tmp_path):
         C.destroy(lg, mid, photos=[])
     C.destroy(lg, mid, photos=[str(_photo(tmp_path))])
     r = C.issue(lg, mid, pdf=False)
-    assert "Destroy" in Path(r["path"]).read_text()
+    assert "Destroy" in Path(r["path"]).read_text(encoding="utf-8")
 
 
 # ---------------------------------------------------------------- E5
@@ -382,7 +382,7 @@ def test_mobile_checklist_gates_certificate(lg, tmp_path):
     MC.save(lg, mid, {}, photos=[str(_photo(tmp_path))])
     assert MC.is_complete(lg, mid)
     r = C.issue(lg, mid, pdf=False)
-    assert "端末標準の初期化" in Path(r["path"]).read_text()
+    assert "端末標準の初期化" in Path(r["path"]).read_text(encoding="utf-8")
 
 
 def test_mobile_checklist_rejects_non_phone(lg):
@@ -417,7 +417,7 @@ def test_erase_web_checklist_flow(tmp_path):
 # ---------------------------------------------------------------- ビルドの分離
 def test_recovery_code_never_imports_erase():
     pat = re.compile(r"^\s*(from|import)\s+resq_erase", re.M)
-    offenders = [str(p) for p in (ROOT / "src" / "resq").rglob("*.py") if pat.search(p.read_text())]
+    offenders = [str(p) for p in (ROOT / "src" / "resq").rglob("*.py") if pat.search(p.read_text(encoding="utf-8"))]
     assert offenders == []
 
 
@@ -450,14 +450,14 @@ def test_cli_sync_and_dry_run(tmp_path, monkeypatch, ws):
     export = tmp_path / "serials.json"
     r = CliRunner().invoke(resq_app, ["export-serials", str(export)])
     assert r.exit_code == 0, r.output
-    assert json.loads(export.read_text())["serials"][0]["serial"] == "RECOVERY-CASE-9"
+    assert json.loads(export.read_text(encoding="utf-8"))["serials"][0]["serial"] == "RECOVERY-CASE-9"
 
     monkeypatch.setenv("RESQ_ERASE_HOME", str(tmp_path / "station"))
     mock = tmp_path / "mock"
     mock.mkdir()
-    (mock / "lsblk.json").write_text(json.dumps(LSBLK))
-    (mock / "hdparm_I.txt").write_text(HDPARM_HDD)
-    (mock / "hdparm_N.txt").write_text(HPA_OFF)
+    (mock / "lsblk.json").write_text(json.dumps(LSBLK), encoding="utf-8")
+    (mock / "hdparm_I.txt").write_text(HDPARM_HDD, encoding="utf-8")
+    (mock / "hdparm_N.txt").write_text(HPA_OFF, encoding="utf-8")
     run = CliRunner().invoke
     assert run(erase_app, ["sync-blocked", str(export)]).exit_code == 0
     for serial in ("WD-WCC4E1234567", "RECOVERY-CASE-9"):

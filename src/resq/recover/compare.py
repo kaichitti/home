@@ -45,7 +45,7 @@ def compare(case, a: str, b: str) -> dict:
         f"only_{b}": [db_[h]["path"] or h[:12] for h in only_b],
     }
     out = case.sub("stages") / f"compare_{a}_{b}.json"
-    out.write_text(json.dumps(report, ensure_ascii=False, indent=1))
+    out.write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     case.db.add_event(case.id, "recover.compare", json.dumps(report["count"], ensure_ascii=False), 0)
     report["path"] = str(out)
     return report

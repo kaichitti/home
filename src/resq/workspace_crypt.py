@@ -84,7 +84,7 @@ def write_script(ws: Workspace, case_id: str, kind: str, commands: list[str]) ->
     d = ws.root / "scripts"
     d.mkdir(parents=True, exist_ok=True)
     p = d / f"{case_id}-{kind}.sh"
-    p.write_text(script(commands, f"{case_id} {kind}"))
+    p.write_text(script(commands, f"{case_id} {kind}"), encoding="utf-8")
     p.chmod(0o700)
     return p
 

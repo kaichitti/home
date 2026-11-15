@@ -214,7 +214,7 @@ def test_thumbnails_become_rank_d(case, tmp_path):
     rep = M.merge(case)
     assert rep["ranks"]["D"] == 3
     res = catalog.build(case, pdf=False)
-    html = Path(res["html"]).read_text()
+    html = Path(res["html"]).read_text(encoding="utf-8")
     assert "サムネイル・低解像度版のみ（3 件）" in html
 
 

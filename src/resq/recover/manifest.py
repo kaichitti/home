@@ -44,11 +44,11 @@ class Manifest:
 
     def write(self, stage_dir: Path) -> Path:
         p = stage_dir / "manifest.json"
-        p.write_text(json.dumps(asdict(self), ensure_ascii=False, indent=1))
+        p.write_text(json.dumps(asdict(self), ensure_ascii=False, indent=1), encoding="utf-8")
         return p
 
     @classmethod
     def read(cls, path: Path) -> "Manifest":
-        d = json.loads(path.read_text())
+        d = json.loads(path.read_text(encoding="utf-8"))
         cands = [Candidate(**c) for c in d.pop("candidates", [])]
         return cls(candidates=cands, **d)

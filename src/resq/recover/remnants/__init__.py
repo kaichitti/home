@@ -59,6 +59,6 @@ def run(case, image_id: int, image: Path, volumes: list[dict], stage_dir: Path) 
                 deleted=e.deleted, img_offset=e.data_offset, volume_offset=vol["offset"],
                 extra={"fs": geo.fs, "start_cluster": e.start_cluster, **e.meta}))
         report["volumes"].append(vrep)
-    (stage_dir / "remnants.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
+    (stage_dir / "remnants.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
     man.write(stage_dir)
     return man

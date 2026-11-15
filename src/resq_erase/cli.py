@@ -74,7 +74,7 @@ def _collect(lg: Ledger, serial: str, mock_dir: Path | None) -> tuple[dict, dict
     def mock(name: str):
         p = mock_dir / name if mock_dir else None
         if p and p.exists():
-            return json.loads(p.read_text()) if p.suffix == ".json" else p.read_text()
+            return json.loads(p.read_text(encoding="utf-8")) if p.suffix == ".json" else p.read_text(encoding="utf-8")
         return None
 
     if mock_dir:

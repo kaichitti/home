@@ -429,7 +429,7 @@ def export_serials(out: Path = typer.Argument(..., help="消去ステーショ�
     rows = db.all("""SELECT d.serial, d.case_id FROM devices d JOIN cases c ON c.id = d.case_id
                      WHERE d.serial IS NOT NULL AND d.serial != '' AND c.status NOT IN ('返却', '消去済')""")
     data = {"exported_at": now(), "serials": [{"serial": r["serial"], "case_id": r["case_id"]} for r in rows]}
-    out.write_text(json.dumps(data, ensure_ascii=False, indent=1))
+    out.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     console.print(f"{len(rows)} 件を書き出しました: {out}")
 
 

@@ -90,7 +90,7 @@ def build(case, *, pdf: bool = True, revalidate: bool = True) -> dict:
     stages = []
     rep_path = case.dir / "stages" / "stage_report.json"
     if rep_path.exists():
-        rep = json.loads(rep_path.read_text())
+        rep = json.loads(rep_path.read_text(encoding="utf-8"))
         for st, v in rep.get("stages", {}).items():
             stages.append(dict(stage=st, label=stage_label(st), **v))
 

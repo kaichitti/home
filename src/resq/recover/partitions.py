@@ -117,7 +117,7 @@ def run_testdisk(image: Path, stage_dir: Path, ctx, allow_device: bool = False) 
     finally:
         if made:
             link.unlink()
-    return parse_testdisk_log(log.read_text(errors="replace")) if log.exists() else []
+    return parse_testdisk_log(log.read_text(encoding="utf-8", errors="replace")) if log.exists() else []
 
 
 def find_volumes(image: Path, stage_dir: Path, ctx, *, use_testdisk: bool = True,
@@ -159,5 +159,5 @@ def find_volumes(image: Path, stage_dir: Path, ctx, *, use_testdisk: bool = True
         elif lba in boot_types:
             volumes.append({"offset": lba, "fstype": boot_types[lba], "found_by": sorted(srcs)})
     (stage_dir / "partitions.json").write_text(json.dumps({"volumes": volumes, "notes": notes},
-                                                          ensure_ascii=False, indent=1))
+                                                          ensure_ascii=False, indent=1), encoding="utf-8")
     return volumes

@@ -41,7 +41,7 @@ def test_interrupt_and_resume_gives_same_hash(case, fixtures, ro):
     iid1 = I.acquire(case, str(src), max_bytes=7 * 1024 * 1024)  # 7MiB で中断したのと同じ状態
     row = case.db.one("SELECT * FROM images WHERE id=?", iid1)
     assert row["sha256"] is None
-    st = I.parse_mapfile(Path(row["mapfile"]).read_text())
+    st = I.parse_mapfile(Path(row["mapfile"]).read_text(encoding="utf-8"))
     assert st.untried > 0 and st.finished == 7 * 1024 * 1024
     with pytest.raises(SafetyError, match="未完了"):
         I.get_image(case, iid1)

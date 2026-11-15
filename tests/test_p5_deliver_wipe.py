@@ -91,7 +91,7 @@ def test_luks_scripts_are_generated_not_executed(ws, monkeypatch, tmp_path):
     assert destroy[2].startswith("cryptsetup erase --batch-mode ")
     assert any(c.startswith("rm -f") and c.endswith(".key") for c in destroy)
     p = workspace_crypt.write_script(w, "R2611-0042", "create", create)
-    assert p.read_text().startswith("#!/usr/bin/env bash") and p.stat().st_mode & 0o777 == 0o700
+    assert p.read_text(encoding="utf-8").startswith("#!/usr/bin/env bash") and p.stat().st_mode & 0o777 == 0o700
     assert not (tmp_path / "keys").exists(), "生成するだけで実行しない"
 
 
@@ -128,12 +128,12 @@ def test_wipe_luks_plan_and_confirm(recovered, tmp_path, monkeypatch):
     with pytest.raises(ResqError, match="暗号化コンテナ"):
         wipe.wipe_plain(case, execute=True)
     script = wipe.plan(case)
-    assert "cryptsetup erase" in script.read_text()
+    assert "cryptsetup erase" in script.read_text(encoding="utf-8")
     with pytest.raises(ResqError, match="まだ残っています"):
         wipe.confirm(case)
     p.container.unlink()  # ＝人間が作業機で破棄スクリプトを実行した
     res = wipe.confirm(case, pdf=True)
-    assert "LUKS2" in Path(str(res["path"]).replace(".pdf", ".html")).read_text()
+    assert "LUKS2" in Path(str(res["path"]).replace(".pdf", ".html")).read_text(encoding="utf-8")
     assert case.row["status"] == "消去済"
 
 

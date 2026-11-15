@@ -182,7 +182,7 @@ class Ledger:
 
     def sync_blocked_from_resq(self, export_json: Path) -> int:
         """resq（復旧側）が書き出した「消去してはいけないシリアル」を取り込む。"""
-        data = json.loads(export_json.read_text())
+        data = json.loads(export_json.read_text(encoding="utf-8"))
         n = 0
         for item in data.get("serials", []):
             if item.get("serial"):

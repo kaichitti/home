@@ -34,7 +34,7 @@ def test_pipeline_without_oss_tools_still_salvages(case, fixtures, expected, ro,
     for f in expected["images"]["ntfs_qf"]["files"]:
         assert shown[f["sha256"]]["orig_path"] == f["path"]
     res = catalog.build(case, pdf=False)
-    assert "Holiday Photo.jpg" in Path(res["html"]).read_text()
+    assert "Holiday Photo.jpg" in Path(res["html"]).read_text(encoding="utf-8")
 
 
 def test_missing_ddrescue_gives_clear_message(case, fixtures, ro, no_oss_tools, monkeypatch):
@@ -76,3 +76,33 @@ def test_tool_aliases(monkeypatch):
 ])
 def test_clean_segment(seg, win, want):
     assert safety.clean_segment(seg, windows=win) == want
+
+
+def test_all_text_io_specifies_encoding():
+    """ファイルの読み書き・外部コマンドの出力の文字コードを必ず明示する。
+
+    Windows の既定の文字コードは cp1252 / cp932 のため、省略すると日本語を含む JSON・帳票で失敗する
+    （resq.exe の CI で実際に見つかった不具合の再発防止）。
+    """
+    import ast
+
+    root = Path(__file__).resolve().parent.parent
+    files = [*(root / "src").rglob("*.py"), root / "scripts" / "smoke_exe.py", root / "scripts" / "fixturegen.py"]
+    bad = []
+    for f in files:
+        tree = ast.parse(f.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            kws = {k.arg for k in node.keywords}
+            fn = node.func
+            name = fn.attr if isinstance(fn, ast.Attribute) else fn.id if isinstance(fn, ast.Name) else ""
+            if name in ("read_text", "write_text") and "encoding" not in kws:
+                bad.append(f"{f.name}:{node.lineno} {name}")
+            if name == "open" and "encoding" not in kws:
+                mode = node.args[1] if len(node.args) > 1 else next((k.value for k in node.keywords if k.arg == "mode"), None)
+                if isinstance(mode, ast.Constant) and "b" not in str(mode.value):
+                    bad.append(f"{f.name}:{node.lineno} open({mode.value!r})")
+            if name in ("run", "Popen") and any(k.arg == "text" for k in node.keywords) and "encoding" not in kws:
+                bad.append(f"{f.name}:{node.lineno} subprocess.{name}(text=True)")
+    assert bad == []
