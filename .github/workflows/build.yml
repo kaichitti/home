@@ -4,7 +4,7 @@ name: test-and-build
 # 実デバイスには一切触れない。動作確認はフィクスチャ（ディスクイメージのファイル）で行う。
 on:
   push:
-    branches: [master, "claude/**"]
+    branches: [master]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:

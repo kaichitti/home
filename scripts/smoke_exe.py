@@ -20,6 +20,10 @@ from pathlib import Path
 
 
 def main() -> int:
+    # Windows の CI 端末は cp1252 のため、日本語を出力できるよう UTF-8 にする
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     bin_dir, fixtures = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
     suffix = ".exe" if os.name == "nt" else ""
     work = Path(tempfile.mkdtemp(prefix="resq-smoke-"))
