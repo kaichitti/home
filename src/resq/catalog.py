@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime
 from pathlib import Path
 
 from . import reports
 from . import validate as V
 from .recover import stage_label
+from .recover.manifest import LOST_DIR
 
 RANK_LABEL = {
     "A": "名前・フォルダ付きで開けるファイル",
@@ -19,6 +21,12 @@ RANK_LABEL = {
 VERIFY_LABEL = {V.OK: "開ける", V.PARTIAL: "一部破損", V.UNVERIFIED: "未確認", V.BROKEN: "破損",
                 V.ZERO: "中身なし", V.EMPTY: "0 バイト"}
 THUMB_PX = 120
+_LOST_RE = re.compile(LOST_DIR + r"_[a-z]\d+")
+
+
+def display_path(path: str | None) -> str | None:
+    """顧客向けの表示：内部の目印（不明フォルダ_c123 等）を読みやすい表記にする。"""
+    return _LOST_RE.sub("（名前不明のフォルダ）", path) if path else path
 
 
 def _thumbnail(src: Path, dest: Path) -> bool:
@@ -71,7 +79,7 @@ def build(case, *, pdf: bool = True, revalidate: bool = True) -> dict:
             if t.exists() or _thumbnail(stored, t):
                 thumb = f"thumbs/{t.name}"
         files_by_rank[r["rank"]].append(dict(
-            id=r["id"], name=r["name"], orig_path=r["orig_path"], size=r["size"],
+            id=r["id"], name=r["name"], orig_path=display_path(r["orig_path"]), size=r["size"],
             kind_label=V.KIND_LABEL.get(kind or "bin", kind or "不明"),
             verify_label=VERIFY_LABEL.get(verify, verify), thumb=thumb))
 

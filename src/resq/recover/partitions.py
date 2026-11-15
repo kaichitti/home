@@ -93,7 +93,7 @@ def scan_boot_sectors(image: Path, *, dense_mib: int = 16, align_sectors: int = 
     return [{"start": k, "fs": v} for k, v in sorted(hits.items())]
 
 
-def run_testdisk(image: Path, stage_dir: Path, ctx) -> list[dict]:
+def run_testdisk(image: Path, stage_dir: Path, ctx, allow_device: bool = False) -> list[dict]:
     cmds = "analyze,search,quit"
     if "write" in cmds:  # 念のため：パーティション表への書き込みは絶対にしない
         raise SafetyError("TestDisk の write コマンドは使用禁止")
@@ -108,32 +108,34 @@ def run_testdisk(image: Path, stage_dir: Path, ctx) -> list[dict]:
     link.symlink_to(Path(image).resolve())
     try:
         audit.run(["testdisk", "/log", "/cmd", link.name, cmds], op="recover.S1.testdisk", ctx=ctx,
-                  cwd=stage_dir, check=False, timeout=3600)
+                  cwd=stage_dir, check=False, timeout=3600, allow_device=allow_device)
     finally:
         link.unlink()
     return parse_testdisk_log(log.read_text(errors="replace")) if log.exists() else []
 
 
-def find_volumes(image: Path, stage_dir: Path, ctx, *, use_testdisk: bool = True) -> list[dict]:
+def find_volumes(image: Path, stage_dir: Path, ctx, *, use_testdisk: bool = True,
+                 allow_device: bool = False) -> list[dict]:
     stage_dir.mkdir(parents=True, exist_ok=True)
     candidates: dict[int, set[str]] = {}
 
     def add(lba: int, src: str) -> None:
         candidates.setdefault(lba, set()).add(src)
 
-    out = audit.run(["mmls", image], op="recover.S1.mmls", ctx=ctx, check=False)
+    out = audit.run(["mmls", image], op="recover.S1.mmls", ctx=ctx, check=False, allow_device=allow_device)
     for p in parse_mmls(out.stdout) if out.returncode == 0 else []:
         add(p["start"], "mmls")
     add(0, "whole")
     if use_testdisk:
-        for p in run_testdisk(image, stage_dir, ctx):
+        for p in run_testdisk(image, stage_dir, ctx, allow_device):
             add(p["start"], "testdisk")
     for p in scan_boot_sectors(image):
         add(p["start"], "bootscan")
 
     volumes = []
     for lba, srcs in sorted(candidates.items()):
-        r = audit.run(["fsstat", "-t", "-o", str(lba), image], op="recover.S1.fsstat", ctx=ctx, check=False)
+        r = audit.run(["fsstat", "-t", "-o", str(lba), image], op="recover.S1.fsstat", ctx=ctx, check=False,
+                      allow_device=allow_device)
         if r.returncode == 0 and r.stdout.strip():
             volumes.append({"offset": lba, "fstype": r.stdout.strip(), "found_by": sorted(srcs)})
     (stage_dir / "partitions.json").write_text(json.dumps(volumes, ensure_ascii=False, indent=1))

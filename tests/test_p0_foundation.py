@@ -149,9 +149,10 @@ def test_settings_deny_list():
         assert needle in deny
 
 
-def test_recovery_build_cannot_import_erase():
-    with pytest.raises(ImportError):
-        __import__("resq_erase")
+def test_recovery_build_excludes_erase_package():
+    # 復旧ビルド（pyproject.toml）は resq_erase を含めない。実際のホイール内容は test_erase.py で確認
+    text = (ROOT / "pyproject.toml").read_text()
+    assert 'exclude = ["resq_erase*"]' in text
 
 
 # ---------------------------------------------------------------- 受付・状態遷移

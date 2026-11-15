@@ -12,7 +12,8 @@ libimobiledevice, adb）を subprocess で呼び出す。エンジンは自作�
 - sudo を使わない。root が必要な処理はコードとして書くだけで、実行は人間が作業機で行う。
 - 原本に書き込む可能性のある処理（dd の of=, mkfs, fdisk, wipefs, blkdiscard 等）を
   作業フローに入れない。audit.FORBIDDEN_PROGRAMS がコードレベルでも拒否する。
-- 外部コマンドは必ず audit.run() 経由で呼ぶ。直接 subprocess を呼ばない。
+- 外部コマンドは必ず audit.run() 経由で呼ぶ。直接 subprocess を呼ばない
+  （resq_erase は resq_erase.exec.run() 経由。消去コマンドは消去ステーション以外では実行されない）。
 - 書き込み先は必ず safety.assert_writable_target() を通す。
   外部由来のファイル名を連結するときは safety.safe_join() を使う。
 - 回復キー・パスコードを DB・ログ・ファイル・例外メッセージに出さない
@@ -26,8 +27,7 @@ libimobiledevice, adb）を subprocess で呼び出す。エンジンは自作�
 - 上書きされたデータを「戻ったように見せない」。中身がゼロ・破損のファイルはランク X（ランク外）。
 
 ## 技術スタック
-Python 3.12+ / Typer / Rich / SQLite / Jinja2 / WeasyPrint / Pillow / pytest
-（FastAPI は P6 で追加）
+Python 3.12+ / Typer / Rich / SQLite / FastAPI / Jinja2 / WeasyPrint / Pillow / pytest
 
 ## 構成
 - src/resq/audit.py      外部コマンドの唯一の窓口・監査ログ
@@ -37,9 +37,15 @@ Python 3.12+ / Typer / Rich / SQLite / Jinja2 / WeasyPrint / Pillow / pytest
 - src/resq/intake.py     同意・本人確認・所有確認（P0）
 - src/resq/diagnose.py   診断と判定（P1）
 - src/resq/image.py      ddrescue イメージ化（P2）
-- src/resq/recover/      S1 partitions / S2 tsk / S5 photorec / ingest(P3b) / S8 merge / pipeline
-- src/resq/validate.py   種別判定・開けるかの検証
+- src/resq/recover/      S1 partitions / S2 tsk / S3 remnants/ / S4 vss / S5 photorec / S6 rename /
+                         S7 thumbs / ingest(P3b) / compare / S8 merge / pipeline
+- src/resq/validate.py   種別判定・開けるかの検証（WeasyPrint が Pillow の設定を変える点に注意）
 - src/resq/catalog.py    顧客向け一覧（P4）
+- src/resq/deliver.py    納品（P5） / workspace_crypt.py LUKS 作業領域 / wipe.py 作業領域の消去
+- src/resq/web/          管理画面（P6）
+- src/resq/unlock.py     BitLocker / LUKS 解錠（P7）
+- src/resq/mobile/       スマホ吸い出し（P8）
+- src/resq_erase/        消去ステーション専用（E1〜E5）。scripts/build_erase_station.sh でビルド
 
 ## コマンド
 - テスト: `pytest -q`（初回はフィクスチャを自動生成）

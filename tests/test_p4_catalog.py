@@ -79,3 +79,15 @@ def test_cli_end_to_end(tmp_path, monkeypatch, fixtures):
     assert r.exit_code == 0 and "A=6" in r.output
     r = run(app, ["events", cid])
     assert r.exit_code == 0 and "image.pass1" in r.output
+
+
+def test_strict_check_survives_weasyprint_import(fixtures):
+    """WeasyPrint は import 時に Pillow の LOAD_TRUNCATED_IMAGES を True にする。それでも途切れた写真は一部破損。"""
+    pytest.importorskip("weasyprint")
+    from PIL import ImageFile
+
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
+    try:
+        assert V.validate(fixtures / "corrupt" / "truncated.jpg").status == V.PARTIAL
+    finally:
+        ImageFile.LOAD_TRUNCATED_IMAGES = False

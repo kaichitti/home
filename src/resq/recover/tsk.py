@@ -36,14 +36,15 @@ def _is_regular(row: dict) -> bool:
 
 
 def extract(case, image: Path, volumes: list[dict], out_dir: Path, *, method: str = "TSK",
-            op: str = "recover.S2") -> list[Candidate]:
+            op: str = "recover.S2", allow_device: bool = False) -> list[Candidate]:
     """各ボリュームの全エントリ（削除済み含む）を取り出し、候補の一覧を返す。"""
     ctx = case.ctx
     cands: list[Candidate] = []
     for vol in volumes:
         off = vol["offset"]
         vdir = out_dir / f"vol{off}"
-        out = audit.run(["fls", "-r", "-p", "-o", str(off), image], op=f"{op}.fls", ctx=ctx, check=False)
+        out = audit.run(["fls", "-r", "-p", "-o", str(off), image], op=f"{op}.fls", ctx=ctx, check=False,
+                        allow_device=allow_device)
         rows = [r for r in parse_fls(out.stdout) if _is_regular(r)]
         for r in rows:
             if r["realloc"]:
@@ -57,7 +58,7 @@ def extract(case, image: Path, volumes: list[dict], out_dir: Path, *, method: st
             safety.assert_writable_target(dest, case_dir=case.dir, source=image)
             dest.parent.mkdir(parents=True, exist_ok=True)
             audit.run(["icat", "-r", "-o", str(off), image, r["inode"]], op=f"{op}.icat", ctx=ctx,
-                      stdout_path=dest, check=False, ok_codes=(0, 1))
+                      stdout_path=dest, check=False, ok_codes=(0, 1), allow_device=allow_device)
             # 孤立エントリ：親フォルダが一部だけ分かる場合は「…/」で上位不明を示す
             orig = (PARTIAL_PREFIX + rel) if (orphan and "/" in rel) else rel
             cands.append(Candidate(

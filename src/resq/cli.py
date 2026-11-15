@@ -406,6 +406,19 @@ def mobile_android(case_id: str, serial: str):
     _print_report(merge_mod.merge(c))
 
 
+@app.command("export-serials")
+def export_serials(out: Path = typer.Argument(..., help="消去ステーションへ渡す JSON")):
+    """進行中の復旧案件の媒体シリアルを書き出す（消去ステーションで消去禁止にするため）。"""
+    from .db import now
+
+    _ws, db = open_workspace()
+    rows = db.all("""SELECT d.serial, d.case_id FROM devices d JOIN cases c ON c.id = d.case_id
+                     WHERE d.serial IS NOT NULL AND d.serial != '' AND c.status NOT IN ('返却', '消去済')""")
+    data = {"exported_at": now(), "serials": [{"serial": r["serial"], "case_id": r["case_id"]} for r in rows]}
+    out.write_text(json.dumps(data, ensure_ascii=False, indent=1))
+    console.print(f"{len(rows)} 件を書き出しました: {out}")
+
+
 @app.command()
 def web(port: int = typer.Option(8765)):
     """管理画面を起動する（127.0.0.1 のみ）。"""

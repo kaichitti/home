@@ -86,6 +86,10 @@ def _all_zero(path: Path) -> bool:
 def _check_image(path: Path) -> Result:
     from PIL import Image, ImageFile
 
+    # 注意: WeasyPrint は import 時に LOAD_TRUNCATED_IMAGES を True にする（プロセス全体に影響）。
+    # 厳密判定のときは必ず False にしてから読み、終わったら元に戻す。
+    prev = ImageFile.LOAD_TRUNCATED_IMAGES
+    ImageFile.LOAD_TRUNCATED_IMAGES = False
     try:
         with Image.open(path) as im:
             im.verify()
@@ -94,7 +98,8 @@ def _check_image(path: Path) -> Result:
         return Result("", OK)
     except Exception as e:  # noqa: BLE001
         first = str(e)
-    prev = ImageFile.LOAD_TRUNCATED_IMAGES
+    finally:
+        ImageFile.LOAD_TRUNCATED_IMAGES = prev
     ImageFile.LOAD_TRUNCATED_IMAGES = True
     try:
         with Image.open(path) as im:

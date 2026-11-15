@@ -13,11 +13,16 @@ dependencies = [
   "rich>=13",
   "jinja2>=3.1",
   "pillow>=10",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
 pdf = ["weasyprint>=60"]
-dev = ["pytest>=8"]
+thumbs = ["olefile>=0.46"]          # Thumbs.db（Windows XP 以前）の解析
+erase = ["qrcode>=7"]               # 消去証明書の照合用 QR（消去ステーションビルドで使用）
+dev = ["pytest>=8", "httpx>=0.27", "qrcode>=7", "olefile>=0.46"]
 
 [project.scripts]
 resq = "resq.cli:app"

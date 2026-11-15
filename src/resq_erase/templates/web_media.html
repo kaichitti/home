@@ -1,0 +1,39 @@
+{% extends "web_base.html" %}
+{% block body %}
+<h1>媒体 #{{ m.id }} <span class="badge">{{ m.status }}</span></h1>
+{% if blocked %}<p class="error">消去禁止：{{ blocked }}</p>{% endif %}
+<div class="card grid">
+  <div><label>種別</label>{{ m.kind }}</div><div><label>型番</label>{{ m.maker or "" }} {{ m.model or "" }}</div>
+  <div><label>シリアル</label><span class="mono">{{ m.serial }}</span></div>
+  <div><label>依頼者</label>{{ m.requester }}（{{ m.origin }}）</div><div><label>承諾書</label>{{ m.consent_doc }}</div>
+  <div><label>保管場所</label>{{ m.location or "—" }}</div>
+</div>
+
+{% if checklist %}
+<h2>スマホ初期化代行チェックリスト</h2>
+<form method="post" action="/media/{{ m.id }}/checklist" enctype="multipart/form-data" class="card">
+  {% for item in items %}
+  <label style="color:inherit;font-size:14px"><input type="checkbox" name="item_{{ loop.index0 }}" {% if checklist["items"][item] %}checked{% endif %}> {{ item }}</label>
+  {% endfor %}
+  <label>写真（初期化後の初期設定画面など）</label><input type="file" name="photo" accept="image/jpeg,image/png">
+  <p>写真 {{ checklist.photos|length }} 枚 ／ {{ "すべて揃っています" if complete else "未完了" }}</p>
+  <button>保存</button>
+</form>
+{% endif %}
+
+<h2>実行・検証</h2>
+<table>
+  <tr><th>実行</th><th>区分</th><th>方式</th><th>ドライラン</th><th>完了</th></tr>
+  {% for r in runs %}<tr><td>{{ r.started_at[:16].replace("T"," ") }}</td><td>{{ r.category }}</td><td>{{ r.method }}</td><td>{{ "はい" if r.dry_run else "いいえ" }}</td><td>{{ r.completion or "" }}</td></tr>{% endfor %}
+</table>
+<table style="margin-top:8px">
+  <tr><th>検証</th><th>読み戻し</th><th>復旧試行</th><th>結果</th></tr>
+  {% for v in vers %}<tr><td>{{ v.created_at[:16].replace("T"," ") }}</td><td>{{ v.readback_scope }} {{ "OK" if v.readback_ok else "NG" }}</td><td>{{ v.recovered }} 件</td><td>{{ "合格" if v.passed else "不合格" }}</td></tr>{% endfor %}
+</table>
+
+<h2>証明書</h2>
+<div class="card">
+  {% for c in certs %}<p><a href="/certificates/{{ c.number }}">{{ c.number }}</a> <span class="mono">{{ c.sha256 }}</span></p>{% endfor %}
+  <form method="post" action="/media/{{ m.id }}/certificate"><label>作業者</label><input name="operator"><p><button>証明書を発行</button></p></form>
+</div>
+{% endblock %}
