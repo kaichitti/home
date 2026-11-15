@@ -34,6 +34,20 @@ app = typer.Typer(help="resq-erase — 完全消去ツール（消去ステー�
 validation_app = typer.Typer(help="月次の妥当性確認", no_args_is_help=True)
 app.add_typer(validation_app, name="validation")
 console = Console()
+
+
+def _show_version(value: bool) -> None:
+    if value:
+        from . import __version__
+
+        console.print(f"resq-erase {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def _main(version: bool = typer.Option(False, "--version", callback=_show_version, is_eager=True,
+                                       help="バージョンを表示して終了")):
+    pass
 LSBLK_COLS = "NAME,SERIAL,MODEL,SIZE,TRAN,ROTA,RM,TYPE,MOUNTPOINTS"
 
 

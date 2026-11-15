@@ -1,0 +1,114 @@
+name: test-and-build
+
+# テスト（Ubuntu）→ 単体実行ファイルのビルドと動作確認（Ubuntu / Windows）
+# 実デバイスには一切触れない。動作確認はフィクスチャ（ディスクイメージのファイル）で行う。
+on:
+  push:
+    branches: [master, "claude/**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: OS パッケージ（復旧エンジン・フィクスチャ作成用）
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gddrescue sleuthkit testdisk smartmontools \
+            dosfstools mtools ntfs-3g exfatprogs libvshadow-utils fonts-noto-cjk \
+            libpango-1.0-0 libpangoft2-1.0-0
+      - name: Python パッケージ
+        run: pip install -e ".[pdf,thumbs,erase,dev]"
+      - name: フィクスチャ生成
+        run: ./scripts/make_fixtures.sh
+      - name: テスト
+        run: python -m pytest -q
+      - name: 動作確認用のフィクスチャを渡す
+        run: |
+          mkdir -p smoke-fixtures
+          cp fixtures/ntfs_qf.img fixtures/expected.json smoke-fixtures/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: smoke-fixtures
+          path: smoke-fixtures/
+          retention-days: 3
+
+  build-linux:
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: OS パッケージ
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends sleuthkit testdisk libpango-1.0-0 libpangoft2-1.0-0 \
+            fonts-noto-cjk
+      - name: Python パッケージ
+        run: pip install ".[pdf,thumbs,erase]" pyinstaller
+      - uses: actions/download-artifact@v4
+        with:
+          name: smoke-fixtures
+          path: fixtures
+      - name: ビルドと動作確認
+        run: ./scripts/build_exe.sh
+      - name: 復旧の実行ファイルに消去機能が入っていないこと
+        run: |
+          python -m PyInstaller.utils.cliutils.archive_viewer --list --recursive dist/bin/resq > resq-contents.txt
+          if grep -q "resq_erase" resq-contents.txt; then echo "resq_erase が含まれています"; exit 1; fi
+          grep -q "resq.recover" resq-contents.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resq-linux-x86_64
+          path: |
+            dist/resq-*-linux-x86_64.tar.gz
+            dist/SHA256SUMS-linux.txt
+
+  build-windows:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python パッケージ（WeasyPrint は同梱しない）
+        run: pip install . olefile pyinstaller
+      - uses: actions/download-artifact@v4
+        with:
+          name: smoke-fixtures
+          path: fixtures
+      - name: ビルドと動作確認
+        shell: pwsh
+        run: ./scripts/build_exe.ps1 -Fixtures fixtures
+      - uses: actions/upload-artifact@v4
+        with:
+          name: resq-windows-x64
+          path: dist/resq-*-windows-x64.zip
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+      - name: リリースを作成
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" out/* --repo "${GITHUB_REPOSITORY}" --title "${GITHUB_REF_NAME}" --notes "Ubuntu 用（復旧・消去ステーション別）と Windows 用の実行ファイル"

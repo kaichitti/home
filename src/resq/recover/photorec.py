@@ -9,7 +9,7 @@ from __future__ import annotations
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from .. import audit
+from .. import audit, tools
 from .manifest import Candidate, Manifest
 
 PHOTOREC_CMD = "partition_none,options,keep_corrupted_file_no,fileopt,everything,enable,search"
@@ -43,7 +43,7 @@ def parse_report(xml_path: Path) -> dict[str, int]:
 def run(case, image_id: int | None, image: Path, stage_dir: Path, allow_device: bool = False) -> Manifest:
     stage_dir.mkdir(parents=True, exist_ok=True)
     recup = stage_dir / "recup"
-    audit.run(["photorec", "/log", "/d", recup, "/cmd", image, PHOTOREC_CMD], op="recover.S5.photorec",
+    audit.run([tools.resolve("photorec"), "/log", "/d", recup, "/cmd", image, PHOTOREC_CMD], op="recover.S5.photorec",
               ctx=case.ctx, cwd=stage_dir, check=False, allow_device=allow_device)
     man = Manifest(stage="S5", image_id=image_id, method="PhotoRec")
     for d in sorted(stage_dir.glob("recup.*")):

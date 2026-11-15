@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import stat
 from pathlib import Path
@@ -17,9 +18,18 @@ from .errors import SafetyError
 SPACE_FACTOR = 1.1
 
 
+WINDOWS_RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
+WINDOWS_DEVICE_PREFIXES = ("\\\\.\\", "\\\\?\\", "//./", "//?/")
+
+
+def is_windows_device(p: str) -> bool:
+    r"""\\.\PhysicalDrive0 や \\?\GLOBALROOT\Device\... など Windows のデバイスパス。"""
+    return p.startswith(WINDOWS_DEVICE_PREFIXES) or "PHYSICALDRIVE" in p.upper()
+
+
 def is_device(path: str | os.PathLike) -> bool:
     p = str(path)
-    if p.startswith("/dev/"):
+    if p.startswith("/dev/") or is_windows_device(p):
         return True
     try:
         mode = os.stat(p).st_mode
@@ -60,6 +70,8 @@ def _disk_of_devnum(major: int, minor: int) -> str | None:
 def physical_disk(path: str | os.PathLike) -> str | None:
     """パス（デバイスまたは通常ファイル）が載っている物理ディスク名。不明なら None。"""
     p = str(path)
+    if not hasattr(os, "major"):
+        return None  # Windows：判定できない（デバイスからの読み取りは Linux 作業機でのみ行う）
     try:
         st = os.stat(p)
     except OSError:
@@ -167,15 +179,27 @@ def make_file_readonly(path: Path) -> None:
     path.chmod(mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH))
 
 
+def clean_segment(seg: str, *, windows: bool) -> str:
+    """パスの 1 要素を安全な名前にする。空・"."・".." は空文字を返す（＝捨てる）。"""
+    seg = "".join(ch for ch in seg.strip() if ch >= " ")
+    if seg in ("", ".", ".."):
+        return ""
+    if windows:
+        # Windows で使えない文字・末尾のドット/空白・予約名（CON, NUL 等）を避ける
+        seg = re.sub(r'[<>:"|?*]', "_", seg).rstrip(" .") or "_"
+        if seg.split(".")[0].upper() in WINDOWS_RESERVED:
+            seg = "_" + seg
+    return seg[:200]
+
+
 def safe_join(base: Path, *parts: str) -> Path:
     """外部由来のファイル名（復旧結果のパス等）を案件ディレクトリ内に安全に連結する。"""
     cleaned = []
     for part in parts:
         for seg in str(part).replace("\\", "/").split("/"):
-            seg = seg.strip().replace("\0", "")
-            if seg in ("", ".", ".."):
-                continue
-            cleaned.append(seg[:200])
+            seg = clean_segment(seg, windows=os.name == "nt")
+            if seg:
+                cleaned.append(seg)
     p = base.joinpath(*cleaned) if cleaned else base
     if not _within(p.resolve(), base.resolve()):
         raise SafetyError(f"不正なパス: {parts}")

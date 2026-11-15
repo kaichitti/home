@@ -11,7 +11,7 @@ import json
 import re
 from pathlib import Path
 
-from .. import audit
+from .. import audit, tools
 from ..errors import SafetyError
 
 MMLS_LINE = re.compile(r"^\s*\d+:\s+(\S+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(.*)$")
@@ -100,17 +100,23 @@ def run_testdisk(image: Path, stage_dir: Path, ctx, allow_device: bool = False) 
     log = stage_dir / "testdisk.log"
     if log.exists():
         log.unlink()
+    prog = tools.resolve("testdisk")
     # TestDisk はログ行を固定幅で切り詰めるため、長いパスだとジオメトリ（CHS）が欠ける。
-    # ステージ内に短い名前のシンボリックリンクを作り、相対パスで渡す。
+    # ステージ内に短い名前のシンボリックリンクを作り、相対パスで渡す（作れない環境ではフルパス）。
     link = stage_dir / "disk.img"
     if link.is_symlink() or link.exists():
         link.unlink()
-    link.symlink_to(Path(image).resolve())
     try:
-        audit.run(["testdisk", "/log", "/cmd", link.name, cmds], op="recover.S1.testdisk", ctx=ctx,
+        link.symlink_to(Path(image).resolve())
+        target, made = link.name, True
+    except OSError:  # Windows で権限がない等
+        target, made = str(image), False
+    try:
+        audit.run([prog, "/log", "/cmd", target, cmds], op="recover.S1.testdisk", ctx=ctx,
                   cwd=stage_dir, check=False, timeout=3600, allow_device=allow_device)
     finally:
-        link.unlink()
+        if made:
+            link.unlink()
     return parse_testdisk_log(log.read_text(errors="replace")) if log.exists() else []
 
 
@@ -122,21 +128,36 @@ def find_volumes(image: Path, stage_dir: Path, ctx, *, use_testdisk: bool = True
     def add(lba: int, src: str) -> None:
         candidates.setdefault(lba, set()).add(src)
 
-    out = audit.run(["mmls", image], op="recover.S1.mmls", ctx=ctx, check=False, allow_device=allow_device)
-    for p in parse_mmls(out.stdout) if out.returncode == 0 else []:
-        add(p["start"], "mmls")
+    notes: list[str] = []
+    if tools.available("mmls"):
+        out = audit.run(["mmls", image], op="recover.S1.mmls", ctx=ctx, check=False, allow_device=allow_device)
+        for p in parse_mmls(out.stdout) if out.returncode == 0 else []:
+            add(p["start"], "mmls")
+    else:
+        notes.append("mmls 未インストール")
     add(0, "whole")
-    if use_testdisk:
+    if use_testdisk and tools.available("testdisk"):
         for p in run_testdisk(image, stage_dir, ctx, allow_device):
             add(p["start"], "testdisk")
+    elif use_testdisk:
+        notes.append("TestDisk 未インストール")
+    boot_types: dict[int, str] = {}
     for p in scan_boot_sectors(image):
         add(p["start"], "bootscan")
+        boot_types[p["start"]] = p["fs"]
 
     volumes = []
+    have_fsstat = tools.available("fsstat")
+    if not have_fsstat:
+        notes.append("fsstat 未インストール（ブートセクタの種別で代用）")
     for lba, srcs in sorted(candidates.items()):
-        r = audit.run(["fsstat", "-t", "-o", str(lba), image], op="recover.S1.fsstat", ctx=ctx, check=False,
-                      allow_device=allow_device)
-        if r.returncode == 0 and r.stdout.strip():
-            volumes.append({"offset": lba, "fstype": r.stdout.strip(), "found_by": sorted(srcs)})
-    (stage_dir / "partitions.json").write_text(json.dumps(volumes, ensure_ascii=False, indent=1))
+        if have_fsstat:
+            r = audit.run(["fsstat", "-t", "-o", str(lba), image], op="recover.S1.fsstat", ctx=ctx, check=False,
+                          allow_device=allow_device)
+            if r.returncode == 0 and r.stdout.strip():
+                volumes.append({"offset": lba, "fstype": r.stdout.strip(), "found_by": sorted(srcs)})
+        elif lba in boot_types:
+            volumes.append({"offset": lba, "fstype": boot_types[lba], "found_by": sorted(srcs)})
+    (stage_dir / "partitions.json").write_text(json.dumps({"volumes": volumes, "notes": notes},
+                                                          ensure_ascii=False, indent=1))
     return volumes

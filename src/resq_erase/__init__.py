@@ -10,4 +10,4 @@
   E5 mobile_checklist.py / web.py  スマホ初期化代行のチェックリストと管理画面
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

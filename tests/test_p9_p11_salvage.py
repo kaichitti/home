@@ -231,4 +231,4 @@ Store: 1
     assert vss.parse_info("No Volume Shadow Snapshots found.") == 0
     mount, umount = vss.mount_commands(Path("/w/img01.dd"), 1048576, Path("/w/mnt"))
     assert mount == ["vshadowmount", "-o", "1048576", "/w/img01.dd", "/w/mnt"]
-    assert umount == ["fusermount", "-u", "/w/mnt"]
+    assert umount[0] in ("fusermount", "fusermount3") and umount[1:] == ["-u", "/w/mnt"]

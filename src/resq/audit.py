@@ -52,10 +52,19 @@ def _redact(text: str, secrets: Sequence[str]) -> str:
     return text
 
 
+def program_name(arg0: str) -> str:
+    """dd / DD.EXE / C:\\tools\\dd.exe → dd（Windows の拡張子・大文字小文字の違いを吸収）"""
+    name = os.path.basename(str(arg0).replace("\\", "/")).lower()
+    for ext in (".exe", ".com", ".bat", ".cmd"):
+        if name.endswith(ext):
+            return name[: -len(ext)]
+    return name
+
+
 def check_program(argv: Sequence[str]) -> None:
     if not argv:
         raise SafetyError("空のコマンドは実行できません")
-    prog = os.path.basename(str(argv[0]))
+    prog = program_name(argv[0])
     if prog in FORBIDDEN_PROGRAMS or prog.startswith(FORBIDDEN_PREFIXES):
         raise SafetyError(f"復旧ビルドでは '{prog}' を実行できません（原本破壊のおそれ）")
 
@@ -64,10 +73,11 @@ def check_device_args(argv: Sequence[str], allow_device: bool) -> None:
     if allow_device:
         return
     for a in argv:
-        if "/dev/" in str(a):
+        t = str(a)
+        if "/dev/" in t or t.startswith(("\\\\.\\", "\\\\?\\", "//./", "//?/")) or "PHYSICALDRIVE" in t.upper():
             raise SafetyError(
                 "実デバイスを参照する引数は allow_device=True を明示した処理でのみ使えます: "
-                f"{a}")
+                f"{t}")
 
 
 def _write_log(path: Path, record: dict) -> None:

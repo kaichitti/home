@@ -55,6 +55,20 @@ app.add_typer(mobile_app, name="mobile")
 console = Console()
 
 
+def _show_version(value: bool) -> None:
+    if value:
+        from . import __version__
+
+        console.print(f"resq {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def _main(version: bool = typer.Option(False, "--version", callback=_show_version, is_eager=True,
+                                       help="バージョンを表示して終了")):
+    pass
+
+
 def _case(case_id: str):
     ws, db = open_workspace()
     return get_case(ws, db, case_id)

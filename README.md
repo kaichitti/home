@@ -47,6 +47,22 @@ echo ST-01 | sudo tee /etc/resq-erase-station && export RESQ_ERASE_STATION_ID=ST
 
 マーカーファイルと環境変数が一致しないマシンでは、消去コマンドは**決して実行されない**（開発機・復旧機を含む）。
 
+## 実行ファイル（配布用）
+
+Python を入れずに使える単体の実行ファイルを用意している（PyInstaller）。
+
+| 配布物 | 中身 | 使う場所 |
+|---|---|---|
+| `resq-<版>-linux-x86_64.tar.gz` | `resq`（CLI）・`resq-web`（管理画面） | 復旧作業機（Ubuntu 24.04 以降）。全機能 |
+| `resq-erase-<版>-linux-x86_64.tar.gz` | `resq-erase` | 消去ステーション専用。**復旧作業機には入れない** |
+| `resq-<版>-windows-x64.zip` | `resq.exe`・`resq-web.exe` | Windows。管理画面・残骸スキャン・一覧・納品・商用エンジン取り込み等（イメージ化・解錠・消去は不可） |
+
+- ビルド：Linux は `./scripts/build_exe.sh`、Windows は `.\scripts\build_exe.ps1`（どちらもビルド後にフィクスチャで動作確認）
+- GitHub Actions（`.github/workflows/build.yml`）でテスト→Linux / Windows のビルドと動作確認を行い、成果物を保存する。
+  `v*` タグを付けるとリリースに添付する
+- 外部ツール（ddrescue・TSK・PhotoRec 等）は実行ファイルに含めない。OS のパッケージを入れる（各配布物の README を参照）
+- Windows 版は TSK / TestDisk の Windows 版を PATH に置くと S1・S2・S5・S6 も動く。無い段は「未インストールのため省略」と記録される
+
 ## 復旧の流れ（resq）
 
 ```bash

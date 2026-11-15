@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "resq"
-version = "0.1.0"
+version = "0.2.0"
 description = "来店型修理店向けデータ復旧作業ツール（復旧ビルド）"
 requires-python = ">=3.12"
 license = { text = "GPL-3.0-or-later" }
@@ -26,6 +26,7 @@ dev = ["pytest>=8", "httpx>=0.27", "qrcode>=7", "olefile>=0.46"]
 
 [project.scripts]
 resq = "resq.cli:app"
+resq-web = "resq.web:launch_main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

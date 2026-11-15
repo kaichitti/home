@@ -152,3 +152,15 @@ def test_ingest_rejects_unknown_engine(case, tmp_path):
 
     with pytest.raises(ResqError):
         ING.ingest(case, tmp_path, engine="FreeRecoveryTool")
+
+
+def test_fs_metadata_files_are_not_offered_to_customers(case, fixtures, ro):
+    """NTFS の $MFT・$LogFile 等はファイルシステムの管理用。顧客向けの候補に出さない（$RECYCLE.BIN は出す）。"""
+    from resq.recover import tsk
+
+    _prepare(case, fixtures, ro, "ntfs_qf")
+    pipeline.run(case, stages=("S1", "S2"), use_testdisk=False)
+    names = [r["orig_path"] or r["name"] for r in case.db.all("SELECT * FROM recovered_files WHERE case_id=?", case.id)]
+    assert not [n for n in names if n.split("/")[0].split(":")[0] in tsk.FS_METADATA]
+    assert not tsk._is_fs_metadata("$RECYCLE.BIN/S-1-5-21/$R1A2B3C.jpg")
+    assert tsk._is_fs_metadata("$Extend/$UsnJrnl:$J") and tsk._is_fs_metadata("$Secure:$SDS")

@@ -8,7 +8,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from .. import safety
+from .. import safety, tools
 from ..db import now
 from ..image import get_image
 from . import merge as merge_mod
@@ -38,11 +38,18 @@ def run(case, *, image_id: int | None = None, stages: tuple[str, ...] = DEFAULT_
                        started_at=started, finished_at=now(), found=found, out_dir=str(out), note=note)
 
     def step(name: str) -> bool:
-        if name in stages:
-            if on_stage:
-                on_stage(name)
-            return True
-        return False
+        if name not in stages:
+            return False
+        missing = tools.missing_for_stage(name)
+        if missing:
+            # Windows 版など、ツールが入っていない環境ではその段を省略して記録する
+            t = now()
+            record(name, "（省略）", t, 0, base, "未インストールのため省略: " + ", ".join(missing))
+            case.db.add_event(case.id, f"recover.{name}.skipped", ", ".join(missing), None)
+            return False
+        if on_stage:
+            on_stage(name)
+        return True
 
     volumes: list[dict] = []
     if NEEDS_VOLUMES & set(stages):

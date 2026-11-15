@@ -203,3 +203,20 @@ def serve(host: str = LISTEN_HOST, port: int = 8765) -> None:
     import uvicorn
 
     uvicorn.run(create_app(), host=LISTEN_HOST, port=port, log_level="warning")
+
+
+def launch_main() -> None:
+    """resq-web：管理画面を起動してブラウザで開く（Windows ではこれをダブルクリック）。"""
+    import argparse
+    import threading
+    import webbrowser
+
+    ap = argparse.ArgumentParser(prog="resq-web", description="resq 管理画面（127.0.0.1 のみ）")
+    ap.add_argument("--port", type=int, default=8765)
+    ap.add_argument("--no-browser", action="store_true", help="ブラウザを開かない")
+    args = ap.parse_args()
+    url = f"http://{LISTEN_HOST}:{args.port}/"
+    print(f"resq 管理画面: {url}  （終了するにはこの画面で Ctrl+C）")
+    if not args.no_browser:
+        threading.Timer(1.5, webbrowser.open, args=(url,)).start()
+    serve(port=args.port)

@@ -14,7 +14,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from .. import audit
+from .. import audit, tools
 from ..errors import CommandError
 from . import tsk
 from .manifest import Manifest
@@ -32,7 +32,7 @@ def parse_info(text: str) -> int:
 
 def mount_commands(image: Path, offset_bytes: int, mnt: Path) -> tuple[list[str], list[str]]:
     return (["vshadowmount", "-o", str(offset_bytes), str(image), str(mnt)],
-            ["fusermount", "-u", str(mnt)])
+            [tools.resolve("fusermount"), "-u", str(mnt)])
 
 
 def run(case, image_id: int, image: Path, volumes: list[dict], stage_dir: Path) -> Manifest:

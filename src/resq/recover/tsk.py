@@ -27,8 +27,21 @@ def parse_fls(text: str) -> list[dict]:
     return rows
 
 
+# ファイルシステムの管理用ファイル（顧客のデータではない）。$RECYCLE.BIN（ごみ箱）は顧客データなので除外しない
+FS_METADATA = {
+    "$MFT", "$MFTMirr", "$LogFile", "$Volume", "$AttrDef", "$Bitmap", "$Boot", "$BadClus", "$Secure",
+    "$UpCase", "$Extend", "$Quota", "$ObjId", "$Reparse", "$UsnJrnl", "$TxfLog", "$Tops", "$RmMetadata",
+    "$VOLUME_GUID", "$ALLOC_BITMAP", "$UPCASE_TABLE", "$TEXFAT", "$MBR", "$FAT1", "$FAT2",
+}
+
+
+def _is_fs_metadata(path: str) -> bool:
+    first = path.split("/", 1)[0].split(":", 1)[0]
+    return first in FS_METADATA
+
+
 def _is_regular(row: dict) -> bool:
-    if "(Volume Label Entry)" in row["path"]:
+    if "(Volume Label Entry)" in row["path"] or _is_fs_metadata(row["path"]):
         return False
     if row["name_type"] in ("v", "V", "d") or row["meta_type"] in ("v", "V", "d"):
         return False
