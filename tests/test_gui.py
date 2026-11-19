@@ -295,3 +295,17 @@ def test_no_network_code_in_the_apps():
                 if n in NETWORK_MODULES or n.split(".")[0] in NETWORK_MODULES:
                     bad.append(f"{f.name}:{node.lineno} {n}")
     assert bad == []
+
+
+def test_ink_check_detects_blank_screen(win):
+    """自己診断の『画面に実際に描かれているか』の確認が、空白の画面を見分けられること。"""
+    from PySide6.QtWidgets import QWidget
+
+    blank = QWidget()
+    blank.setStyleSheet("background: #ffffff;")
+    blank.resize(400, 300)
+    blank.show()
+    win.show()
+    QApplication.processEvents()
+    assert common.ink_ratio(blank) < common.MIN_INK
+    assert common.ink_ratio(win) > common.MIN_INK

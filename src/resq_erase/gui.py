@@ -17,8 +17,8 @@ from PySide6.QtWidgets import (QCheckBox, QComboBox, QDialog, QDialogButtonBox, 
                                QGridLayout, QGroupBox, QInputDialog, QLineEdit, QMainWindow, QPlainTextEdit,
                                QSplitter, QStackedWidget, QTabWidget, QVBoxLayout, QWidget)
 
-from resq.gui.common import (Dialogs, LogPanel, PathEdit, Runner, button, confirm, error, fill, form, hbox,
-                             human_bytes, info, label, make_app, noninteractive, open_local, selected_data, table)
+from resq.gui.common import (MIN_INK, Dialogs, LogPanel, PathEdit, Runner, button, confirm, error, fill, form, hbox,
+                             human_bytes, info, ink_ratio, label, make_app, noninteractive, open_local, selected_data, table)
 
 from . import __version__
 from . import certificate as C
@@ -553,10 +553,15 @@ def selftest(out: Path) -> int:
         win.add_phone_photos([str(photo)])
         win.tabs.setCurrentIndex(4)
         win.grab().save(str(out / "resq-erase-gui.png"))
+        from PySide6.QtGui import QGuiApplication
+
+        result["platform"] = QGuiApplication.platformName()
+        result["ink"] = round(ink_ratio(win), 4)
         win.do_cert()
         result["certificate"] = win.certs.rowCount() == 1
         result["messages"] = Dialogs.shown
-        result["ok"] = result["dryrun"] and result["certificate"] and (result["exec_disabled"] or ex.station_id())
+        result["ok"] = (result["dryrun"] and result["certificate"] and result["ink"] >= MIN_INK
+                        and (result["exec_disabled"] or ex.station_id()))
         win.close()
     except Exception as e:  # noqa: BLE001
         import traceback

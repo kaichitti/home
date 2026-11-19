@@ -97,10 +97,11 @@ jobs:
         with:
           name: smoke-fixtures
           path: fixtures
-      - name: ビルドと動作確認（デスクトップアプリは画面なしで自己診断）
+      - name: ビルドと動作確認（デスクトップアプリは Windows の通常の表示方式で自己診断）
         shell: pwsh
         env:
           RESQ_SMOKE_SHOTS: shots
+          QT_QPA_PLATFORM: windows
         run: ./scripts/build_exe.ps1 -Fixtures fixtures
       - uses: actions/upload-artifact@v4
         with:

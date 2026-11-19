@@ -68,7 +68,8 @@ def main() -> int:
     res = json.loads((gui_out / "selftest.json").read_text(encoding="utf-8"))
     if not res.get("ok"):
         raise SystemExit(f"FAILED: resq-gui の自己診断: {res}")
-    print("resq-gui 自己診断 OK:", res["names"], "PDF" if res["pdf"] else "HTML")
+    print("resq-gui 自己診断 OK:", res["names"], "PDF" if res["pdf"] else "HTML",
+          f"表示方式={res.get('platform')} 描画={res.get('ink')}")
     shots = Path(os.environ.get("RESQ_SMOKE_SHOTS", ""))
     if shots.name:
         shots.mkdir(parents=True, exist_ok=True)
@@ -93,7 +94,8 @@ def main() -> int:
         res = json.loads((egui / "selftest.json").read_text(encoding="utf-8"))
         if not res.get("ok"):
             raise SystemExit(f"FAILED: resq-erase-gui の自己診断: {res}")
-        print("resq-erase-gui 自己診断 OK（ドライラン・実行ボタン無効・証明書）")
+        print("resq-erase-gui 自己診断 OK（ドライラン・実行ボタン無効・証明書）",
+              f"表示方式={res.get('platform')} 描画={res.get('ink')}")
     shutil.rmtree(work, ignore_errors=True)
     print("SMOKE TEST OK")
     return 0

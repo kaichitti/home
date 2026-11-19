@@ -344,5 +344,24 @@ def setup_offscreen_if_requested(argv: list[str]) -> None:
         os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 
+def ink_ratio(widget: QWidget) -> float:
+    """画面に実際に描かれているか（文字・線など暗い画素の割合）。真っ白・空の画面なら 0 に近い。"""
+    from PySide6.QtGui import QImage
+
+    img = widget.grab().toImage().convertToFormat(QImage.Format_Grayscale8)
+    w, h, bpl = img.width(), img.height(), img.bytesPerLine()
+    data = bytes(img.constBits())[: bpl * h]
+    dark_bytes = bytes(range(110))
+    dark = total = 0
+    for y in range(0, h, 2):
+        row = data[y * bpl:y * bpl + w]
+        total += len(row)
+        dark += len(row) - len(row.translate(None, dark_bytes))
+    return dark / total if total else 0.0
+
+
+MIN_INK = 0.003  # 文字が描かれた通常の画面は 1〜2% 程度
+
+
 def frozen() -> bool:
     return bool(getattr(sys, "frozen", False))

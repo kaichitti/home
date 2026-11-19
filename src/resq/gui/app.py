@@ -25,8 +25,8 @@ from ..validate import KIND_LABEL
 from ..recover.ingest import ALLOWED_ENGINES
 from ..unlock import TYPES as UNLOCK_TYPES
 from . import tasks
-from .common import (RANK_COLOR, VERDICT_COLOR, Dialogs, LogPanel, PathEdit, Runner, button, confirm, error, fill, form,
-                     hbox, human_bytes, info, label, make_app, noninteractive, open_local, selected_data, table)
+from .common import (MIN_INK, RANK_COLOR, VERDICT_COLOR, Dialogs, LogPanel, PathEdit, Runner, button, confirm, error, fill, form,
+                     hbox, human_bytes, info, ink_ratio, label, make_app, noninteractive, open_local, selected_data, table)
 from .dialogs import ConfirmStepsDialog, DeviceDialog, DevicePickerDialog, IntakeDialog
 
 ACCENT = "#1f5f99"
@@ -779,8 +779,13 @@ def selftest(fixtures: Path, out: Path) -> int:
         result.update(names=names, missing=[n for n in expected if n not in names],
                       pdf=(cat / "list.pdf").exists(), html=(cat / "list.html").exists())
         win.grab().save(str(out / "resq-gui.png"))
+        from PySide6.QtGui import QGuiApplication
+
+        result["platform"] = QGuiApplication.platformName()
+        result["ink"] = round(ink_ratio(win), 4)  # 画面に文字などが実際に描かれていること
         result["messages"] = Dialogs.shown
-        result["ok"] = not result["missing"] and result["html"] and not [m for m in Dialogs.shown if m[0] == "error"]
+        result["ok"] = (not result["missing"] and result["html"] and result["ink"] >= MIN_INK
+                        and not [m for m in Dialogs.shown if m[0] == "error"])
         win.close()
     except Exception as e:  # noqa: BLE001
         import traceback
