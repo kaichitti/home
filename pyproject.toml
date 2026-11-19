@@ -13,20 +13,20 @@ dependencies = [
   "rich>=13",
   "jinja2>=3.1",
   "pillow>=10",
-  "fastapi>=0.110",
-  "uvicorn>=0.29",
-  "python-multipart>=0.0.9",
+  "PySide6-Essentials>=6.6",   # デスクトップアプリ（Qt）。ブラウザ・ネットワークは使わない
 ]
 
 [project.optional-dependencies]
 pdf = ["weasyprint>=60"]
 thumbs = ["olefile>=0.46"]          # Thumbs.db（Windows XP 以前）の解析
 erase = ["qrcode>=7"]               # 消去証明書の照合用 QR（消去ステーションビルドで使用）
-dev = ["pytest>=8", "httpx>=0.27", "qrcode>=7", "olefile>=0.46"]
+dev = ["pytest>=8", "qrcode>=7", "olefile>=0.46"]
 
 [project.scripts]
 resq = "resq.cli:app"
-resq-web = "resq.web:launch_main"
+
+[project.gui-scripts]
+resq-gui = "resq.gui.app:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -34,7 +34,7 @@ include = ["resq*"]
 exclude = ["resq_erase*"]  # 消去機能は復旧ビルドに含めない（企画書 §8.2）
 
 [tool.setuptools.package-data]
-resq = ["reports/templates/*.html", "reports/templates/*.css", "web/templates/*.html", "web/static/*"]
+resq = ["reports/templates/*.html", "reports/templates/*.css"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

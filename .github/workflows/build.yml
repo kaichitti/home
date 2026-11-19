@@ -25,7 +25,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends gddrescue sleuthkit testdisk smartmontools \
             dosfstools mtools ntfs-3g exfatprogs libvshadow-utils fonts-noto-cjk \
-            libpango-1.0-0 libpangoft2-1.0-0
+            libpango-1.0-0 libpangoft2-1.0-0 \
+            libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
       - name: Python パッケージ
         run: pip install -e ".[pdf,thumbs,erase,dev]"
       - name: フィクスチャ生成
@@ -54,14 +55,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends sleuthkit testdisk libpango-1.0-0 libpangoft2-1.0-0 \
-            fonts-noto-cjk
+            fonts-noto-cjk libegl1 libgl1 libxkbcommon0 libfontconfig1 libdbus-1-3
       - name: Python パッケージ
         run: pip install ".[pdf,thumbs,erase]" pyinstaller
       - uses: actions/download-artifact@v4
         with:
           name: smoke-fixtures
           path: fixtures
-      - name: ビルドと動作確認
+      - name: ビルドと動作確認（デスクトップアプリは画面なしで自己診断）
+        env:
+          RESQ_SMOKE_SHOTS: shots
         run: ./scripts/build_exe.sh
       - name: 復旧の実行ファイルに消去機能が入っていないこと
         run: |
@@ -74,6 +77,11 @@ jobs:
           path: |
             dist/resq-*-linux-x86_64.tar.gz
             dist/SHA256SUMS-linux.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-linux
+          path: shots/
+          retention-days: 14
 
   build-windows:
     needs: test
@@ -83,15 +91,22 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Python パッケージ（WeasyPrint は同梱しない）
+      - name: Python パッケージ（WeasyPrint は同梱せず、PDF は Qt で作る）
         run: pip install . olefile pyinstaller
       - uses: actions/download-artifact@v4
         with:
           name: smoke-fixtures
           path: fixtures
-      - name: ビルドと動作確認
+      - name: ビルドと動作確認（デスクトップアプリは画面なしで自己診断）
         shell: pwsh
+        env:
+          RESQ_SMOKE_SHOTS: shots
         run: ./scripts/build_exe.ps1 -Fixtures fixtures
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-windows
+          path: shots/
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: resq-windows-x64
@@ -107,6 +122,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           path: out
+          pattern: resq-*
           merge-multiple: true
       - name: リリースを作成
         env:

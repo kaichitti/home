@@ -23,18 +23,21 @@ version = "$VERSION"
 description = "消去ステーション専用ビルド（完全消去＋検証用の復旧エンジン）"
 requires-python = ">=3.12"
 license = { text = "GPL-3.0-or-later" }
-dependencies = ["typer>=0.12", "rich>=13", "jinja2>=3.1", "pillow>=10", "fastapi>=0.110", "uvicorn>=0.29",
-                "python-multipart>=0.0.9", "weasyprint>=60", "qrcode>=7"]
+dependencies = ["typer>=0.12", "rich>=13", "jinja2>=3.1", "pillow>=10", "PySide6-Essentials>=6.6",
+                "weasyprint>=60", "qrcode>=7"]
 
 [project.scripts]
 resq-erase = "resq_erase.cli:app"
+
+[project.gui-scripts]
+resq-erase-gui = "resq_erase.gui:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["resq*"]
 
 [tool.setuptools.package-data]
-resq = ["reports/templates/*.html", "reports/templates/*.css", "web/templates/*.html"]
+resq = ["reports/templates/*.html", "reports/templates/*.css"]
 resq_erase = ["templates/*.html"]
 EOF
 python3 -m pip wheel --no-deps -q -w dist "$OUT"

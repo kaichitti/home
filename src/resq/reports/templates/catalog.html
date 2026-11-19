@@ -26,6 +26,7 @@
 </style>
 </head>
 <body>
+{% set RC = {"A": "#2e7d32", "B": "#1565c0", "C": "#ef6c00", "D": "#6a1b9a", "U": "#757575"} %}
 <h1>復旧ファイル一覧</h1>
 <div class="meta">
   案件番号 {{ case.id }} ／ お客様 {{ case.customer }} 様 ／ 作成 {{ created }}
@@ -33,10 +34,10 @@
 </div>
 
 <div class="box">
-  <table>
+  <table border="1" cellspacing="0" cellpadding="4" width="100%">
     <tr><th>ランク</th><th>状態</th><th class="num">件数</th><th class="num">合計サイズ</th></tr>
     {% for r in rank_rows %}
-    <tr><td><span class="rank r{{ r.rank }}">{{ r.rank }}</span></td><td>{{ r.label }}</td>
+    <tr><td><span class="rank r{{ r.rank }}" style="background-color:{{ RC[r.rank] }}; color:#ffffff">&nbsp;{{ r.rank }}&nbsp;</span></td><td>{{ r.label }}</td>
         <td class="num">{{ r.count }}</td><td class="num">{{ r.size|bytes }}</td></tr>
     {% endfor %}
   </table>
@@ -49,13 +50,13 @@
 </div>
 
 {% for section in sections if section.files %}
-<h2><span class="rank r{{ section.rank }}">{{ section.rank }}</span> {{ section.label }}（{{ section.files|length }} 件）</h2>
-<table>
+<h2><span class="rank r{{ section.rank }}" style="background-color:{{ RC[section.rank] }}; color:#ffffff">&nbsp;{{ section.rank }}&nbsp;</span> {{ section.label }}（{{ section.files|length }} 件）</h2>
+<table border="1" cellspacing="0" cellpadding="4" width="100%">
   <tr><th>#</th><th></th><th>ファイル名 ／ 元の場所</th><th>種類</th><th class="num">サイズ</th><th>確認結果</th></tr>
   {% for f in section.files %}
   <tr>
     <td class="num">{{ f.id }}</td>
-    <td class="thumb">{% if f.thumb %}<img src="{{ f.thumb }}" alt="">{% endif %}</td>
+    <td class="thumb">{% if f.thumb %}<img src="{{ f.thumb }}" alt="" width="60">{% endif %}</td>
     <td>{{ f.name }}{% if f.orig_path %}<div class="path">{{ f.orig_path }}</div>{% elif section.rank != 'B' %}<div class="path">（元のフォルダ不明）</div>{% endif %}</td>
     <td>{{ f.kind_label }}</td>
     <td class="num">{{ f.size|bytes }}</td>
@@ -67,7 +68,7 @@
 
 {% if stages %}
 <h2>作業記録（手法別の検出件数）</h2>
-<table>
+<table border="1" cellspacing="0" cellpadding="4" width="100%">
   <tr><th>段</th><th>手法</th><th class="num">検出（重複を含む）</th><th class="num">この手法のみで検出</th></tr>
   {% for s in stages %}
   <tr><td>{{ s.stage }}</td><td>{{ s.label }}</td><td class="num">{{ s.found }}</td><td class="num">{{ s.unique }}</td></tr>

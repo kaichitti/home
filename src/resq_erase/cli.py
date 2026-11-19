@@ -10,7 +10,7 @@
   resq-erase certificate     E4 証明書の発行
   resq-erase export-verify   照合ページ用の書き出し（番号とハッシュのみ）
   resq-erase validation      月次の妥当性確認の記録・実績表
-  resq-erase web             管理画面（127.0.0.1 のみ。スマホ初期化代行のチェックリスト）
+  resq-erase gui             デスクトップアプリ（スマホ初期化代行のチェックリストなど）
 """
 from __future__ import annotations
 
@@ -23,6 +23,9 @@ from rich.console import Console
 from rich.table import Table
 
 from . import certificate as cert_mod
+from .collect import collect as _collect
+from .collect import device_size
+from .collect import lsblk_live as _lsblk_live
 from . import exec as ex
 from . import probe as probe_mod
 from . import run as run_mod
@@ -48,7 +51,6 @@ def _show_version(value: bool) -> None:
 def _main(version: bool = typer.Option(False, "--version", callback=_show_version, is_eager=True,
                                        help="バージョンを表示して終了")):
     pass
-LSBLK_COLS = "NAME,SERIAL,MODEL,SIZE,TRAN,ROTA,RM,TYPE,MOUNTPOINTS"
 
 
 def _guard(fn):
@@ -62,39 +64,6 @@ def _guard(fn):
             console.print(f"[bold red]停止:[/] {e}")
             raise typer.Exit(1) from None
     return wrapper
-
-
-def _lsblk_live(lg: Ledger) -> dict:
-    r = ex.run(["lsblk", "-J", "-b", "-o", LSBLK_COLS], ledger=lg, op="probe.lsblk")
-    return json.loads(r.stdout)
-
-
-def _collect(lg: Ledger, serial: str, mock_dir: Path | None) -> tuple[dict, dict]:
-    """識別用の出力を集める（読み取りのみ）。mock_dir があればそこから読む（訓練・テスト用）。"""
-    def mock(name: str):
-        p = mock_dir / name if mock_dir else None
-        if p and p.exists():
-            return json.loads(p.read_text(encoding="utf-8")) if p.suffix == ".json" else p.read_text(encoding="utf-8")
-        return None
-
-    if mock_dir:
-        lsblk = mock("lsblk.json") or {"blockdevices": []}
-        return lsblk, {"smartctl": mock("smartctl.json"), "hdparm_i": mock("hdparm_I.txt"),
-                       "hdparm_n": mock("hdparm_N.txt"), "nvme_id": mock("nvme_id.json")}
-    lsblk = _lsblk_live(lg)
-    dev, info = run_mod.resolve_device(lsblk, serial)
-    outs: dict = {}
-    r = ex.run(["smartctl", "-j", "-a", dev], ledger=lg, op="probe.smartctl")
-    outs["smartctl"] = json.loads(r.stdout) if r and r.stdout.strip().startswith("{") else None
-    if (info.get("tran") or "") == "nvme":
-        r = ex.run(["nvme", "id-ctrl", dev, "-o", "json"], ledger=lg, op="probe.nvme")
-        outs["nvme_id"] = json.loads(r.stdout) if r and r.returncode == 0 else None
-    else:
-        r = ex.run(["hdparm", "-I", dev], ledger=lg, op="probe.hdparm")
-        outs["hdparm_i"] = r.stdout if r else None
-        r = ex.run(["hdparm", "-N", dev], ledger=lg, op="probe.hpa")
-        outs["hdparm_n"] = r.stdout if r else None
-    return lsblk, outs
 
 
 @app.command()
@@ -187,8 +156,7 @@ def verify(serial: str, target: str = typer.Option(..., help="消去したデバ
     if expected == "auto":
         exp = b"\0" if run and ("上書き" in run["method"] or "Overwrite" in run["method"]) else None
     is_dev = target.startswith("/dev/")
-    size = int(next((d.get("size") for d in _lsblk_live(lg)["blockdevices"] if "/dev/" + d["name"] == target), 0)) \
-        if is_dev else Path(target).stat().st_size
+    size = device_size(lg, target)
     res = verify_mod.verify(lg, m["id"], target, size, expected=exp, scope=scope,
                             completion=completion or (run["completion"] if run else None),
                             run_id=run["id"] if run else None, allow_device=is_dev)
@@ -247,12 +215,11 @@ def validation_report():
 
 
 @app.command()
-def web(port: int = typer.Option(8766)):
-    """消去ステーションの管理画面（127.0.0.1 のみ）。"""
-    from .web import serve
+def gui():
+    """消去ステーションのデスクトップアプリ（画面版）を起動する。"""
+    from .gui import main
 
-    console.print(f"http://127.0.0.1:{port}/")
-    serve(port=port)
+    raise typer.Exit(main(["resq-erase-gui"]))
 
 
 if __name__ == "__main__":

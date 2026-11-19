@@ -106,3 +106,17 @@ def test_all_text_io_specifies_encoding():
             if name in ("run", "Popen") and any(k.arg == "text" for k in node.keywords) and "encoding" not in kws:
                 bad.append(f"{f.name}:{node.lineno} subprocess.{name}(text=True)")
     assert bad == []
+
+
+def test_pdf_without_weasyprint_uses_qt(case, fixtures, monkeypatch):
+    """Windows 版と同じく WeasyPrint が無い環境でも、Qt で PDF を作る（ブラウザは使わない）。"""
+    import sys
+
+    from resq.recover import ingest, merge
+
+    monkeypatch.setitem(sys.modules, "weasyprint", None)
+    ingest.ingest(case, fixtures / "corrupt", engine="DMDE")
+    merge.merge(case)
+    res = catalog.build(case, pdf=True)
+    assert res["pdf"] is not None and res["pdf"].read_bytes().startswith(b"%PDF")
+    assert res["pdf"].stat().st_size > 5000  # 本文・表・サムネイルが入っている

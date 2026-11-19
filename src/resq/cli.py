@@ -16,7 +16,7 @@
   resq wipe             作業領域の消去と消去証明書
   resq unlock           BitLocker / LUKS の解錠（回復キーは保存しない）
   resq mobile           スマホ吸い出し（iPhone / Android）
-  resq web              管理画面（127.0.0.1 のみ）
+  resq gui              デスクトップアプリ（画面版）を起動
   resq events           操作ログの表示
 """
 from __future__ import annotations
@@ -434,12 +434,11 @@ def export_serials(out: Path = typer.Argument(..., help="消去ステーショ�
 
 
 @app.command()
-def web(port: int = typer.Option(8765)):
-    """管理画面を起動する（127.0.0.1 のみ）。"""
-    from .web import serve
+def gui():
+    """デスクトップアプリ（画面版）を起動する。ブラウザもネットワークも使わない。"""
+    from .gui.app import main
 
-    console.print(f"http://127.0.0.1:{port}/")
-    serve(port=port)
+    raise typer.Exit(main(["resq-gui"]))
 
 
 def _print_report(rep: dict) -> None:

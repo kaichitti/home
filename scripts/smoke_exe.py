@@ -55,15 +55,24 @@ def main() -> int:
         if f["name"] not in html:
             raise SystemExit(f"FAILED: {f['name']} が一覧にありません")
     print("一覧に全ファイルが載りました:", [f["name"] for f in expected["images"]["ntfs_qf"]["files"]])
-    if os.name != "nt":
-        # Linux 版は WeasyPrint を同梱しているので PDF まで出ること（Windows 版は HTML のみ）
-        run("resq", "catalog", cid)
-        pdf = work / "data" / "cases" / cid / "catalog" / "list.pdf"
-        if not pdf.exists() or not pdf.read_bytes().startswith(b"%PDF"):
-            raise SystemExit("FAILED: PDF が作られていません（libpango の有無を確認）")
-        print("PDF も作成できました:", pdf.stat().st_size, "bytes")
+    # PDF：Linux 版は WeasyPrint、Windows 版は Qt で作る（どちらもブラウザは使わない）
+    run("resq", "catalog", cid)
+    pdf = work / "data" / "cases" / cid / "catalog" / "list.pdf"
+    if not pdf.exists() or not pdf.read_bytes().startswith(b"%PDF"):
+        raise SystemExit("FAILED: PDF が作られていません")
+    print("PDF も作成できました:", pdf.stat().st_size, "bytes")
     run("resq", "events", cid)
-    run("resq-web", "--help")
+    # デスクトップアプリ：画面を実際に組み立てて 受付→登録→復旧→一覧 を通す（画面のない環境でも動く）
+    gui_out = work / "gui"
+    run("resq-gui", "--selftest", str(fixtures), str(gui_out))
+    res = json.loads((gui_out / "selftest.json").read_text(encoding="utf-8"))
+    if not res.get("ok"):
+        raise SystemExit(f"FAILED: resq-gui の自己診断: {res}")
+    print("resq-gui 自己診断 OK:", res["names"], "PDF" if res["pdf"] else "HTML")
+    shots = Path(os.environ.get("RESQ_SMOKE_SHOTS", ""))
+    if shots.name:
+        shots.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(gui_out / "resq-gui.png", shots / f"resq-gui-{os.name}.png")
 
     erase = bin_dir / f"resq-erase{suffix}"
     if erase.exists():
@@ -79,6 +88,12 @@ def main() -> int:
         out = run("resq-erase", "erase", "SMOKE-HDD-0001", "--mock-dir", str(mock))
         if "ドライラン" not in out:
             raise SystemExit("FAILED: ドライランになっていません")
+        egui = work / "erase-gui"
+        run("resq-erase-gui", "--selftest", str(egui))
+        res = json.loads((egui / "selftest.json").read_text(encoding="utf-8"))
+        if not res.get("ok"):
+            raise SystemExit(f"FAILED: resq-erase-gui の自己診断: {res}")
+        print("resq-erase-gui 自己診断 OK（ドライラン・実行ボタン無効・証明書）")
     shutil.rmtree(work, ignore_errors=True)
     print("SMOKE TEST OK")
     return 0

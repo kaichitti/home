@@ -5,7 +5,7 @@
 <body>
 <h1>納品書（データ復旧）</h1>
 <div class="meta">案件番号 {{ case.id }} ／ 発行 {{ issued }}</div>
-<table>
+<table border="1" cellspacing="0" cellpadding="4" width="100%">
   <tr><th>お客様</th><td>{{ case.customer }} 様</td></tr>
   <tr><th>納品フォルダ</th><td>{{ folder }}</td></tr>
   <tr><th>ファイル数</th><td>{{ count }} 件</td></tr>
@@ -16,7 +16,7 @@
 </table>
 
 <h2>内訳</h2>
-<table>
+<table border="1" cellspacing="0" cellpadding="4" width="100%">
   <tr><th>ランク</th><th>件数</th><th>サイズ</th></tr>
   {% for rank, d in by_rank|dictsort %}
   <tr><td>{{ rank }}</td><td class="num">{{ d.count }}</td><td class="num">{{ d.bytes|bytes }}</td></tr>
@@ -24,7 +24,7 @@
 </table>
 
 <h2>納品ファイル（先頭 {{ files|length }} 件）</h2>
-<table>
+<table border="1" cellspacing="0" cellpadding="4" width="100%">
   <tr><th>相対パス</th><th>サイズ</th><th>SHA-256（先頭 16 桁）</th></tr>
   {% for f in files %}
   <tr><td>{{ f.path }}</td><td class="num">{{ f.size|bytes }}</td><td class="mono">{{ f.sha256[:16] }}</td></tr>

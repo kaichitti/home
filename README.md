@@ -18,7 +18,7 @@
 | P3b | 商用エンジン（DMDE / R-Studio）書き出し結果の取り込み・統合 | ✅ |
 | P4 | 一覧化・検証（開けるかの判定、サムネイル、顧客向け HTML/PDF） | ✅ |
 | P5 | 納品（全件ハッシュ照合・納品書）、案件ごとの LUKS2 作業領域、作業領域の消去と証明書 | ✅（LUKS は生成スクリプトを作業機で実行） |
-| P6 | 管理画面（受付・案件・状態遷移・納品対象の選択・帳票）127.0.0.1 固定 | ✅ |
+| P6 | デスクトップアプリ（受付・案件・診断・イメージ化・復旧・納品対象の選択・帳票・消去）。ブラウザ・ネットワーク不使用 | ✅ |
 | P7 | BitLocker / LUKS の解錠（回復キーは標準入力のみ、保存・記録しない） | ✅（実機は作業機で確認） |
 | P8 | スマホ吸い出し（iPhone: idevicebackup2、Android: adb）持ち主の操作確認つき | ✅（実機は作業機で確認） |
 | P9 | S3 残骸スキャン（FAT12/16/32・exFAT・NTFS）、商用エンジンとの比較レポート | ✅ |
@@ -53,9 +53,9 @@ Python を入れずに使える単体の実行ファイルを用意している�
 
 | 配布物 | 中身 | 使う場所 |
 |---|---|---|
-| `resq-<版>-linux-x86_64.tar.gz` | `resq`（CLI）・`resq-web`（管理画面） | 復旧作業機（Ubuntu 24.04 以降）。全機能 |
-| `resq-erase-<版>-linux-x86_64.tar.gz` | `resq-erase` | 消去ステーション専用。**復旧作業機には入れない** |
-| `resq-<版>-windows-x64.zip` | `resq.exe`・`resq-web.exe` | Windows。管理画面・残骸スキャン・一覧・納品・商用エンジン取り込み等（イメージ化・解錠・消去は不可） |
+| `resq-<版>-linux-x86_64.tar.gz` | `resq-gui`（デスクトップアプリ）・`resq`（CLI） | 復旧作業機（Ubuntu 24.04 以降）。全機能 |
+| `resq-erase-<版>-linux-x86_64.tar.gz` | `resq-erase-gui`・`resq-erase` | 消去ステーション専用。**復旧作業機には入れない** |
+| `resq-<版>-windows-x64.zip` | `resq-gui.exe`・`resq.exe` | Windows。案件管理・残骸スキャン・一覧（PDF）・納品・商用エンジン取り込み等（イメージ化・解錠・消去は不可） |
 
 - ビルド：Linux は `./scripts/build_exe.sh`、Windows は `.\scripts\build_exe.ps1`（どちらもビルド後にフィクスチャで動作確認）
 - GitHub Actions（`.github/workflows/build.yml`）でテスト→Linux / Windows のビルドと動作確認を行い、成果物を保存する。
@@ -82,7 +82,7 @@ resq catalog  R2611-0001                          # 顧客向け一覧（PDF）
 resq select   R2611-0001 --ranks A,B
 resq deliver  R2611-0001 /media/usb               # 全件 SHA-256 照合・納品書
 resq wipe     R2611-0001 --plan / --confirm       # 作業領域の消去と消去証明書
-resq web                                          # 管理画面 http://127.0.0.1:8765/
+resq-gui                                          # デスクトップアプリ（同じ操作を画面で）
 resq export-serials serials.json                  # 消去ステーションへ渡す「消去禁止シリアル」
 ```
 
@@ -126,7 +126,7 @@ resq-erase verify WD-WCC4E1234567 --target /dev/sdX   # 読み戻し＋復旧試
 resq-erase certificate WD-WCC4E1234567 --verify-url https://example.jp/verify
 resq-erase export-verify ./public          # 照合ページ（番号・発行日・SHA-256 のみ）
 resq-erase validation record / report      # 月次の妥当性確認と型番別の実績表
-resq-erase web                             # スマホ初期化代行のチェックリスト（127.0.0.1:8766）
+resq-erase-gui                             # デスクトップアプリ（スマホ初期化代行のチェックリスト等）
 ```
 
 方式選択（企画書 §8.3）：HDD は ATA Sanitize（なければ nwipe ゼロ 1 回＋全域検証）、SATA SSD は
@@ -141,7 +141,7 @@ frozen・HPA は解消するまで実行しない。証明書は「NIST SP 800-8
 - `/dev/` を含む引数は、診断・イメージ化・解錠の読み取りでのみ明示的に許可
 - 書き込み先は案件ディレクトリ内のみ。原本と同じ物理ディスク・容量不足は拒否
 - 回復キー・パスコードの列はない。キーは標準入力でのみ渡し、ログ・例外から伏字
-- 管理画面は 127.0.0.1 固定、Host / Origin 検査
+- 画面はデスクトップアプリ（Qt）。ブラウザもネットワークも使わない（通信部品を読み込まないことをテストで確認）
 - 復旧ビルドのホイールに `resq_erase` は含まれない（テストで確認）
 
 ## 開発（Claude Code）

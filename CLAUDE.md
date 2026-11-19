@@ -1,7 +1,7 @@
 # resq — データ復旧作業ツール
 
 ## これは何か
-来店型修理店でのデータ復旧作業を、安全な手順で行うための CLI＋ローカル管理画面。
+来店型修理店でのデータ復旧作業を、安全な手順で行うための CLI＋デスクトップアプリ（Qt）。
 復旧エンジンは OSS（GNU ddrescue, The Sleuth Kit, TestDisk/PhotoRec, cryptsetup,
 libimobiledevice, adb）を subprocess で呼び出す。エンジンは自作しない。
 自作するのは「多段で当てて統合する仕組み」（src/resq/recover/）と独自の救出処理。
@@ -19,7 +19,8 @@ libimobiledevice, adb）を subprocess で呼び出す。エンジンは自作�
 - 回復キー・パスコードを DB・ログ・ファイル・例外メッセージに出さない
   （audit.run(secrets=[...]) で伏字にする。DB に列を作らない）。
 - 顧客データを外部送信するコード（HTTP 通信、クラウド SDK）を入れない。
-- 管理画面は 127.0.0.1 以外で待ち受けない。
+- 画面はデスクトップアプリ（PySide6）。ブラウザ・Web サーバ・通信部品（socket / http / urllib 等）を使わない。
+  時間のかかる処理は別スレッドで実行し、そのスレッドでは DB を開き直す（SQLite の接続はスレッドをまたげない）。
 - 消去機能（src/resq_erase/）は消去ステーション向けビルドにのみ含める。
   resq（復旧）側から resq_erase を import できない構成にする（pyproject で除外済み）。
   逆方向（消去の検証で resq.recover を読み取り専用で呼ぶ）は可。
@@ -27,7 +28,7 @@ libimobiledevice, adb）を subprocess で呼び出す。エンジンは自作�
 - 上書きされたデータを「戻ったように見せない」。中身がゼロ・破損のファイルはランク X（ランク外）。
 
 ## 技術スタック
-Python 3.12+ / Typer / Rich / SQLite / FastAPI / Jinja2 / WeasyPrint / Pillow / pytest
+Python 3.12+ / Typer / Rich / SQLite / PySide6（Qt）/ Jinja2 / WeasyPrint（Windows は Qt で PDF）/ Pillow / pytest
 
 ## 構成
 - src/resq/audit.py      外部コマンドの唯一の窓口・監査ログ
@@ -42,7 +43,7 @@ Python 3.12+ / Typer / Rich / SQLite / FastAPI / Jinja2 / WeasyPrint / Pillow / 
 - src/resq/validate.py   種別判定・開けるかの検証（WeasyPrint が Pillow の設定を変える点に注意）
 - src/resq/catalog.py    顧客向け一覧（P4）
 - src/resq/deliver.py    納品（P5） / workspace_crypt.py LUKS 作業領域 / wipe.py 作業領域の消去
-- src/resq/web/          管理画面（P6）
+- src/resq/gui/          デスクトップアプリ（P6）。src/resq_erase/gui.py は消去ステーション版
 - src/resq/unlock.py     BitLocker / LUKS 解錠（P7）
 - src/resq/mobile/       スマホ吸い出し（P8）
 - src/resq_erase/        消去ステーション専用（E1〜E5）。scripts/build_erase_station.sh でビルド

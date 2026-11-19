@@ -5,7 +5,7 @@
 <body>
 <h1>作業データ消去証明書</h1>
 <div class="meta">証明書番号 {{ number }} ／ 発行 {{ issued }}</div>
-<table>
+<table border="1" cellspacing="0" cellpadding="4" width="100%">
   <tr><th>お客様</th><td>{{ case.customer }} 様</td></tr>
   <tr><th>案件番号</th><td>{{ case.id }}（受付 {{ case.received_at[:10] }}）</td></tr>
   <tr><th>消去の対象</th><td>データ復旧作業のために当店の作業機上に作成した、ディスクイメージ・復旧作業データ・一覧等の一式</td></tr>

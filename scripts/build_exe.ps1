@@ -1,4 +1,4 @@
-# Windows 向けの実行ファイル（resq.exe / resq-web.exe）を作る。
+# Windows 向けの実行ファイル（resq.exe / resq-gui.exe）を作る。
 # 使い方（PowerShell）: .\scripts\build_exe.ps1 [-Fixtures <フィクスチャのフォルダ>]
 param([string]$Fixtures = "fixtures")
 $ErrorActionPreference = "Stop"
@@ -14,6 +14,6 @@ if (Test-Path (Join-Path $Fixtures "expected.json")) {
 $stage = "build/pkg/resq-$version-windows-x64"
 if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
 New-Item -ItemType Directory -Force $stage | Out-Null
-Copy-Item dist/bin/resq.exe, dist/bin/resq-web.exe, packaging/README-windows.txt $stage
+Copy-Item dist/bin/resq.exe, dist/bin/resq-gui.exe, packaging/README-windows.txt $stage
 Compress-Archive -Path "$stage/*" -DestinationPath "dist/resq-$version-windows-x64.zip" -Force
 Get-FileHash "dist/resq-$version-windows-x64.zip" -Algorithm SHA256 | Format-List

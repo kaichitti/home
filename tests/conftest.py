@@ -8,6 +8,9 @@ from pathlib import Path
 
 import pytest
 
+# デスクトップアプリのテストは画面のない環境でも動かす
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
 from resq.cases import create_case, open_workspace
 from resq.config import Workspace
 from resq.intake import add_consent

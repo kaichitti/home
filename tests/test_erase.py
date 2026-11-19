@@ -12,7 +12,6 @@ import re
 from pathlib import Path
 
 import pytest
-from fastapi.testclient import TestClient
 from PIL import Image
 
 from resq_erase import certificate as C
@@ -389,29 +388,6 @@ def test_mobile_checklist_rejects_non_phone(lg):
     mid = _register(lg, "HDD-9", "HDD")
     with pytest.raises(EraseError):
         MC.save(lg, mid, {MC.ITEMS[0]: True})
-
-
-def test_erase_web_checklist_flow(tmp_path):
-    from resq_erase.web import create_app
-
-    home = tmp_path / "eh"
-    c = TestClient(create_app(home), base_url="http://127.0.0.1")
-    assert TestClient(create_app(home), base_url="http://evil.example").get("/").status_code == 403
-    r = c.post("/media/new", data={"serial": "IMEI-35000000000001", "kind": "スマホ", "requester": "佐藤",
-                                   "origin": "個人", "consent_doc": "承諾書 No.3"}, follow_redirects=False)
-    assert r.status_code == 303
-    url = r.headers["location"]
-    assert c.post(f"{url}/certificate").status_code == 400
-    buf = io.BytesIO()
-    Image.new("RGB", (40, 30), "white").save(buf, "JPEG")
-    form = {f"item_{i}": "on" for i in range(len(MC.ITEMS))}
-    r = c.post(f"{url}/checklist", data=form, files={"photo": ("setup.jpg", buf.getvalue(), "image/jpeg")},
-               follow_redirects=False)
-    assert r.status_code == 303
-    assert c.post(f"{url}/certificate", data={"operator": "店長"}, follow_redirects=False).status_code == 303
-    page = c.get(url).text
-    num = re.search(r"E-\d{8}-\d{4}", page).group(0)
-    assert c.get(f"/certificates/{num}").content.startswith(b"%PDF")
 
 
 # ---------------------------------------------------------------- ビルドの分離
