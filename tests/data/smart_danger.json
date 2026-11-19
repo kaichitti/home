@@ -1,0 +1,49 @@
+{
+ "json_format_version": [
+  1,
+  0
+ ],
+ "device": {
+  "name": "/dev/sdX",
+  "type": "sat",
+  "protocol": "ATA"
+ },
+ "model_name": "MOCK HDD 1TB",
+ "serial_number": "MOCK0001",
+ "rotation_rate": 7200,
+ "smart_status": {
+  "passed": false
+ },
+ "ata_smart_attributes": {
+  "table": [
+   {
+    "id": 5,
+    "name": "Reallocated_Sector_Ct",
+    "raw": {
+     "value": 2100
+    }
+   },
+   {
+    "id": 9,
+    "name": "Power_On_Hours",
+    "raw": {
+     "value": 12000
+    }
+   },
+   {
+    "id": 197,
+    "name": "Current_Pending_Sector",
+    "raw": {
+     "value": 640
+    }
+   },
+   {
+    "id": 198,
+    "name": "Offline_Uncorrectable",
+    "raw": {
+     "value": 640
+    }
+   }
+  ]
+ }
+}

@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(sudo *)",
+      "Bash(dd *)",
+      "Bash(mkfs*)",
+      "Bash(wipefs *)",
+      "Bash(fdisk *)",
+      "Bash(sfdisk *)",
+      "Bash(parted *)",
+      "Bash(sgdisk *)",
+      "Bash(blkdiscard *)",
+      "Bash(shred *)",
+      "Bash(hdparm *)",
+      "Bash(losetup *)",
+      "Bash(mount *)",
+      "Bash(nvme *)",
+      "Bash(nwipe *)",
+      "Bash(sg_sanitize *)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(pip install *)"
+    ],
+    "allow": [
+      "Bash(pytest *)",
+      "Bash(./scripts/make_fixtures.sh *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PROJECT_DIR}/.claude/hooks/block_devices.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

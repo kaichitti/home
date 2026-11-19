@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>作業データ消去証明書 {{ number }}</title>
+<style>{% include "_base.css" %}</style></head>
+<body>
+<h1>作業データ消去証明書</h1>
+<div class="meta">証明書番号 {{ number }} ／ 発行 {{ issued }}</div>
+<table border="1" cellspacing="0" cellpadding="4" width="100%">
+  <tr><th>お客様</th><td>{{ case.customer }} 様</td></tr>
+  <tr><th>案件番号</th><td>{{ case.id }}（受付 {{ case.received_at[:10] }}）</td></tr>
+  <tr><th>消去の対象</th><td>データ復旧作業のために当店の作業機上に作成した、ディスクイメージ・復旧作業データ・一覧等の一式</td></tr>
+  <tr><th>対象の内訳</th><td>ディスクイメージ {{ summary.images }} 件 ／ 作業ファイル {{ summary.files }} 件（{{ summary.bytes|bytes }}）／ 復旧ファイル記録 {{ summary.recovered }} 件</td></tr>
+  <tr><th>消去方法</th><td>{{ method }}</td></tr>
+  <tr><th>作業者</th><td>{{ operator or "—" }}</td></tr>
+</table>
+<p class="note">
+  本証明書は、当店の作業機上の作業データを上記の方法で消去したことを証明するものです。
+  お客様の媒体そのものの消去ではありません（媒体の消去をご希望の場合は、別途「データ消去」メニューをご利用ください）。
+  本証明書の改ざん検知用ハッシュ（SHA-256）は当店の台帳に記録しています。
+</p>
+<div class="sign"><div>発行者印</div></div>
+</body></html>

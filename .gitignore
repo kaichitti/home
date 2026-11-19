@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+.venv/
+# テスト用ディスクイメージは生成物（git 管理外）
+fixtures/
+# 作業データ（顧客データ）は絶対にコミットしない
+resq-data/
+*.img
+*.dd
+*.e01
+*.map

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ja">
+<head><meta charset="utf-8"><title>データ消去証明書 {{ number }}</title>
+<style>
+  @page { size: A4; margin: 15mm 14mm; }
+  body { font-family: "Noto Sans CJK JP","IPAexGothic","WenQuanYi Zen Hei",sans-serif; font-size: 9.5pt; color: #222; }
+  h1 { font-size: 18pt; letter-spacing: .15em; margin: 0 0 4px; }
+  h2 { font-size: 11pt; margin: 14px 0 5px; border-bottom: 2px solid #444; padding-bottom: 2px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #bbb; padding: 4px 6px; vertical-align: top; text-align: left; }
+  th { background: #eee; width: 26%; }
+  .head { display: flex; justify-content: space-between; align-items: flex-start; }
+  .meta { color: #555; } .qr img { width: 26mm; } .note { font-size: 8pt; color: #444; }
+  .photos img { max-height: 42mm; max-width: 60mm; margin: 2px 6px 2px 0; border: 1px solid #ccc; }
+  .mono { font-family: monospace; font-size: 8pt; word-break: break-all; }
+  .sign { margin-top: 18px; text-align: right; } .sign span { display: inline-block; border-bottom: 1px solid #333; width: 60mm; padding-top: 18px; }
+</style></head>
+<body>
+<div class="head">
+  <div><h1>データ消去証明書</h1><div class="meta">証明書番号 {{ number }} ／ 発行 {{ issued }}</div></div>
+  {% if qr %}<div class="qr"><img src="{{ qr }}" alt="照合用 QR"><div class="note">証明書の照合</div></div>{% endif %}
+</div>
+
+<h2>依頼者・機器</h2>
+<table>
+  <tr><th>依頼者</th><td>{{ media.requester }}（{{ media.origin }}）</td></tr>
+  <tr><th>機器</th><td>{{ media.device_maker or "—" }} {{ media.device_model or "" }}{% if media.device_serial %}（機器シリアル {{ media.device_serial }}）{% endif %}</td></tr>
+  <tr><th>媒体</th><td>{{ media.kind }} ／ {{ media.maker or "" }} {{ media.model or "" }} ／ シリアル {{ media.serial }}{% if media.capacity %} ／ {{ media.capacity|bytes }}{% endif %}</td></tr>
+  <tr><th>受付</th><td>{{ media.received_at[:16].replace("T"," ") }}</td></tr>
+</table>
+
+<h2>消去</h2>
+<table>
+  <tr><th>消去区分</th><td>{{ category }}（{{ nist_note }}）</td></tr>
+  <tr><th>方式</th><td>{{ method }}</td></tr>
+  {% if run %}<tr><th>作業時刻</th><td>開始 {{ (run.started_at or "")[:19].replace("T"," ") }} ／ 終了 {{ (run.finished_at or "")[:19].replace("T"," ") }}</td></tr>{% endif %}
+  {% if checklist %}<tr><th>初期化代行の確認</th><td>{% for k, v in checklist.items() %}{{ "☑" if v else "☐" }} {{ k }}<br>{% endfor %}</td></tr>{% endif %}
+</table>
+
+{% if ver %}
+<h2>検証</h2>
+<table>
+  <tr><th>完了ステータス</th><td>{{ completion_label }}</td></tr>
+  <tr><th>読み戻し検査</th><td>{{ "全域" if ver.readback_scope == "full" else "サンプリング" }}（{{ detail.readback.checked_bytes|bytes }} を検査）：{{ "残存データの兆候なし" if ver.readback_ok else "残存データの兆候あり" }}</td></tr>
+  <tr><th>復旧試行</th><td>当店の復旧手法（パーティション探索・ファイルシステム解析・シグネチャ探索）を読み取り専用で実施：回収 {{ ver.recovered }} 件</td></tr>
+  <tr><th>結果</th><td>{{ "合格" if ver.passed else "不合格" }}</td></tr>
+</table>
+{% endif %}
+
+{% if photos %}<h2>記録写真</h2><div class="photos">{% for p in photos %}<img src="{{ p }}">{% endfor %}</div>{% endif %}
+
+<p class="note">
+  本証明書は、上記の媒体について記載の方式で消去を行い、記載の検証を実施した結果を事実として記録したものです。
+  本証明書は NIST による認証を示すものではありません。
+  証明書 PDF の改ざん検知用ハッシュ（SHA-256）は当店の台帳に記録しており、{% if verify_base_url %}{{ verify_base_url }} {% else %}当店の照合ページ{% endif %}で証明書番号とともに照合できます。
+</p>
+<div class="sign">作業者 {{ operator or "" }} <span></span></div>
+</body></html>
